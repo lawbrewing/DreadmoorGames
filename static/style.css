@@ -1,3 +1,4 @@
+/* GLOBAL SETTINGS */
 body, html {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
@@ -21,54 +22,69 @@ body, html {
 #bar-background {
     width: 100%; height: 100%;
     background-image: url('../assets/background.png');
-    background-size: cover; /* This fixes the stretching automatically! */
+    background-size: cover;
     background-position: center;
 }
 
 /* --- THE TAP STATION (Container) --- */
+/* FIX 4: MOVED DOWN (Changed top from 25% to 35%) */
 .tap-station {
     position: absolute;
-    top: 25%; /* Adjust this to move ALL taps up/down */
+    top: 35%; 
     width: 150px; height: 400px;
-    transform: translateX(-50%); /* Centers element on its 'left' coordinate */
+    transform: translateX(-50%);
 }
 
 /* 1. TOWER */
 .tower {
     width: 120px; height: 300px;
     background-image: url('../assets/tower.png');
-    background-size: 300% 100%; /* 3 Columns */
+    background-size: 300% 100%;
     position: absolute;
     left: 15px; top: 0;
     pointer-events: none;
 }
-/* Sprite Slicing */
-#tap-0 .tower { background-position: 0% 0; }   /* Left Col */
-#tap-1 .tower { background-position: 50% 0; }  /* Center Col */
-#tap-2 .tower { background-position: 100% 0; } /* Right Col */
+#tap-0 .tower { background-position: 0% 0; }
+#tap-1 .tower { background-position: 50% 0; }
+#tap-2 .tower { background-position: 100% 0; }
 
-/* 2. HANDLE (The Pivot Fix) */
+/* 2. HANDLE */
 .handle {
     width: 80px; height: 80px;
     background-image: url('../assets/taps.png');
     background-size: 300% 200%; /* 3 Cols, 2 Rows */
     position: absolute;
-    left: 35px; top: 30px; /* Fine tune this ONCE to attach to tower */
     
-    /* THE MAGIC PIVOT */
-    transform-origin: bottom center; 
-    transition: transform 0.1s; /* Smooth animation */
+    /* FIX 2: MOVED UP (Changed top from 30px to 10px to connect higher) */
+    top: 10px; 
+    
+    /* Base Left Position */
+    left: 35px;
+    
     pointer-events: none;
     z-index: 10;
 }
-/* Sprite Slicing (Using only the CLOSED/TOP row for now) */
-#tap-0 .handle { background-position: 0% 0; }
-#tap-1 .handle { background-position: 50% 0; }
-#tap-2 .handle { background-position: 100% 0; }
 
-/* ANIMATION: When pouring, rotate the handle */
+/* COLUMN SLICING (Left/Right) */
+#tap-0 .handle { background-position-x: 0%; }
+#tap-1 .handle { background-position-x: 50%; }
+#tap-2 .handle { background-position-x: 100%; }
+
+/* FIX 3: INDIVIDUAL NUDGES (Move Hop/Barley Left) */
+#tap-1 .handle { 
+    left: 25px; /* Nudged Left by 10px */
+}
+#tap-2 .handle { 
+    left: 25px; /* Nudged Left by 10px */
+}
+
+/* FIX 1: STOP SHRINKING, SWAP IMAGE INSTEAD */
 .pouring .handle {
-    transform: rotateX(45deg) scaleY(0.8); /* "Pulls" the handle forward */
+    /* Instead of rotate, we shift the background to the BOTTOM ROW */
+    background-position-y: 100%; 
+    
+    /* If the "Open" sprites are misaligned in the file, use this to nudge them: */
+    /* transform: translate(0px, 10px); */
 }
 
 /* 3. GLASS & LIQUID */
@@ -77,31 +93,28 @@ body, html {
     bottom: 20px; left: 35px;
     width: 80px; height: 120px;
 }
-/* The Liquid (Rises up) */
 .beer-liquid {
     position: absolute;
     bottom: 0; left: 0;
-    width: 100%; height: 0%; /* Starts empty */
-    background-color: #d48600; /* Default Beer Color */
+    width: 100%; height: 0%;
+    background-color: #d48600;
     transition: height 0.1s linear;
 }
-/* The Glass Sprite (Overlay) */
 .glass-mask {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background-image: url('../assets/fullpints.png');
     background-size: 400% 100%;
-    background-position: 0% 0; /* Frame 0: Empty Glass details */
+    background-position: 0% 0;
     pointer-events: none;
 }
 
-/* 4. HITBOX (Green Box for Debugging) */
+/* 4. HITBOX */
 .hitbox {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    /* border: 2px solid lime;  <-- Uncomment to see hitboxes */
     cursor: pointer;
     z-index: 20;
 }
