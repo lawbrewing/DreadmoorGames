@@ -1,5 +1,6 @@
 /**
- * LAW ON TAP - FIX: 3 TAPS & ASPECT RATIO
+ * LAW ON TAP - FIX: ASPECT RATIO (NO STRETCHING)
+ * Version: 3.0
  */
 
 // ==========================================
@@ -9,7 +10,7 @@ const CONFIG = {
     ASSET_PATH: "https://lawbrewing.github.io/DreadmoorGames/assets/",
     WIDTH: 960,
     HEIGHT: 540,
-    DEBUG: true, // Keep true to see the Green Hitboxes for alignment
+    DEBUG: true, // Keep this ON to realign taps after background fixes
 
     // Pouring Physics
     POUR_SPEED: 40,
@@ -44,7 +45,7 @@ class Tap {
     constructor(id, x, beerType) {
         this.id = id;
         this.x = x;
-        this.y = 180; // Vertical position (adjust if hitboxes are too high/low)
+        this.y = 180; // Vertical position
         this.width = 100;
         this.height = 250;
         
@@ -65,7 +66,6 @@ class Tap {
             return;
         }
 
-        // Hitbox Check
         const isTouching = input.isDown && 
                            input.x > this.x && 
                            input.x < this.x + this.width &&
@@ -96,12 +96,11 @@ class Tap {
             console.log(`TAP ${this.id}: PERFECT!`);
             this.fillLevel = 0; 
         } else if (this.fillLevel > 10) {
-            this.fillLevel = 0; // Dump bad pour
+            this.fillLevel = 0;
         }
     }
 
     draw(ctx) {
-        // Debug Hitbox
         if (CONFIG.DEBUG) {
             ctx.strokeStyle = this.isLocked ? "red" : "lime";
             ctx.lineWidth = 2;
@@ -113,17 +112,14 @@ class Tap {
         const glassW = 80;
         const glassH = 120;
 
-        // Draw Empty Glass Placeholder
         ctx.fillStyle = "rgba(255,255,255,0.2)";
         ctx.fillRect(glassX, glassY, glassW, glassH);
 
-        // Draw Beer
         if (this.fillLevel > 0) {
             const liquidHeight = (this.fillLevel / 100) * glassH;
             ctx.fillStyle = this.beerType === 0 ? "#3b2600" : "#d48600";
             ctx.fillRect(glassX, glassY + (glassH - liquidHeight), glassW, liquidHeight);
             
-            // Perfect Line
             const perfectY = glassY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
             ctx.fillStyle = "rgba(0,255,0,0.5)";
             ctx.fillRect(glassX, perfectY, glassW, 2);
@@ -132,7 +128,7 @@ class Tap {
 }
 
 // ==========================================
-// 4. INPUT SYSTEM (FIXED)
+// 4. INPUT SYSTEM
 // ==========================================
 const Input = {
     x: 0, y: 0, isDown: false,
@@ -146,26 +142,20 @@ const Input = {
             return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
         };
 
-        // START (Touch/Click)
         const startHandler = (e) => {
             e.preventDefault();
             const pos = getPos(e);
-            this.x = pos.x; 
-            this.y = pos.y;
+            this.x = pos.x; this.y = pos.y;
             this.isDown = true;
         };
 
-        // MOVE
         const moveHandler = (e) => {
             e.preventDefault();
             const pos = getPos(e);
-            this.x = pos.x; 
-            this.y = pos.y;
+            this.x = pos.x; this.y = pos.y;
         };
 
-        // END (Listen on WINDOW to catch drags outside canvas)
         const endHandler = (e) => {
-            // e.preventDefault(); // Don't prevent default on window, might break other stuff
             this.isDown = false;
         };
 
@@ -173,8 +163,6 @@ const Input = {
         canvas.addEventListener('touchstart', startHandler, {passive: false});
         canvas.addEventListener('mousemove', moveHandler);
         canvas.addEventListener('touchmove', moveHandler, {passive: false});
-
-        // CRITICAL FIX: Listen for "Up" on the whole window
         window.addEventListener('mouseup', endHandler);
         window.addEventListener('touchend', endHandler);
     }
@@ -195,12 +183,10 @@ const Game = {
         this.canvas.height = CONFIG.HEIGHT;
         Input.init(this.canvas);
         
-        // FIX: CHANGED TO 3 TAPS
-        // Adjust these X numbers to align with your background art
-        // (Left Tap, Center Tap, Right Tap)
-        this.taps.push(new Tap(0, 250, 0)); // Stout
-        this.taps.push(new Tap(1, 430, 1)); // IPA
-        this.taps.push(new Tap(2, 610, 2)); // Lager
+        // 3 Taps - X coordinates (Left, Center, Right)
+        this.taps.push(new Tap(0, 250, 0));
+        this.taps.push(new Tap(1, 430, 1));
+        this.taps.push(new Tap(2, 610, 2));
 
         this.loadAssets();
     },
@@ -230,13 +216,13 @@ const Game = {
 
         this.taps.forEach(tap => tap.update(dt, Input));
 
-        // DRAW
+        // Draw Black Base
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0,0, CONFIG.WIDTH, CONFIG.HEIGHT);
         
-        // FIX: Draw Background PROPORTIONALLY (Cover mode)
+        // FIX: Proportional Background Drawing
         if(this.images.background) {
-            this.drawBackgroundCover(this.images.background);
+            this.drawImageProp(this.ctx, this.images.background, 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
         }
 
         this.taps.forEach(tap => tap.draw(this.ctx));
@@ -244,12 +230,18 @@ const Game = {
         requestAnimationFrame(t => this.loop(t));
     },
 
-    // Helper to draw background without stretching
-    drawBackgroundCover: function(img) {
-        // Simple draw for now - if your image is close to 16:9 it will look fine
-        // If it's wildly different, we can add complex crop logic here.
-        // For now, let's just draw it standard size to verify the "Stretch" is gone
-        this.ctx.drawImage(img, 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+    // --- MAGIC FUNCTION: SCALES IMAGE WITHOUT STRETCHING ---
+    drawImageProp: function(ctx, img, x, y, w, h) {
+        // Calculate aspect ratios
+        const r = Math.max(w / img.width, h / img.height);
+        const nw = img.width * r;
+        const nh = img.height * r;
+        
+        // Center the image (Crop equally from sides/top)
+        const cx = (w - nw) / 2;
+        const cy = (h - nh) / 2;
+        
+        ctx.drawImage(img, cx, cy, nw, nh);
     }
 };
 
