@@ -1,6 +1,6 @@
 /**
- * LAW ON TAP - FIX: ASPECT RATIO (NO STRETCHING)
- * Version: 3.0
+ * LAW ON TAP - VISUALS UPDATE: REAL GLASSWARE (SPRITES)
+ * Version: 6.0
  */
 
 // ==========================================
@@ -10,7 +10,7 @@ const CONFIG = {
     ASSET_PATH: "https://lawbrewing.github.io/DreadmoorGames/assets/",
     WIDTH: 960,
     HEIGHT: 540,
-    DEBUG: true, // Keep this ON to realign taps after background fixes
+    DEBUG: false, // Set to FALSE now that visuals are real!
 
     // Pouring Physics
     POUR_SPEED: 40,
@@ -28,7 +28,7 @@ const ASSETS = {
     tower:      "tower.png",
     taps:       "taps.png",
     spill:      "spill.png",
-    fullpints:  "fullpints.png",
+    fullpints:  "fullpints.png", // Must contain 4 frames: [Empty, Stout, IPA, Lager]
     
     // Audio
     sfx_pour:     "pour_start.mp3",
@@ -45,11 +45,11 @@ class Tap {
     constructor(id, x, beerType) {
         this.id = id;
         this.x = x;
-        this.y = 180; // Vertical position
+        this.y = 150; 
         this.width = 100;
-        this.height = 250;
+        this.height = 200;
         
-        this.beerType = beerType;
+        this.beerType = beerType; // 0=Stout, 1=IPA, 2=Lager
         this.isPouring = false;
         this.fillLevel = 0;
         this.isLocked = false;
@@ -100,29 +100,84 @@ class Tap {
         }
     }
 
-    draw(ctx) {
-        if (CONFIG.DEBUG) {
-            ctx.strokeStyle = this.isLocked ? "red" : "lime";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(this.x, this.y, this.width, this.height);
+    draw(ctx, images) {
+        // --- 1. DRAW TOWER (The Base) ---
+        if (images.tower) {
+            const towerW = images.tower.width / 3;
+            const towerH = images.tower.height;
+            // Draw slice based on ID (0, 1, 2)
+            ctx.drawImage(
+                images.tower, 
+                this.id * towerW, 0, towerW, towerH, 
+                this.x - 15, this.y, 130, 320 // Slightly larger to fit glass under
+            );
         }
 
+        // --- 2. DRAW TAP HANDLE (Animated) ---
+        if (images.taps) {
+            const tapW = images.taps.width / 3;  
+            const tapH = images.taps.height / 2; // 2 Rows (Closed / Open)
+            const row = this.isPouring ? 1 : 0; 
+            const col = this.beerType; 
+
+            ctx.drawImage(
+                images.taps,
+                col * tapW, row * tapH, tapW, tapH, 
+                this.x + 10, this.y + 20, 80, 80 
+            );
+        }
+
+        // --- 3. DRAW THE GLASS (REAL SPRITES) ---
         const glassX = this.x + 10;
-        const glassY = 350; 
+        const glassY = 380; 
         const glassW = 80;
         const glassH = 120;
 
-        ctx.fillStyle = "rgba(255,255,255,0.2)";
-        ctx.fillRect(glassX, glassY, glassW, glassH);
+        if (images.fullpints) {
+            const spriteW = images.fullpints.width / 4; // 4 Frames: Empty, Stout, IPA, Lager
+            const spriteH = images.fullpints.height;
 
-        if (this.fillLevel > 0) {
-            const liquidHeight = (this.fillLevel / 100) * glassH;
-            ctx.fillStyle = this.beerType === 0 ? "#3b2600" : "#d48600";
-            ctx.fillRect(glassX, glassY + (glassH - liquidHeight), glassW, liquidHeight);
-            
-            const perfectY = glassY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
-            ctx.fillStyle = "rgba(0,255,0,0.5)";
-            ctx.fillRect(glassX, perfectY, glassW, 2);
+            // A. Draw EMPTY Glass (Frame 0) - Always visible base
+            ctx.drawImage(
+                images.fullpints,
+                0, 0, spriteW, spriteH, // Frame 0
+                glassX, glassY, glassW, glassH
+            );
+
+            // B. Draw FULL Beer (Masked)
+            if (this.fillLevel > 0) {
+                // Determine which beer frame to use (Stout=1, IPA=2, Lager=3)
+                // Since beerType is 0,1,2 -> we add 1 to get the frame index
+                const beerFrame = this.beerType + 1;
+
+                ctx.save(); // Start Mask
+                
+                // create clipping region (bottom up)
+                const liquidH = (this.fillLevel / 100) * glassH;
+                ctx.beginPath();
+                ctx.rect(glassX, glassY + (glassH - liquidH), glassW, liquidH);
+                ctx.clip();
+
+                // Draw the Full Beer Sprite inside the mask
+                ctx.drawImage(
+                    images.fullpints,
+                    beerFrame * spriteW, 0, spriteW, spriteH,
+                    glassX, glassY, glassW, glassH
+                );
+
+                ctx.restore(); // End Mask
+                
+                // C. Perfect Line (Green Marker)
+                const perfectY = glassY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
+                ctx.fillStyle = "rgba(0,255,0,0.5)";
+                ctx.fillRect(glassX, perfectY, glassW, 2);
+            }
+        }
+
+        // --- 4. DEBUG BOX (Optional) ---
+        if (CONFIG.DEBUG) {
+            ctx.strokeStyle = this.isLocked ? "red" : "lime";
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
         }
     }
 }
@@ -141,30 +196,16 @@ const Input = {
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
         };
+        const start = (e) => { e.preventDefault(); const p=getPos(e); this.x=p.x; this.y=p.y; this.isDown=true; };
+        const move = (e) => { e.preventDefault(); const p=getPos(e); this.x=p.x; this.y=p.y; };
+        const end = (e) => { this.isDown=false; };
 
-        const startHandler = (e) => {
-            e.preventDefault();
-            const pos = getPos(e);
-            this.x = pos.x; this.y = pos.y;
-            this.isDown = true;
-        };
-
-        const moveHandler = (e) => {
-            e.preventDefault();
-            const pos = getPos(e);
-            this.x = pos.x; this.y = pos.y;
-        };
-
-        const endHandler = (e) => {
-            this.isDown = false;
-        };
-
-        canvas.addEventListener('mousedown', startHandler);
-        canvas.addEventListener('touchstart', startHandler, {passive: false});
-        canvas.addEventListener('mousemove', moveHandler);
-        canvas.addEventListener('touchmove', moveHandler, {passive: false});
-        window.addEventListener('mouseup', endHandler);
-        window.addEventListener('touchend', endHandler);
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('touchstart', start, {passive: false});
+        canvas.addEventListener('mousemove', move);
+        canvas.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('mouseup', end);
+        window.addEventListener('touchend', end);
     }
 };
 
@@ -173,8 +214,7 @@ const Input = {
 // ==========================================
 const Game = {
     canvas: null, ctx: null, images: {}, 
-    loadedCount: 0, totalAssets: 0, lastTime: 0,
-    taps: [],
+    loadedCount: 0, totalAssets: 0, lastTime: 0, taps: [],
 
     init: function() {
         this.canvas = document.getElementById('gameCanvas');
@@ -183,10 +223,10 @@ const Game = {
         this.canvas.height = CONFIG.HEIGHT;
         Input.init(this.canvas);
         
-        // 3 Taps - X coordinates (Left, Center, Right)
-        this.taps.push(new Tap(0, 250, 0));
-        this.taps.push(new Tap(1, 430, 1));
-        this.taps.push(new Tap(2, 610, 2));
+        // 3 Taps Configuration
+        this.taps.push(new Tap(0, 250, 0)); // Stout (Tap 0 -> BeerType 0)
+        this.taps.push(new Tap(1, 430, 1)); // IPA (Tap 1 -> BeerType 1)
+        this.taps.push(new Tap(2, 610, 2)); // Lager (Tap 2 -> BeerType 2)
 
         this.loadAssets();
     },
@@ -213,34 +253,23 @@ const Game = {
     loop: function(timestamp) {
         const dt = timestamp - this.lastTime;
         this.lastTime = timestamp;
-
         this.taps.forEach(tap => tap.update(dt, Input));
 
-        // Draw Black Base
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0,0, CONFIG.WIDTH, CONFIG.HEIGHT);
         
-        // FIX: Proportional Background Drawing
-        if(this.images.background) {
-            this.drawImageProp(this.ctx, this.images.background, 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
-        }
-
-        this.taps.forEach(tap => tap.draw(this.ctx));
+        if(this.images.background) this.drawImageProp(this.ctx, this.images.background, 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+        this.taps.forEach(tap => tap.draw(this.ctx, this.images));
 
         requestAnimationFrame(t => this.loop(t));
     },
 
-    // --- MAGIC FUNCTION: SCALES IMAGE WITHOUT STRETCHING ---
     drawImageProp: function(ctx, img, x, y, w, h) {
-        // Calculate aspect ratios
         const r = Math.max(w / img.width, h / img.height);
         const nw = img.width * r;
         const nh = img.height * r;
-        
-        // Center the image (Crop equally from sides/top)
         const cx = (w - nw) / 2;
         const cy = (h - nh) / 2;
-        
         ctx.drawImage(img, cx, cy, nw, nh);
     }
 };
