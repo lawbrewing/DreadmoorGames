@@ -1,36 +1,53 @@
 /**
- * LAW ON TAP - VERSION 8.0: DEBUG LOADER & TUNING
- * Feature: Tells you exactly which file is missing on the loading screen.
+ * LAW ON TAP - VERSION 9.0: GRANULAR ALIGNMENT
+ * Goal: Snap horizontal handles to towers & align glasses.
  */
 
 // ==========================================
-// 1. THE TUNING BOARD (Adjust these to fix floating handles!)
+// 1. THE TUNING BOARD (EDIT THESE NUMBERS!)
 // ==========================================
 const TUNING = {
-    // TOWER ALIGNMENT (Left/Right)
+    // --- TOWER ALIGNMENT ---
+    // Moves the TOWER base Left/Right (X) or Up/Down (Y)
     towers: [
-        { x: 10, y: 0 },   // Tap 1 (Barrel Base)
-        { x: 0, y: 0 },    // Tap 2 (Hops Base)
-        { x: -10, y: 0 }   // Tap 3 (Wheat Base)
+        { x: 15, y: 0 },   // Tap 1 (Left Tower)
+        { x: 0, y: 0 },    // Tap 2 (Middle Tower)
+        { x: -15, y: 0 }   // Tap 3 (Right Tower)
     ],
 
-    // HANDLE ALIGNMENT (Closed)
+    // --- CLOSED HANDLE ALIGNMENT ---
+    // Moves the Handle when it is UPRIGHT (Idle)
     handles: [
-        { x: 0, y: 0 },
-        { x: 0, y: 0 },
-        { x: 0, y: 0 }
+        { x: 5, y: 0 },    // Tap 1 Closed
+        { x: 0, y: 0 },    // Tap 2 Closed
+        { x: -5, y: 0 }    // Tap 3 Closed
     ],
 
-    // OPEN HANDLE FIX (The Pivot Correction)
-    // Use these to snap the "floating" open handles back to the tower
+    // --- OPEN HANDLE ALIGNMENT (The Pivot Fix) ---
+    // Since outside taps are sideways, we need BIG shifts here.
     openHandles: [
-        { x: -20, y: 25 },  // Tap 1 (Barrel on side)
-        { x: 0, y: 60 },    // Tap 2 (Hops upside down)
-        { x: 20, y: 25 }    // Tap 3 (Wheat on side)
+        // Tap 1 (Barrel): It's sideways. Try moving it LEFT (-) and DOWN (+)
+        { x: -35, y: 30 },  
+        
+        // Tap 2 (Hops): It's upside down. Just needs to go DOWN (+)
+        { x: 0, y: 60 },    
+        
+        // Tap 3 (Wheat): It's sideways. Try moving it RIGHT (+) and DOWN (+)
+        { x: 25, y: 30 }    
     ],
 
-    // GLASS LIQUID ALIGNMENT
-    liquid: { x: 0, y: 0 } 
+    // --- GLASS ALIGNMENT ---
+    // If "Full Pints" don't match "Empty Glasses", tweak this.
+    glass: {
+        // Moves the EMPTY glass
+        base_x: 0, 
+        base_y: 0,
+        
+        // Moves the LIQUID (The Filling Part) relative to the empty glass
+        // If liquid is too far right, make x negative (e.g., -5)
+        liquid_offset_x: -4, 
+        liquid_offset_y: 0  
+    }
 };
 
 // ==========================================
@@ -50,12 +67,12 @@ const CONFIG = {
 };
 
 // ==========================================
-// 3. ASSET LIST
+// 3. ASSETS
 // ==========================================
 const ASSETS = {
     background: "background.png",
     tower:      "tower.png",
-    taps:       "taps.png",      // Make sure this is .PNG, not .JPG!
+    taps:       "taps.png",
     spill:      "spill.png",
     fullpints:  "fullpints.png",
     
@@ -132,24 +149,27 @@ class Tap {
         const handleAdj = TUNING.handles[this.id];
         const openAdj = TUNING.openHandles[this.id];
 
-        // 1. TOWER
+        // 1. TOWER (Base)
         if (images.tower) {
             const towerW = images.tower.width / 3;
             const towerH = images.tower.height;
+            // Draw Tower with 'towers' adjustment
             ctx.drawImage(images.tower, this.id * towerW, 0, towerW, towerH, 
                 (this.x - 15) + towerAdj.x, this.y + towerAdj.y, 130, 320);
         }
 
-        // 2. HANDLE
+        // 2. HANDLE (The Moving Part)
         if (images.taps) {
             const tapW = images.taps.width / 3;  
             const tapH = images.taps.height / 2;
             const row = this.isPouring ? 1 : 0; 
             const col = this.beerType; 
 
+            // Base position
             let drawX = this.x + 10 + handleAdj.x;
             let drawY = this.y + 20 + handleAdj.y;
 
+            // If pouring, add the 'openHandles' adjustment
             if (this.isPouring) {
                 drawX += openAdj.x;
                 drawY += openAdj.y;
@@ -160,8 +180,8 @@ class Tap {
         }
 
         // 3. GLASS
-        const glassX = this.x + 10;
-        const glassY = 380; 
+        const glassX = this.x + 10 + TUNING.glass.base_x;
+        const glassY = 380 + TUNING.glass.base_y; 
         const glassW = 80;
         const glassH = 120;
 
@@ -169,14 +189,15 @@ class Tap {
             const spriteW = images.fullpints.width / 4;
             const spriteH = images.fullpints.height;
             
-            // Empty
+            // A. Empty Glass
             ctx.drawImage(images.fullpints, 0, 0, spriteW, spriteH, glassX, glassY, glassW, glassH);
 
-            // Full
+            // B. Full Beer (Liquid)
             if (this.fillLevel > 0) {
                 const beerFrame = this.beerType + 1;
-                const liqX = glassX + TUNING.liquid.x;
-                const liqY = glassY + TUNING.liquid.y;
+                // Add the specific Liquid Offset
+                const liqX = glassX + TUNING.glass.liquid_offset_x;
+                const liqY = glassY + TUNING.glass.liquid_offset_y;
 
                 ctx.save(); 
                 const liquidH = (this.fillLevel / 100) * glassH;
@@ -186,7 +207,7 @@ class Tap {
                 ctx.drawImage(images.fullpints, beerFrame * spriteW, 0, spriteW, spriteH, liqX, liqY, glassW, glassH);
                 ctx.restore(); 
                 
-                // Line
+                // Green Line
                 const perfectY = liqY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
                 ctx.fillStyle = "rgba(0,255,0,0.5)";
                 ctx.fillRect(liqX, perfectY, glassW, 2);
@@ -223,7 +244,7 @@ const Input = {
 };
 
 // ==========================================
-// 6. MAIN ENGINE WITH DEBUG LOADER
+// 6. MAIN ENGINE
 // ==========================================
 const Game = {
     canvas: null, ctx: null, images: {}, 
@@ -249,31 +270,11 @@ const Game = {
         const debugText = document.querySelector('#loading-screen p');
 
         keys.forEach(key => {
-            // SKIP AUDIO LOADING (Assume it works to prevent hanging)
-            if(ASSETS[key].endsWith('mp3')) { 
-                this.loadedCount++; 
-                this.checkLoad(); 
-                return; 
-            }
-
+            if(ASSETS[key].endsWith('mp3')) { this.loadedCount++; this.checkLoad(); return; }
             const img = new Image();
             img.src = CONFIG.ASSET_PATH + ASSETS[key];
-            
-            img.onload = () => { 
-                this.images[key] = img; 
-                this.loadedCount++; 
-                if(debugText) debugText.innerText = `LOADED: ${key}`;
-                this.checkLoad(); 
-            };
-            
-            img.onerror = () => { 
-                console.error("FAILED TO LOAD: " + key);
-                // SHOW ERROR ON SCREEN so user knows what to fix
-                if(debugText) {
-                    debugText.style.color = "red";
-                    debugText.innerText = `ERROR: MISSING ${ASSETS[key]}`;
-                }
-            };
+            img.onload = () => { this.images[key] = img; this.loadedCount++; this.checkLoad(); };
+            img.onerror = () => { if(debugText) debugText.innerText = `MISSING: ${key}`; };
         });
     },
 
