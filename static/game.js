@@ -1,6 +1,6 @@
 /**
- * LAW ON TAP - VERSION 9.0: GRANULAR ALIGNMENT
- * Goal: Snap horizontal handles to towers & align glasses.
+ * LAW ON TAP - VERSION 10.0: VISUAL TUNING
+ * Fixed: Aggressive offsets for rotated handles & independent glass tuning.
  */
 
 // ==========================================
@@ -8,45 +8,47 @@
 // ==========================================
 const TUNING = {
     // --- TOWER ALIGNMENT ---
-    // Moves the TOWER base Left/Right (X) or Up/Down (Y)
+    // Nudge the towers Left/Right to fit the background
     towers: [
-        { x: 15, y: 0 },   // Tap 1 (Left Tower)
-        { x: 0, y: 0 },    // Tap 2 (Middle Tower)
-        { x: -15, y: 0 }   // Tap 3 (Right Tower)
+        { x: 5, y: 0 },    // Tap 1 (Left - Brass)
+        { x: 0, y: 0 },    // Tap 2 (Center - Iron)
+        { x: -5, y: 0 }    // Tap 3 (Right - Wood)
     ],
 
     // --- CLOSED HANDLE ALIGNMENT ---
-    // Moves the Handle when it is UPRIGHT (Idle)
+    // Where the handle sits when IDLE
     handles: [
-        { x: 5, y: 0 },    // Tap 1 Closed
+        { x: 0, y: 0 },    // Tap 1 Closed
         { x: 0, y: 0 },    // Tap 2 Closed
-        { x: -5, y: 0 }    // Tap 3 Closed
+        { x: 0, y: 0 }     // Tap 3 Closed
     ],
 
-    // --- OPEN HANDLE ALIGNMENT (The Pivot Fix) ---
-    // Since outside taps are sideways, we need BIG shifts here.
+    // --- OPEN HANDLE ALIGNMENT (THE CRITICAL FIX) ---
+    // These numbers are guessed based on your sprite sheet rotation.
     openHandles: [
-        // Tap 1 (Barrel): It's sideways. Try moving it LEFT (-) and DOWN (+)
-        { x: -35, y: 30 },  
-        
-        // Tap 2 (Hops): It's upside down. Just needs to go DOWN (+)
+        // Tap 1 (Barrel): It is lying on its side (Stem is on Right).
+        // We need to move it LEFT (-60) so the stem hits the tower.
+        { x: -60, y: 20 },  
+
+        // Tap 2 (Hops): It is upside down (Stem is on Top).
+        // We need to move it DOWN (+60) so the stem hits the tower.
         { x: 0, y: 60 },    
-        
-        // Tap 3 (Wheat): It's sideways. Try moving it RIGHT (+) and DOWN (+)
-        { x: 25, y: 30 }    
+
+        // Tap 3 (Wheat): It is lying on its side (Stem is on Left).
+        // It is usually close, maybe just a small tweak.
+        { x: 10, y: 20 }    
     ],
 
     // --- GLASS ALIGNMENT ---
-    // If "Full Pints" don't match "Empty Glasses", tweak this.
     glass: {
-        // Moves the EMPTY glass
-        base_x: 0, 
-        base_y: 0,
-        
-        // Moves the LIQUID (The Filling Part) relative to the empty glass
-        // If liquid is too far right, make x negative (e.g., -5)
-        liquid_offset_x: -4, 
-        liquid_offset_y: 0  
+        // 1. Move the EMPTY glass container
+        empty_x: 0,
+        empty_y: 0,
+
+        // 2. Move the LIQUID inside the glass
+        // If the beer spills "outside" the glass lines, tweak this.
+        liquid_x: 0, 
+        liquid_y: 0  
     }
 };
 
@@ -149,16 +151,15 @@ class Tap {
         const handleAdj = TUNING.handles[this.id];
         const openAdj = TUNING.openHandles[this.id];
 
-        // 1. TOWER (Base)
+        // 1. TOWER
         if (images.tower) {
             const towerW = images.tower.width / 3;
             const towerH = images.tower.height;
-            // Draw Tower with 'towers' adjustment
             ctx.drawImage(images.tower, this.id * towerW, 0, towerW, towerH, 
                 (this.x - 15) + towerAdj.x, this.y + towerAdj.y, 130, 320);
         }
 
-        // 2. HANDLE (The Moving Part)
+        // 2. HANDLE
         if (images.taps) {
             const tapW = images.taps.width / 3;  
             const tapH = images.taps.height / 2;
@@ -169,7 +170,7 @@ class Tap {
             let drawX = this.x + 10 + handleAdj.x;
             let drawY = this.y + 20 + handleAdj.y;
 
-            // If pouring, add the 'openHandles' adjustment
+            // Apply Pivot Correction
             if (this.isPouring) {
                 drawX += openAdj.x;
                 drawY += openAdj.y;
@@ -180,8 +181,9 @@ class Tap {
         }
 
         // 3. GLASS
-        const glassX = this.x + 10 + TUNING.glass.base_x;
-        const glassY = 380 + TUNING.glass.base_y; 
+        // Base Glass Position + Empty Offset
+        const glassX = this.x + 10 + TUNING.glass.empty_x;
+        const glassY = 380 + TUNING.glass.empty_y; 
         const glassW = 80;
         const glassH = 120;
 
@@ -189,25 +191,27 @@ class Tap {
             const spriteW = images.fullpints.width / 4;
             const spriteH = images.fullpints.height;
             
-            // A. Empty Glass
+            // A. Draw EMPTY Sprite
             ctx.drawImage(images.fullpints, 0, 0, spriteW, spriteH, glassX, glassY, glassW, glassH);
 
-            // B. Full Beer (Liquid)
+            // B. Draw FULL Beer (Liquid)
             if (this.fillLevel > 0) {
                 const beerFrame = this.beerType + 1;
-                // Add the specific Liquid Offset
-                const liqX = glassX + TUNING.glass.liquid_offset_x;
-                const liqY = glassY + TUNING.glass.liquid_offset_y;
+                
+                // Calculate separate liquid position (Base + Liquid Offset)
+                const liqX = glassX + TUNING.glass.liquid_x;
+                const liqY = glassY + TUNING.glass.liquid_y;
 
                 ctx.save(); 
                 const liquidH = (this.fillLevel / 100) * glassH;
                 ctx.beginPath();
                 ctx.rect(liqX, liqY + (glassH - liquidH), glassW, liquidH);
                 ctx.clip();
+                
                 ctx.drawImage(images.fullpints, beerFrame * spriteW, 0, spriteW, spriteH, liqX, liqY, glassW, glassH);
                 ctx.restore(); 
                 
-                // Green Line
+                // Line
                 const perfectY = liqY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
                 ctx.fillStyle = "rgba(0,255,0,0.5)";
                 ctx.fillRect(liqX, perfectY, glassW, 2);
