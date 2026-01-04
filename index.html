@@ -2,30 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Law on Tap: DOM Edition</title>
+    <title>Law on Tap</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div id="game-container">
         <div id="bar-background"></div>
 
         <div id="tap-0" class="tap-station" style="left: 20%;">
-            <div class="tower"></div> <div class="handle"></div> <div class="glass">
-                <div class="beer-liquid"></div>
-                <div class="perfect-line"></div>
-                <div class="glass-mask"></div> </div>
-            <div class="hitbox"></div> </div>
+            <div class="tower"></div>
+            <div class="handle"></div>
+            <div class="glass-container">
+                <div class="empty-glass"></div>
+                <div class="liquid-mask">
+                    <div class="full-glass-sprite"></div>
+                </div>
+            </div>
+            <div class="hitbox"></div>
+        </div>
 
         <div id="tap-1" class="tap-station" style="left: 45%;">
             <div class="tower"></div>
             <div class="handle"></div>
-            <div class="glass">
-                <div class="beer-liquid"></div>
-                <div class="perfect-line"></div>
-                <div class="glass-mask"></div>
+            <div class="glass-container">
+                <div class="empty-glass"></div>
+                <div class="liquid-mask">
+                    <div class="full-glass-sprite"></div>
+                </div>
             </div>
             <div class="hitbox"></div>
         </div>
@@ -33,21 +37,18 @@
         <div id="tap-2" class="tap-station" style="left: 70%;">
             <div class="tower"></div>
             <div class="handle"></div>
-            <div class="glass">
-                <div class="beer-liquid"></div>
-                <div class="perfect-line"></div>
-                <div class="glass-mask"></div>
+            <div class="glass-container">
+                <div class="empty-glass"></div>
+                <div class="liquid-mask">
+                    <div class="full-glass-sprite"></div>
+                </div>
             </div>
             <div class="hitbox"></div>
         </div>
 
-        <div id="loading-screen">
-            <h1>LOADING SYSTEM...</h1>
-        </div>
+        <div id="loading-screen"><h1>LOADING...</h1></div>
     </div>
 
-    <div id="orientation-warning">PLEASE ROTATE DEVICE</div>
-    
-    <script src="static/game.js?v=10"></script> 
+    <script src="static/game.js?v=11"></script>
 </body>
 </html>
