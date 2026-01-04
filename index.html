@@ -2,32 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Law on Tap</title>
-    
+    <title>Law on Tap: DOM Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <link rel="stylesheet" href="static/style.css">
-    
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        
+        <div id="bar-background"></div>
+
+        <div id="tap-0" class="tap-station" style="left: 20%;">
+            <div class="tower"></div> <div class="handle"></div> <div class="glass">
+                <div class="beer-liquid"></div>
+                <div class="perfect-line"></div>
+                <div class="glass-mask"></div> </div>
+            <div class="hitbox"></div> </div>
+
+        <div id="tap-1" class="tap-station" style="left: 45%;">
+            <div class="tower"></div>
+            <div class="handle"></div>
+            <div class="glass">
+                <div class="beer-liquid"></div>
+                <div class="perfect-line"></div>
+                <div class="glass-mask"></div>
+            </div>
+            <div class="hitbox"></div>
+        </div>
+
+        <div id="tap-2" class="tap-station" style="left: 70%;">
+            <div class="tower"></div>
+            <div class="handle"></div>
+            <div class="glass">
+                <div class="beer-liquid"></div>
+                <div class="perfect-line"></div>
+                <div class="glass-mask"></div>
+            </div>
+            <div class="hitbox"></div>
+        </div>
+
         <div id="loading-screen">
-            <h1>LAW BREWING</h1>
-            <p>LOADING ASSETS...</p>
-            <div class="loader"></div>
+            <h1>LOADING SYSTEM...</h1>
         </div>
     </div>
 
-    <div id="orientation-warning">
-        <div class="icon-rotate">↻</div>
-        <p>PLEASE ROTATE DEVICE</p>
-        <p class="subtext">Landscape Mode Required</p>
-    </div>
-
-    <script src="static/game.js"></script>
+    <div id="orientation-warning">PLEASE ROTATE DEVICE</div>
+    
+    <script src="static/game.js?v=10"></script> 
 </body>
 </html>
