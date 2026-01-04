@@ -1,1 +1,139 @@
-Coming Soon!
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- 1. CONFIGURATION & ASSET REGISTRY ---
+// Swap these paths when you get higher-res versions!
+const ASSETS = {
+    background: 'assets/bar_bg.png',
+    beers: {
+        stout: 'assets/beer_stout.png',
+        ipa: 'assets/beer_ipa.png',
+        lager: 'assets/beer_lager.png'
+    },
+    customers: {
+        hipster: 'assets/cust_hipster.png',
+        regular: 'assets/cust_regular.png',
+        viking: 'assets/cust_viking.png'
+    }
+};
+
+const LANES = [150, 300, 450]; // Y-coordinates for the 3 lanes
+const BEER_SPEED = 5;
+const CUSTOMER_SPEED = 1.5;
+
+// --- 2. ENTITY CLASSES ---
+class Beer {
+    constructor(lane, type) {
+        this.lane = lane;
+        this.type = type;
+        this.x = 100; // Starting at the tap
+        this.y = LANES[lane];
+        this.width = 40;
+        this.height = 60;
+    }
+
+    update() { this.x += BEER_SPEED; }
+
+    draw() {
+        ctx.fillStyle = 'gold'; // Placeholder for beer vector
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
+
+class Customer {
+    constructor(lane, type) {
+        this.lane = lane;
+        this.type = type;
+        this.x = canvas.width; // Start from right
+        this.y = LANES[lane];
+        this.width = 50;
+        this.height = 80;
+    }
+
+    update() { this.x -= CUSTOMER_SPEED; }
+
+    draw() {
+        ctx.fillStyle = 'red'; // Placeholder for customer vector
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
+
+// --- 3. GAME STATE ---
+const gameState = {
+    beers: [],
+    customers: [],
+    score: 0,
+    lives: 3,
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        canvas.addEventListener('touchstart', (e) => this.handleTap(e));
+        this.spawnCustomer();
+        this.loop();
+    },
+    
+    resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    },
+
+    handleTap(e) {
+        const touchY = e.touches[0].clientY;
+        // Determine which lane was tapped
+        const laneIndex = LANES.findIndex(y => Math.abs(touchY - y) < 70);
+        if (laneIndex !== -1) {
+            this.beers.push(new Beer(laneIndex, 'ipa'));
+        }
+    },
+
+    spawnCustomer() {
+        const randomLane = Math.floor(Math.random() * 3);
+        this.customers.push(new Customer(randomLane, 'regular'));
+        setTimeout(() => this.spawnCustomer(), 3000); // Spawn every 3 seconds
+    },
+
+    update() {
+        this.beers.forEach(b => b.update());
+        this.customers.forEach(c => c.update());
+
+        // Collision Logic (Simplistic for now)
+        this.beers.forEach((beer, bIdx) => {
+            this.customers.forEach((cust, cIdx) => {
+                if (beer.lane === cust.lane && beer.x + beer.width > cust.x) {
+                    this.beers.splice(bIdx, 1);
+                    this.customers.splice(cIdx, 1);
+                    this.score += 10;
+                }
+            });
+        });
+    },
+
+    draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw Lanes (The Bar Tops)
+        ctx.strokeStyle = '#5c3a21';
+        LANES.forEach(y => {
+            ctx.beginPath();
+            ctx.moveTo(0, y + 60);
+            ctx.lineTo(canvas.width, y + 60);
+            ctx.stroke();
+        });
+
+        this.beers.forEach(b => b.draw());
+        this.customers.forEach(c => c.draw());
+
+        // UI
+        ctx.fillStyle = "white";
+        ctx.font = "24px Arial";
+        ctx.fillText(`Score: ${this.score}`, 20, 40);
+    },
+
+    loop() {
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.loop());
+    }
+};
+
+gameState.init();
