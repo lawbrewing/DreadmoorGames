@@ -1,85 +1,115 @@
-/* GLOBAL SETTINGS */
 body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #000; /* Black background */
-    overflow: hidden; /* No scrolling allowed */
-    touch-action: none; /* Disables "swipe to go back" gestures */
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background-color: #000;
+    overflow: hidden;
+    touch-action: none;
     font-family: 'Press Start 2P', cursive;
-    color: white;
 }
 
-/* THE GAME BOX */
 #game-container {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    /* This forces a 16:9 Aspect Ratio (Like a TV) */
     aspect-ratio: 16/9;
-    width: 100vw;
-    max-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* THE CANVAS (Actual Graphics) */
-canvas {
-    width: 100%;
-    height: 100%;
+    width: 100vw; max-height: 100vh;
     background: #111;
-    image-rendering: pixelated; /* Keeps pixel art crisp, not blurry */
-    box-shadow: 0 0 20px #000;
+    overflow: hidden;
 }
 
-/* LOADING SCREEN */
-#loading-screen {
+/* BACKGROUND */
+#bar-background {
+    width: 100%; height: 100%;
+    background-image: url('../assets/background.png');
+    background-size: cover; /* This fixes the stretching automatically! */
+    background-position: center;
+}
+
+/* --- THE TAP STATION (Container) --- */
+.tap-station {
+    position: absolute;
+    top: 25%; /* Adjust this to move ALL taps up/down */
+    width: 150px; height: 400px;
+    transform: translateX(-50%); /* Centers element on its 'left' coordinate */
+}
+
+/* 1. TOWER */
+.tower {
+    width: 120px; height: 300px;
+    background-image: url('../assets/tower.png');
+    background-size: 300% 100%; /* 3 Columns */
+    position: absolute;
+    left: 15px; top: 0;
+    pointer-events: none;
+}
+/* Sprite Slicing */
+#tap-0 .tower { background-position: 0% 0; }   /* Left Col */
+#tap-1 .tower { background-position: 50% 0; }  /* Center Col */
+#tap-2 .tower { background-position: 100% 0; } /* Right Col */
+
+/* 2. HANDLE (The Pivot Fix) */
+.handle {
+    width: 80px; height: 80px;
+    background-image: url('../assets/taps.png');
+    background-size: 300% 200%; /* 3 Cols, 2 Rows */
+    position: absolute;
+    left: 35px; top: 30px; /* Fine tune this ONCE to attach to tower */
+    
+    /* THE MAGIC PIVOT */
+    transform-origin: bottom center; 
+    transition: transform 0.1s; /* Smooth animation */
+    pointer-events: none;
+    z-index: 10;
+}
+/* Sprite Slicing (Using only the CLOSED/TOP row for now) */
+#tap-0 .handle { background-position: 0% 0; }
+#tap-1 .handle { background-position: 50% 0; }
+#tap-2 .handle { background-position: 100% 0; }
+
+/* ANIMATION: When pouring, rotate the handle */
+.pouring .handle {
+    transform: rotateX(45deg) scaleY(0.8); /* "Pulls" the handle forward */
+}
+
+/* 3. GLASS & LIQUID */
+.glass {
+    position: absolute;
+    bottom: 20px; left: 35px;
+    width: 80px; height: 120px;
+}
+/* The Liquid (Rises up) */
+.beer-liquid {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 0%; /* Starts empty */
+    background-color: #d48600; /* Default Beer Color */
+    transition: height 0.1s linear;
+}
+/* The Glass Sprite (Overlay) */
+.glass-mask {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    color: #eebb00; /* Beer Gold */
+    background-image: url('../assets/fullpints.png');
+    background-size: 400% 100%;
+    background-position: 0% 0; /* Frame 0: Empty Glass details */
+    pointer-events: none;
 }
 
-.loader {
-    border: 6px solid #333;
-    border-top: 6px solid #eebb00;
-    border-radius: 50%;
-    width: 40px; height: 40px;
-    margin-top: 20px;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-/* PORTRAIT WARNING (Hidden by default) */
-#orientation-warning {
-    display: none; /* Hidden unless logic says otherwise */
-    position: fixed;
+/* 4. HITBOX (Green Box for Debugging) */
+.hitbox {
+    position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: #8b0000; /* Alarm Red */
-    z-index: 999;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+    /* border: 2px solid lime;  <-- Uncomment to see hitboxes */
+    cursor: pointer;
+    z-index: 20;
 }
 
-.icon-rotate {
-    font-size: 5rem;
-    margin-bottom: 20px;
-}
-
-/* MAGIC: If screen is TALLER than it is WIDE (Phone held vertically) */
-@media screen and (orientation: portrait) {
-    #orientation-warning { display: flex; } /* Show Warning */
-    #game-container { display: none; }      /* Hide Game */
+#loading-screen {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: black; color: gold;
+    display: flex; justify-content: center; align-items: center;
+    z-index: 100;
 }
