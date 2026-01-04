@@ -1,11 +1,13 @@
-/* GLOBAL */
+/* GLOBAL SETTINGS */
 body, html {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
     background-color: #000;
     overflow: hidden;
     touch-action: none;
+    font-family: 'Press Start 2P', cursive;
 }
+
 #game-container {
     position: absolute;
     top: 50%; left: 50%;
@@ -14,6 +16,7 @@ body, html {
     width: 100vw; max-height: 100vh;
     background: #111;
 }
+
 #bar-background {
     width: 100%; height: 100%;
     background-image: url('../assets/background.png');
@@ -24,100 +27,101 @@ body, html {
 /* --- TAP STATION --- */
 .tap-station {
     position: absolute;
-    /* FIX: Make this taller so we can align to bottom */
     height: 350px; 
     width: 150px;
-    top: 30%; /* Move the whole group up/down here */
+    top: 35%; /* Adjust vertical position of whole unit */
     transform: translateX(-50%);
 }
 
-/* 1. TOWER (Aligned to Bottom) */
+/* 1. TOWER (Static Base) */
 .tower {
     width: 120px; height: 300px;
     background-image: url('../assets/tower.png');
     background-size: 300% 100%;
     position: absolute;
     left: 15px; 
-    bottom: 0; /* ALIGNMENT FIX: Sits on floor */
+    bottom: 0; 
     pointer-events: none;
 }
 #tap-0 .tower { background-position: 0% 0; }
 #tap-1 .tower { background-position: 50% 0; }
 #tap-2 .tower { background-position: 100% 0; }
 
-/* 2. HANDLE (The Pivot Fixes) */
+/* 2. HANDLE (The Tricky Part) */
 .handle {
-    width: 80px; height: 80px;
+    /* FIX 1: SHRINK SIZE TO PREVENT BLEEDING */
+    /* Reduced from 80px to 70px to "crop" out the neighbors */
+    width: 70px; height: 70px;
+    
     background-image: url('../assets/taps.png');
     background-size: 300% 200%;
     position: absolute;
-    /* You might need to tweak 'bottom' to match the screw height */
-    bottom: 180px; 
-    left: 35px;
+    
+    /* Adjust this to connect to the screw */
+    bottom: 190px; 
+    left: 40px; /* Re-centered slightly */
+    
     pointer-events: none;
     z-index: 10;
-    /* Align anchor point for rotation fixes */
     transform-origin: center center; 
 }
+
 /* Default Closed State */
 #tap-0 .handle { background-position: 0% 0; }
 #tap-1 .handle { background-position: 50% 0; }
 #tap-2 .handle { background-position: 100% 0; }
 
-/* --- OPEN STATE FIXES (Rotating the sideways sprites) --- */
-/* TAP 1 (Barrel): It lays on its RIGHT side. We rotate -90deg to stand it up. */
+/* --- OPEN STATE FIXES (Flipping the Rotation) --- */
+
+/* TAP 1 (Barrel): Was -90deg (Top), Now +90deg (Bottom) */
 #tap-0.pouring .handle {
     background-position-y: 100%; 
-    transform: rotate(-90deg) translate(-10px, -10px); /* Tweak translate to re-center */
+    /* Rotation flipped to put metal at bottom */
+    transform: rotate(90deg) translate(0px, 0px); 
 }
 
-/* TAP 2 (Hops): It is UPSIDE DOWN. We rotate 180deg. */
+/* TAP 2 (Hops): Middle is perfect, just keeping it consistent */
 #tap-1.pouring .handle {
     background-position-y: 100%;
-    transform: rotate(180deg) translate(0px, -10px);
+    /* 180 flip for upside down sprite */
+    transform: rotate(180deg) translate(0px, -5px);
 }
 
-/* TAP 3 (Wheat): It lays on its LEFT side. We rotate 90deg. */
+/* TAP 3 (Wheat): Was 90deg (Top), Now -90deg (Bottom) */
 #tap-2.pouring .handle {
     background-position-y: 100%;
-    transform: rotate(90deg) translate(10px, -10px);
+    /* Rotation flipped to put metal at bottom */
+    transform: rotate(-90deg) translate(0px, 0px);
 }
 
-/* 3. GLASS CONTAINER (Aligned to Bottom) */
+/* 3. GLASS & LIQUID */
 .glass-container {
     position: absolute;
-    bottom: 0; /* ALIGNMENT FIX: Matches Tower Bottom */
+    bottom: 0; 
     left: 35px;
     width: 80px; height: 120px;
 }
-
-/* EMPTY GLASS (Always Visible) */
 .empty-glass {
     width: 100%; height: 100%;
     background-image: url('../assets/fullpints.png');
     background-size: 400% 100%;
     background-position: 0% 0;
 }
-
-/* LIQUID MASK (This grows from 0% height to 100%) */
 .liquid-mask {
     position: absolute;
     bottom: 0; left: 0;
-    width: 100%; height: 0%; /* Starts Empty */
-    overflow: hidden; /* This chops off the top of the sprite */
+    width: 100%; height: 0%;
+    overflow: hidden; 
     transition: height 0.1s linear;
 }
-
-/* FULL GLASS SPRITE (Inside the mask) */
 .full-glass-sprite {
     position: absolute;
-    bottom: 0; left: 0; /* Lock to bottom of mask */
-    width: 80px; height: 120px; /* Must match glass size */
+    bottom: 0; left: 0; 
+    width: 80px; height: 120px; 
     background-image: url('../assets/fullpints.png');
     background-size: 400% 100%;
 }
-
-/* Beer Types */
+/* Beer Types (Columns) */
 #tap-0 .full-glass-sprite { background-position: 33.33% 0; } /* Stout */
 #tap-1 .full-glass-sprite { background-position: 66.66% 0; } /* IPA */
 #tap-2 .full-glass-sprite { background-position: 100% 0; }   /* Lager */
