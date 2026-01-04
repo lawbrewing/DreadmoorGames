@@ -1,16 +1,14 @@
 /**
- * LAW ON TAP - DOM ENGINE
- * Logic: Toggles CSS classes. The browser handles the graphics.
+ * LAW ON TAP - VERSION 11: SPRITE REVEAL ENGINE
  */
 
 const CONFIG = {
-    POUR_SPEED: 1.5, // Percent per frame (approx 60fps)
+    POUR_SPEED: 1.5, 
     PERFECT_MIN: 80,
     PERFECT_MAX: 96,
     SPILL_PENALTY: 2000
 };
 
-// Audio Elements (Simple Preload)
 const audio = {
     pour: new Audio("https://lawbrewing.github.io/DreadmoorGames/assets/pour_start.mp3"),
     stop: new Audio("https://lawbrewing.github.io/DreadmoorGames/assets/pour_stop.mp3"),
@@ -18,25 +16,19 @@ const audio = {
 };
 
 class TapStation {
-    constructor(elementId, beerColor) {
+    constructor(elementId, beerType) {
         this.element = document.getElementById(elementId);
-        this.liquid = this.element.querySelector('.beer-liquid');
-        this.handle = this.element.querySelector('.handle');
+        // We now target the MASK, not a color block
+        this.liquidMask = this.element.querySelector('.liquid-mask');
         this.hitbox = this.element.querySelector('.hitbox');
         
-        // State
         this.fillLevel = 0;
         this.isPouring = false;
         this.isLocked = false;
-        
-        // Setup Color
-        this.liquid.style.backgroundColor = beerColor;
 
-        // Input Events
+        // Input
         this.hitbox.addEventListener('mousedown', () => this.startPour());
         this.hitbox.addEventListener('touchstart', (e) => { e.preventDefault(); this.startPour(); });
-        
-        // Stop pouring listeners (Global)
         window.addEventListener('mouseup', () => this.stopPour());
         window.addEventListener('touchend', () => this.stopPour());
     }
@@ -44,15 +36,15 @@ class TapStation {
     startPour() {
         if(this.isLocked) return;
         this.isPouring = true;
-        this.element.classList.add('pouring'); // Triggers CSS Rotation!
+        this.element.classList.add('pouring'); 
         audio.pour.currentTime = 0;
-        audio.pour.play().catch(e => {}); // Ignore auto-play blocks
+        audio.pour.play().catch(e => {}); 
     }
 
     stopPour() {
         if(!this.isPouring) return;
         this.isPouring = false;
-        this.element.classList.remove('pouring'); // Resets CSS Rotation
+        this.element.classList.remove('pouring');
         audio.stop.currentTime = 0;
         audio.stop.play().catch(e => {});
         this.checkResult();
@@ -62,27 +54,25 @@ class TapStation {
         if (this.fillLevel >= CONFIG.PERFECT_MIN && this.fillLevel <= CONFIG.PERFECT_MAX) {
             console.log("PERFECT!");
             audio.ding.play();
-            // Reset after success
             setTimeout(() => this.reset(), 1000);
         } else if (this.fillLevel > 10) {
-            console.log("Bad Pour - Dumped");
+            console.log("Bad Pour");
             this.reset();
         }
     }
 
     reset() {
         this.fillLevel = 0;
-        this.liquid.style.height = '0%';
+        this.liquidMask.style.height = '0%';
     }
 
     update() {
         if (this.isPouring && !this.isLocked) {
             this.fillLevel += CONFIG.POUR_SPEED;
-            this.liquid.style.height = `${this.fillLevel}%`;
+            // Reveal the sprite by increasing the mask height
+            this.liquidMask.style.height = `${this.fillLevel}%`;
 
-            if (this.fillLevel >= 100) {
-                this.triggerSpill();
-            }
+            if (this.fillLevel >= 100) this.triggerSpill();
         }
     }
 
@@ -90,8 +80,6 @@ class TapStation {
         this.isLocked = true;
         this.isPouring = false;
         this.element.classList.remove('pouring');
-        console.log("SPILL!");
-        // Unlock after delay
         setTimeout(() => {
             this.isLocked = false;
             this.reset();
@@ -99,19 +87,17 @@ class TapStation {
     }
 }
 
-// Initialize Taps
+// Initialize
 const taps = [
-    new TapStation('tap-0', '#3b2600'), // Stout
-    new TapStation('tap-1', '#d48600'), // IPA
-    new TapStation('tap-2', '#ffd700')  // Lager
+    new TapStation('tap-0', 0), 
+    new TapStation('tap-1', 1), 
+    new TapStation('tap-2', 2)  
 ];
 
-// Game Loop (Just for logic updates)
 function loop() {
     taps.forEach(tap => tap.update());
     requestAnimationFrame(loop);
 }
 
-// Start
 document.getElementById('loading-screen').style.display = 'none';
 loop();
