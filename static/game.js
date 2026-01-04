@@ -1,277 +1,37 @@
-/**
- * LAW ON TAP - VISUALS UPDATE: REAL GLASSWARE (SPRITES)
- * Version: 6.0
- */
+// ==========================================
+// 1. THE TUNING BOARD (UPDATED FOR ROTATED HANDLES)
+// ==========================================
+const TUNING = {
+    // --- TOWER ALIGNMENT ---
+    // Adjusts the base towers left/right to look centered
+    towers: [
+        { x: 10, y: 0 },   // Tap 1 (Barrel Base)
+        { x: 0, y: 0 },    // Tap 2 (Hops Base)
+        { x: -10, y: 0 }   // Tap 3 (Wheat Base)
+    ],
 
-// ==========================================
-// 1. CONFIGURATION
-// ==========================================
-const CONFIG = {
-    ASSET_PATH: "https://lawbrewing.github.io/DreadmoorGames/assets/",
-    WIDTH: 960,
-    HEIGHT: 540,
-    DEBUG: false, // Set to FALSE now that visuals are real!
+    // --- HANDLE ALIGNMENT (IDLE) ---
+    // Fine-tune the position of the Closed handles
+    handles: [
+        { x: 0, y: 0 },
+        { x: 0, y: 0 },
+        { x: 0, y: 0 }
+    ],
 
-    // Pouring Physics
-    POUR_SPEED: 40,
-    PERFECT_MIN: 80,
-    PERFECT_MAX: 96,
-    OVERFLOW: 100,
-    SPILL_PENALTY: 2000
-};
-
-// ==========================================
-// 2. ASSETS
-// ==========================================
-const ASSETS = {
-    background: "background.png",
-    tower:      "tower.png",
-    taps:       "taps.png",
-    spill:      "spill.png",
-    fullpints:  "fullpints.png", // Must contain 4 frames: [Empty, Stout, IPA, Lager]
-    
-    // Audio
-    sfx_pour:     "pour_start.mp3",
-    sfx_stop:     "pour_stop.mp3",
-    sfx_ding:     "perfect_ding.mp3",
-    sfx_crash:    "crash.mp3",
-    bgm_gameplay: "bgm_gameplay.mp3"
-};
-
-// ==========================================
-// 3. THE TAP LOGIC
-// ==========================================
-class Tap {
-    constructor(id, x, beerType) {
-        this.id = id;
-        this.x = x;
-        this.y = 150; 
-        this.width = 100;
-        this.height = 200;
+    // --- OPEN HANDLE CORRECTION (THE BIG FIX) ---
+    // Shifting the rotated images so the metal stems reconnect
+    openHandles: [
+        // Tap 1 (Barrel): Lying on side -> Needs to move Left & Down
+        { x: -20, y: 25 },  
         
-        this.beerType = beerType; // 0=Stout, 1=IPA, 2=Lager
-        this.isPouring = false;
-        this.fillLevel = 0;
-        this.isLocked = false;
-        this.lockTimer = 0;
-    }
-
-    update(dt, input) {
-        if (this.isLocked) {
-            this.lockTimer -= dt;
-            if (this.lockTimer <= 0) {
-                this.isLocked = false;
-                this.fillLevel = 0;
-            }
-            return;
-        }
-
-        const isTouching = input.isDown && 
-                           input.x > this.x && 
-                           input.x < this.x + this.width &&
-                           input.y > this.y && 
-                           input.y < this.y + this.height;
-
-        if (isTouching) {
-            if (!this.isPouring) this.isPouring = true;
-            this.fillLevel += (CONFIG.POUR_SPEED * (dt / 1000));
-            if (this.fillLevel >= CONFIG.OVERFLOW) this.triggerSpill();
-        } else {
-            if (this.isPouring) {
-                this.isPouring = false;
-                this.checkResult();
-            }
-        }
-    }
-
-    triggerSpill() {
-        console.log(`TAP ${this.id}: SPILL!`);
-        this.isLocked = true;
-        this.lockTimer = CONFIG.SPILL_PENALTY;
-        this.isPouring = false;
-    }
-
-    checkResult() {
-        if (this.fillLevel >= CONFIG.PERFECT_MIN && this.fillLevel < CONFIG.PERFECT_MAX) {
-            console.log(`TAP ${this.id}: PERFECT!`);
-            this.fillLevel = 0; 
-        } else if (this.fillLevel > 10) {
-            this.fillLevel = 0;
-        }
-    }
-
-    draw(ctx, images) {
-        // --- 1. DRAW TOWER (The Base) ---
-        if (images.tower) {
-            const towerW = images.tower.width / 3;
-            const towerH = images.tower.height;
-            // Draw slice based on ID (0, 1, 2)
-            ctx.drawImage(
-                images.tower, 
-                this.id * towerW, 0, towerW, towerH, 
-                this.x - 15, this.y, 130, 320 // Slightly larger to fit glass under
-            );
-        }
-
-        // --- 2. DRAW TAP HANDLE (Animated) ---
-        if (images.taps) {
-            const tapW = images.taps.width / 3;  
-            const tapH = images.taps.height / 2; // 2 Rows (Closed / Open)
-            const row = this.isPouring ? 1 : 0; 
-            const col = this.beerType; 
-
-            ctx.drawImage(
-                images.taps,
-                col * tapW, row * tapH, tapW, tapH, 
-                this.x + 10, this.y + 20, 80, 80 
-            );
-        }
-
-        // --- 3. DRAW THE GLASS (REAL SPRITES) ---
-        const glassX = this.x + 10;
-        const glassY = 380; 
-        const glassW = 80;
-        const glassH = 120;
-
-        if (images.fullpints) {
-            const spriteW = images.fullpints.width / 4; // 4 Frames: Empty, Stout, IPA, Lager
-            const spriteH = images.fullpints.height;
-
-            // A. Draw EMPTY Glass (Frame 0) - Always visible base
-            ctx.drawImage(
-                images.fullpints,
-                0, 0, spriteW, spriteH, // Frame 0
-                glassX, glassY, glassW, glassH
-            );
-
-            // B. Draw FULL Beer (Masked)
-            if (this.fillLevel > 0) {
-                // Determine which beer frame to use (Stout=1, IPA=2, Lager=3)
-                // Since beerType is 0,1,2 -> we add 1 to get the frame index
-                const beerFrame = this.beerType + 1;
-
-                ctx.save(); // Start Mask
-                
-                // create clipping region (bottom up)
-                const liquidH = (this.fillLevel / 100) * glassH;
-                ctx.beginPath();
-                ctx.rect(glassX, glassY + (glassH - liquidH), glassW, liquidH);
-                ctx.clip();
-
-                // Draw the Full Beer Sprite inside the mask
-                ctx.drawImage(
-                    images.fullpints,
-                    beerFrame * spriteW, 0, spriteW, spriteH,
-                    glassX, glassY, glassW, glassH
-                );
-
-                ctx.restore(); // End Mask
-                
-                // C. Perfect Line (Green Marker)
-                const perfectY = glassY + glassH - ((CONFIG.PERFECT_MIN/100) * glassH);
-                ctx.fillStyle = "rgba(0,255,0,0.5)";
-                ctx.fillRect(glassX, perfectY, glassW, 2);
-            }
-        }
-
-        // --- 4. DEBUG BOX (Optional) ---
-        if (CONFIG.DEBUG) {
-            ctx.strokeStyle = this.isLocked ? "red" : "lime";
-            ctx.strokeRect(this.x, this.y, this.width, this.height);
-        }
-    }
-}
-
-// ==========================================
-// 4. INPUT SYSTEM
-// ==========================================
-const Input = {
-    x: 0, y: 0, isDown: false,
-    init: function(canvas) {
-        const getPos = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-        };
-        const start = (e) => { e.preventDefault(); const p=getPos(e); this.x=p.x; this.y=p.y; this.isDown=true; };
-        const move = (e) => { e.preventDefault(); const p=getPos(e); this.x=p.x; this.y=p.y; };
-        const end = (e) => { this.isDown=false; };
-
-        canvas.addEventListener('mousedown', start);
-        canvas.addEventListener('touchstart', start, {passive: false});
-        canvas.addEventListener('mousemove', move);
-        canvas.addEventListener('touchmove', move, {passive: false});
-        window.addEventListener('mouseup', end);
-        window.addEventListener('touchend', end);
-    }
-};
-
-// ==========================================
-// 5. MAIN ENGINE
-// ==========================================
-const Game = {
-    canvas: null, ctx: null, images: {}, 
-    loadedCount: 0, totalAssets: 0, lastTime: 0, taps: [],
-
-    init: function() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.canvas.width = CONFIG.WIDTH;
-        this.canvas.height = CONFIG.HEIGHT;
-        Input.init(this.canvas);
+        // Tap 2 (Hops): Upside down -> Needs to move WAY Down
+        { x: 0, y: 55 },    
         
-        // 3 Taps Configuration
-        this.taps.push(new Tap(0, 250, 0)); // Stout (Tap 0 -> BeerType 0)
-        this.taps.push(new Tap(1, 430, 1)); // IPA (Tap 1 -> BeerType 1)
-        this.taps.push(new Tap(2, 610, 2)); // Lager (Tap 2 -> BeerType 2)
+        // Tap 3 (Wheat): Lying on side -> Needs to move Right & Down
+        { x: 20, y: 25 }    
+    ],
 
-        this.loadAssets();
-    },
-
-    loadAssets: function() {
-        const keys = Object.keys(ASSETS);
-        this.totalAssets = keys.length;
-        keys.forEach(key => {
-            if(ASSETS[key].endsWith('mp3')) { this.loadedCount++; this.checkLoad(); return; }
-            const img = new Image();
-            img.src = CONFIG.ASSET_PATH + ASSETS[key];
-            img.onload = () => { this.images[key] = img; this.loadedCount++; this.checkLoad(); };
-            img.onerror = () => { console.log("Missing: " + key); this.loadedCount++; this.checkLoad(); };
-        });
-    },
-
-    checkLoad: function() {
-        if (this.loadedCount >= this.totalAssets) {
-            document.getElementById('loading-screen').style.display = 'none';
-            requestAnimationFrame(t => this.loop(t));
-        }
-    },
-
-    loop: function(timestamp) {
-        const dt = timestamp - this.lastTime;
-        this.lastTime = timestamp;
-        this.taps.forEach(tap => tap.update(dt, Input));
-
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0,0, CONFIG.WIDTH, CONFIG.HEIGHT);
-        
-        if(this.images.background) this.drawImageProp(this.ctx, this.images.background, 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
-        this.taps.forEach(tap => tap.draw(this.ctx, this.images));
-
-        requestAnimationFrame(t => this.loop(t));
-    },
-
-    drawImageProp: function(ctx, img, x, y, w, h) {
-        const r = Math.max(w / img.width, h / img.height);
-        const nw = img.width * r;
-        const nh = img.height * r;
-        const cx = (w - nw) / 2;
-        const cy = (h - nh) / 2;
-        ctx.drawImage(img, cx, cy, nw, nh);
-    }
+    // --- GLASS ALIGNMENT ---
+    // Line up the beer liquid with the empty glass sprite
+    liquid: { x: 0, y: 0 } 
 };
-
-window.onload = () => Game.init();
