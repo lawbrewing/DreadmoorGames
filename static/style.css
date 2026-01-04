@@ -1,1 +1,85 @@
+/* GLOBAL SETTINGS */
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000; /* Black background */
+    overflow: hidden; /* No scrolling allowed */
+    touch-action: none; /* Disables "swipe to go back" gestures */
+    font-family: 'Press Start 2P', cursive;
+    color: white;
+}
 
+/* THE GAME BOX */
+#game-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* This forces a 16:9 Aspect Ratio (Like a TV) */
+    aspect-ratio: 16/9;
+    width: 100vw;
+    max-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* THE CANVAS (Actual Graphics) */
+canvas {
+    width: 100%;
+    height: 100%;
+    background: #111;
+    image-rendering: pixelated; /* Keeps pixel art crisp, not blurry */
+    box-shadow: 0 0 20px #000;
+}
+
+/* LOADING SCREEN */
+#loading-screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    color: #eebb00; /* Beer Gold */
+}
+
+.loader {
+    border: 6px solid #333;
+    border-top: 6px solid #eebb00;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    margin-top: 20px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* PORTRAIT WARNING (Hidden by default) */
+#orientation-warning {
+    display: none; /* Hidden unless logic says otherwise */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #8b0000; /* Alarm Red */
+    z-index: 999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.icon-rotate {
+    font-size: 5rem;
+    margin-bottom: 20px;
+}
+
+/* MAGIC: If screen is TALLER than it is WIDE (Phone held vertically) */
+@media screen and (orientation: portrait) {
+    #orientation-warning { display: flex; } /* Show Warning */
+    #game-container { display: none; }      /* Hide Game */
+}
