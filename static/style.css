@@ -29,11 +29,11 @@ body, html {
     position: absolute;
     height: 350px; 
     width: 150px;
-    top: 35%; /* Adjust vertical position of whole unit */
+    top: 35%;
     transform: translateX(-50%);
 }
 
-/* 1. TOWER (Static Base) */
+/* 1. TOWER */
 .tower {
     width: 120px; height: 300px;
     background-image: url('../assets/tower.png');
@@ -47,19 +47,23 @@ body, html {
 #tap-1 .tower { background-position: 50% 0; }
 #tap-2 .tower { background-position: 100% 0; }
 
-/* 2. HANDLE (The Tricky Part) */
+/* 2. HANDLE (Tight Crop & Higher Position) */
 .handle {
-    /* FIX 1: SHRINK SIZE TO PREVENT BLEEDING */
-    /* Reduced from 80px to 70px to "crop" out the neighbors */
-    width: 70px; height: 70px;
+    /* FIX 1: TIGHTER CROP */
+    /* Reduced to 60px to stop "bleeding" from neighbors */
+    width: 60px; height: 60px;
     
     background-image: url('../assets/taps.png');
     background-size: 300% 200%;
     position: absolute;
     
-    /* Adjust this to connect to the screw */
-    bottom: 190px; 
-    left: 40px; /* Re-centered slightly */
+    /* FIX 2: MOVED UP (Baseline Adjustment) */
+    /* Increased from 190px to 200px */
+    bottom: 200px; 
+    
+    /* FIX 3: RE-CENTERED */
+    /* Moved from 40px to 45px to account for smaller width */
+    left: 45px; 
     
     pointer-events: none;
     z-index: 10;
@@ -71,26 +75,23 @@ body, html {
 #tap-1 .handle { background-position: 50% 0; }
 #tap-2 .handle { background-position: 100% 0; }
 
-/* --- OPEN STATE FIXES (Flipping the Rotation) --- */
+/* --- OPEN STATE FIXES --- */
 
-/* TAP 1 (Barrel): Was -90deg (Top), Now +90deg (Bottom) */
+/* TAP 1 (Barrel): Rotate 90deg (Metal to bottom) */
 #tap-0.pouring .handle {
     background-position-y: 100%; 
-    /* Rotation flipped to put metal at bottom */
     transform: rotate(90deg) translate(0px, 0px); 
 }
 
-/* TAP 2 (Hops): Middle is perfect, just keeping it consistent */
+/* TAP 2 (Hops): Rotate 180deg (Metal to bottom) */
 #tap-1.pouring .handle {
     background-position-y: 100%;
-    /* 180 flip for upside down sprite */
     transform: rotate(180deg) translate(0px, -5px);
 }
 
-/* TAP 3 (Wheat): Was 90deg (Top), Now -90deg (Bottom) */
+/* TAP 3 (Wheat): Rotate -90deg (Metal to bottom) */
 #tap-2.pouring .handle {
     background-position-y: 100%;
-    /* Rotation flipped to put metal at bottom */
     transform: rotate(-90deg) translate(0px, 0px);
 }
 
@@ -121,10 +122,9 @@ body, html {
     background-image: url('../assets/fullpints.png');
     background-size: 400% 100%;
 }
-/* Beer Types (Columns) */
-#tap-0 .full-glass-sprite { background-position: 33.33% 0; } /* Stout */
-#tap-1 .full-glass-sprite { background-position: 66.66% 0; } /* IPA */
-#tap-2 .full-glass-sprite { background-position: 100% 0; }   /* Lager */
+#tap-0 .full-glass-sprite { background-position: 33.33% 0; }
+#tap-1 .full-glass-sprite { background-position: 66.66% 0; }
+#tap-2 .full-glass-sprite { background-position: 100% 0; }
 
 /* 4. HITBOX */
 .hitbox {
