@@ -1,12 +1,7 @@
-/**
- * TAPROOM TAPPER - TOWER SLICER FIX
- * 1. Slices tower.png into 3 distinct towers
- * 2. Maintains alignment with animated handles
- */
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- 1. CONFIGURATION ---
 const CONFIG = {
     BarHeight: window.innerHeight * 0.40, 
     TapY: window.innerHeight * 0.65, 
@@ -15,6 +10,7 @@ const CONFIG = {
     BeerSpeed: 12,
 };
 
+// --- 2. ASSETS ---
 const ASSETS = {
     bg: 'assets/background.png',
     beers: 'assets/fullpints.png',
@@ -30,37 +26,18 @@ const ASSETS = {
     }
 };
 
-const SPRITE_DATA = {
-    customer: { h: 600 },
-    tower: { 
-        h: 350,
-        cols: 3 // Set this to 3 since you have 3 towers on the sheet
-    },
-    taps: {
-        h: 150,
-        cols: 3,
-        rows: 2,
-        offsetY: -110 
-    },
-    beer: {
-        w: 64, 
-        h: 64,
-        scale: 2.0
-    }
-};
-
+// --- 3. THE CALIBRATION TABLE ---
 const SPRITE_DATA = {
     customer: { h: 600 },
     tower: { h: 350, cols: 3 },
-    // BEER GLASSES
     beer: { w: 64, h: 64, scale: 2.0 },
     
-    // CALIBRATION SECTION
-    // Adjust these numbers for each tap (0=Left, 1=Center, 2=Right)
+    // ADJUST THESE INDEPENDENTLY
+    // 0 = Left, 1 = Center, 2 = Right
     taps: [
-        { h: 150, offsetX: 0, offsetY: -110 }, // Tap 0 (Left)
-        { h: 150, offsetX: 0, offsetY: -110 }, // Tap 1 (Center)
-        { h: 150, offsetX: 0, offsetY: -110 }  // Tap 2 (Right)
+        { h: 150, offsetX: 0, offsetY: -110 }, // Left
+        { h: 150, offsetX: 0, offsetY: -110 }, // Center
+        { h: 150, offsetX: 0, offsetY: -110 }  // Right
     ]
 };
 
@@ -73,12 +50,12 @@ class Game {
         this.taps = [];
         this.timer = 0;
         
+        // Initialize Taps safely
         CONFIG.Stations.forEach((xRatio, index) => {
-            // We now pass the specific calibration data to each tap
-            const calibration = SPRITE_DATA.taps[index];
+            const calibration = SPRITE_DATA.taps[index] || { h: 150, offsetX: 0, offsetY: -110 };
             this.taps.push(new TapStation(index, xRatio, calibration));
         });
-        
+
         const handleInput = (e) => {
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
@@ -123,7 +100,7 @@ class TapStation {
         this.index = index;
         this.x = canvas.width * xRatio;
         this.y = CONFIG.TapY;
-        this.cal = calibration; // Store the specific offsets
+        this.cal = calibration;
         this.pulled = false;
         this.pullTimer = 0;
     }
@@ -141,28 +118,20 @@ class TapStation {
     }
 
     draw() {
-        // 1. Draw Tower
         if (assets.tower) {
             const sT = SPRITE_DATA.tower;
             const frameW = assets.tower.width / sT.cols;
             const frameH = assets.tower.height;
             const drawW = sT.h * (frameW / frameH);
-            
-            ctx.drawImage(
-                assets.tower,
-                this.index * frameW, 0, frameW, frameH,
-                this.x - (drawW/2), this.y, drawW, sT.h
-            );
+            ctx.drawImage(assets.tower, this.index * frameW, 0, frameW, frameH, this.x - (drawW/2), this.y, drawW, sT.h);
         }
 
-        // 2. Draw Handle (Independently Calibrated)
         if (assets.taps) {
-            const frameW = assets.taps.width / 3; // 3 columns
-            const frameH = assets.taps.height / 2; // 2 rows (closed/open)
+            const frameW = assets.taps.width / 3;
+            const frameH = assets.taps.height / 2;
             const drawW = this.cal.h * (frameW / frameH);
             const row = this.pulled ? 1 : 0;
 
-            // We use this.cal.offsetX and this.cal.offsetY here
             ctx.drawImage(
                 assets.taps,
                 this.index * frameW, row * frameH, frameW, frameH,
@@ -177,19 +146,13 @@ class TapStation {
 
 class Beer {
     constructor(x, y, typeIndex) {
-        this.x = x;
-        this.y = y;
-        this.typeIndex = typeIndex; 
+        this.x = x; this.y = y; this.typeIndex = typeIndex; 
     }
     update() { this.y -= CONFIG.BeerSpeed; }
     draw() {
         if (assets.beers) {
             const s = SPRITE_DATA.beer;
-            ctx.drawImage(
-                assets.beers,
-                this.typeIndex * s.w, 0, s.w, s.h,
-                this.x - (s.w * s.scale / 2), this.y, s.w * s.scale, s.h * s.scale
-            );
+            ctx.drawImage(assets.beers, this.typeIndex * s.w, 0, s.w, s.h, this.x - (s.w * s.scale / 2), this.y, s.w * s.scale, s.h * s.scale);
         }
     }
 }
@@ -198,22 +161,17 @@ class Customer {
     constructor(lane, type) {
         this.type = type;
         this.targetX = canvas.width * CONFIG.Stations[lane];
-        this.x = canvas.width + 200; 
-        this.y = CONFIG.BarHeight; 
+        this.x = canvas.width + 200; this.y = CONFIG.BarHeight; 
         this.frameCount = 1;
         const sprite = assets.customers[this.type];
         if (sprite && sprite.width > sprite.height * 2) this.frameCount = 4;
-        this.frameX = 0;
-        this.tick = 0;
+        this.frameX = 0; this.tick = 0;
     }
     update() {
         if (this.x > this.targetX) {
             this.x -= 8;
             this.tick++;
-            if (this.tick > 10) {
-                this.frameX = (this.frameX + 1) % this.frameCount;
-                this.tick = 0;
-            }
+            if (this.tick > 10) { this.frameX = (this.frameX + 1) % this.frameCount; this.tick = 0; }
         }
     }
     draw() {
@@ -232,19 +190,13 @@ class Customer {
     }
 }
 
-// --- ASSET LOADER ---
 const assets = { customers: {} };
-let game;
-
 function loadImages() {
     const list = [
-        {k:'bg', src: ASSETS.bg},
-        {k:'tower', src: ASSETS.tower},
-        {k:'taps', src: ASSETS.taps},
-        {k:'beers', src: ASSETS.beers},
+        {k:'bg', src: ASSETS.bg}, {k:'tower', src: ASSETS.tower},
+        {k:'taps', src: ASSETS.taps}, {k:'beers', src: ASSETS.beers},
         ...Object.keys(ASSETS.customers).map(k => ({k:k, src:ASSETS.customers[k], isCust:true}))
     ];
-
     let loaded = 0;
     list.forEach(item => {
         const img = new Image();
@@ -255,7 +207,7 @@ function loadImages() {
             if(++loaded === list.length) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                game = new Game();
+                let game = new Game();
                 requestAnimationFrame(function loop() {
                     ctx.clearRect(0,0,canvas.width, canvas.height);
                     game.update();
