@@ -1,22 +1,29 @@
 /**
- * TAPROOM TAPPER - FORCE VISIBILITY MODE
- * 1. Red Boxes show where customers are.
- * 2. Spinning Green Square shows if game is running.
- * 3. No fancy cropping - shows full image to prevent errors.
+ * TAPROOM TAPPER - BIG & TALL EDITION
+ * Features:
+ * 1. Target Height (Sets size in pixels, not abstract scale)
+ * 2. Auto-Frame Detection (Handles both animated sheets and static images)
+ * 3. 0.70 Bar Height
  */
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- CONFIG ---
+// --- 1. CONFIGURATION ---
 const CONFIG = {
-    // 75% down the screen (The Sweet Spot?)
+    // 70% down the screen (Your requested "Sweet Spot")
     BarHeight: window.innerHeight * 0.70, 
+    
+    // VISUAL SIZE SETTINGS
+    // How tall should the characters be in pixels?
+    // 100 was "very small". 300 is "3x bigger".
+    CustomerHeight: 300, 
+    
     Stations: [0.2, 0.5, 0.8], 
-    SpawnRate: 1500, 
+    SpawnRate: 2000, 
 };
 
-// --- ASSETS ---
+// --- 2. ASSETS ---
 const ASSETS = {
     bg: 'assets/background.png',
     beers: 'assets/fullpints.png',
@@ -30,7 +37,7 @@ const ASSETS = {
     }
 };
 
-// --- GAME ENGINE ---
+// --- 3. ENGINE ---
 
 class Game {
     constructor() {
@@ -38,9 +45,8 @@ class Game {
         this.height = canvas.height;
         this.customers = [];
         this.timer = 0;
-        this.frame = 0; // For heartbeat animation
         
-        // Spawn one immediately
+        // Spawn one immediately to check size
         this.spawnCustomer();
     }
 
@@ -52,33 +58,21 @@ class Game {
     }
 
     update() {
-        this.frame++;
         this.timer += 16;
         if (this.timer > CONFIG.SpawnRate) {
             this.spawnCustomer();
             this.timer = 0;
         }
         this.customers.forEach(c => c.update());
-        
-        // Keep list clean
-        this.customers = this.customers.filter(c => c.x > -200);
+        this.customers = this.customers.filter(c => c.x > -300); // Cleanup
     }
 
     draw() {
-        // 1. Draw Background
+        // Draw BG
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
         else { ctx.fillStyle = "#333"; ctx.fillRect(0,0,this.width, this.height); }
 
-        // 2. Draw "Heartbeat" (Spinning Square in Corner)
-        // If this stops spinning, the game crashed.
-        ctx.save();
-        ctx.translate(50, 50);
-        ctx.rotate(this.frame * 0.05);
-        ctx.fillStyle = "#0f0";
-        ctx.fillRect(-20, -20, 40, 40);
-        ctx.restore();
-
-        // 3. Draw Customers
+        // Draw Customers
         this.customers.forEach(c => c.draw());
     }
 }
@@ -87,34 +81,76 @@ class Customer {
     constructor(lane, type) {
         this.type = type;
         this.targetX = canvas.width * CONFIG.Stations[lane];
-        this.x = canvas.width + 50; 
-        
-        // Position at the Bar Height
+        this.x = canvas.width + 200; 
         this.y = CONFIG.BarHeight; 
         
         this.state = 'walking';
+        this.frameX = 0;
+        this.tick = 0;
+        
+        // AUTO-DETECT FRAMES
+        // We do this once when the customer spawns
+        const sprite = assets.customers[this.type];
+        if (sprite) {
+            // If image is WIDE (Width > Height * 2), assume it's a strip of 4 frames
+            if (sprite.width > sprite.height * 2) {
+                this.frameCount = 4;
+            } else {
+                // Otherwise assume it's a single static image
+                this.frameCount = 1;
+            }
+        } else {
+            this.frameCount = 1; // Fallback
+        }
     }
 
     update() {
-        if (this.x > this.targetX) this.x -= 8;
+        if (this.x > this.targetX) {
+            this.x -= 8; // Move Left
+            
+            // Animation Loop (Only runs if we detected multiple frames)
+            if (this.frameCount > 1) {
+                this.tick++;
+                if (this.tick > 10) {
+                    this.frameX = (this.frameX + 1) % this.frameCount;
+                    this.tick = 0;
+                }
+            }
+        }
     }
 
     draw() {
-        // A. RED BOX (The Locator)
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-        ctx.fillRect(this.x, this.y, 100, 100);
-
-        // B. FULL SPRITE (No Math, Just Draw)
         const sprite = assets.customers[this.type];
         if (sprite) {
-            // Draw the WHOLE image squeezed into 100x100
-            // This guarantees we see it if it exists
-            ctx.drawImage(sprite, this.x, this.y, 100, 100);
+            // 1. Calculate Crop Size
+            // If frameCount is 4, we divide width by 4. If 1, we take full width.
+            const frameW = sprite.width / this.frameCount;
+            const frameH = sprite.height; 
             
-            // Draw Name
-            ctx.fillStyle = "white";
-            ctx.font = "12px monospace";
-            ctx.fillText(this.type, this.x, this.y - 10);
+            // 2. Calculate Draw Size (The "3x Bigger" Logic)
+            // We want the final height to be exactly CONFIG.CustomerHeight (300px)
+            // We calculate the ratio to maintain aspect ratio
+            const ratio = frameW / frameH;
+            const drawH = CONFIG.CustomerHeight;
+            const drawW = drawH * ratio;
+
+            // 3. Flip Logic (Face Left)
+            ctx.save();
+            ctx.translate(this.x + drawW, this.y); // Pivot
+            ctx.scale(-1, 1); // Flip
+            
+            // 4. Draw
+            ctx.drawImage(
+                sprite,
+                this.frameX * frameW, 0, frameW, frameH, // Crop Source
+                0, 0, drawW, drawH                       // Draw Destination
+            );
+            
+            ctx.restore();
+        } else {
+            // Fallback Red Box if image missing
+            ctx.fillStyle = "red";
+            ctx.fillRect(this.x, this.y, 100, CONFIG.CustomerHeight);
         }
     }
 }
@@ -137,9 +173,7 @@ function loadImages() {
             else assets[item.k] = img;
         };
     });
-    
-    // Start immediately
-    setTimeout(init, 500);
+    setTimeout(init, 500); 
 }
 
 function init() {
