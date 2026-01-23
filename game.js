@@ -9,7 +9,7 @@ let CONFIG = {
 };
 
 let SPRITE_DATA = {
-    customer: { h: 600, frames: 1 }, // We'll detect frames automatically
+    customer: { h: 369, frames: 1 }, // We'll detect frames automatically
     tower: { h: 445, cols: 3 },
     taps: [
         { h: 150, offsetX: -1, offsetY: -15 }, 
