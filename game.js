@@ -11,16 +11,24 @@ const CONFIG = {
 let SPRITE_DATA = {
     customer: { h: 369 },
     tower: { h: 433 },
-    // --- GLASS DATA ---
-    // Adjust glassY to sit on the bar, glassX to center under the tap
+// --- UPDATED GLASS DATA ---
     glass: { 
         w: 64, h: 64, scale: 2.2,
+        // Individual clipping to prevent ghosting from neighbors
+        // sx: source shift, sw: width adjustment
+        clip: { sx: 2, sw: -4 }, 
         offsets: [
             { x: 0, y: 350 }, // Station 0
             { x: 0, y: 350 }, // Station 1
             { x: 0, y: 350 }  // Station 2
         ]
     },
+    taps: [
+        { h: 150, closed: { x: -1, y: 133 }, open: { x: -66, y: 54, rot: Math.PI / 2 }, crop: { sx: 2, sy: 41, sw: -4, sh: -2 } },
+        { h: 150, closed: { x: -32, y: 140 }, open: { x: -32, y: 13, rot: Math.PI }, crop: { sx: 2, sy: 42, sw: -2, sh: -4 } },
+        { h: 150, closed: { x: -54, y: 137 }, open: { x: 8, y: 54, rot: -Math.PI / 2 }, crop: { sx: 4, sy: 43, sw: -6, sh: -2 } }
+    ]
+};
     taps: [
         { h: 150, closed: { x: -1, y: 133 }, open: { x: -66, y: 54, rot: Math.PI / 2 }, crop: { sx: 2, sy: 41, sw: -4, sh: -2 } },
         { h: 150, closed: { x: -32, y: 140 }, open: { x: -32, y: 13, rot: Math.PI }, crop: { sx: 2, sy: 42, sw: -2, sh: -4 } },
@@ -160,7 +168,7 @@ class BeerGlass {
     constructor(station, x) {
         this.station = station;
         this.baseX = x;
-        this.fillLevel = 0; // 0 to 1
+        this.fillLevel = 0; 
     }
 
     draw() {
@@ -170,17 +178,26 @@ class BeerGlass {
         this.renderY = CONFIG.TapY + off.y;
 
         let img = assets.empty;
-        if (this.fillLevel > 0.8) img = assets.full;
-        else if (this.fillLevel > 0.2) img = assets.half;
+        let cols = 4; // fullpints.png has 4 columns
+
+        if (this.fillLevel > 0.8) {
+            img = assets.full;
+            cols = 4; 
+        } else if (this.fillLevel > 0.2) {
+            img = assets.half;
+            cols = 3; // halfpour.png has 3 columns
+        }
 
         if (img) {
-            const fW = img.width / 3;
+            // Calculate frame width based on the specific image's columns
+            const fW = img.width / cols;
             const drawW = s.w * s.scale;
             const drawH = s.h * s.scale;
             
             ctx.drawImage(
                 img, 
-                this.station * fW, 0, fW, img.height, 
+                (this.station * fW) + s.clip.sx, 0, // Source X + Clip
+                fW + s.clip.sw, img.height,         // Source W + Clip
                 this.renderX - drawW/2, this.renderY - drawH, 
                 drawW, drawH
             );
