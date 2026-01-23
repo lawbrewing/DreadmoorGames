@@ -3,7 +3,7 @@ const ctx = canvas.getContext('2d');
 
 // --- 1. CONFIGURATION (Live State) ---
 let CONFIG = {
-    BarHeight: 882, 
+    BarHeight: 721, 
     TapY: window.innerHeight * 0.55,
     Stations: [0.2, 0.5, 0.8], 
 };
