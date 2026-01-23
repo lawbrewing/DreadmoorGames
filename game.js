@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 // --- 1. CONFIGURATION (Live State) ---
 let CONFIG = {
     BarHeight: 719, 
-    TapY: window.innerHeight * 0.55,
+    TapY: 433,
     Stations: [0.2, 0.5, 0.8], 
 };
 
@@ -166,8 +166,11 @@ class Customer {
             const ratio = frameW / sprite.height;
             const drawH = SPRITE_DATA.customer.h;
             const drawW = drawH * ratio;
+            
             ctx.save();
-            ctx.translate(this.x + drawW, this.y);
+            // Added "+ 40" here to sink them 40 pixels INTO the bar
+            // Adjust this number until they look grounded
+            ctx.translate(this.x + drawW, (CONFIG.BarHeight - drawH) + 40);
             ctx.scale(-1, 1);
             ctx.drawImage(sprite, 0, 0, frameW, sprite.height, 0, 0, drawW, drawH);
             ctx.restore();
