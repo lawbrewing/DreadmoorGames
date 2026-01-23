@@ -9,16 +9,16 @@ let SPRITE_DATA = {
     tower: { h: 433 },
     taps: [
         { h: 150, 
-          closed: { x: -1, y: -15 }, 
-          open:   { x: -1, y: -15, rot: Math.PI / 2 } 
+          closed: { x: -1, y: 133 }, 
+          open:   { x: -58, y: -52, rot: Math.PI / 2 } 
         },
         { h: 150, 
-          closed: { x: -32, y: -9 }, 
-          open:   { x: -32, y: -9, rot: Math.PI } 
+          closed: { x: -31, y: 137 }, 
+          open:   { x: -31, y: 21, rot: Math.PI } 
         },
         { h: 150, 
-          closed: { x: -54, y: -15 }, 
-          open:   { x: -54, y: -15, rot: -Math.PI / 2 } 
+          closed: { x: -53, y: 135 }, 
+          open:   { x: 0, y: 53, rot: -Math.PI / 2 } 
         }
     ]
 };
