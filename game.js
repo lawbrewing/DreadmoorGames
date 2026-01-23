@@ -1,6 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- 1. CONFIGURATION ---
 const CONFIG = { 
     BarHeight: 719, 
     TapY: 376, 
@@ -15,9 +16,9 @@ let SPRITE_DATA = {
         w: 64, h: 64, scale: 2.2,
         clip: { sx: 2, sw: -4 }, 
         offsets: [
-            { x: 0, y: 350 }, 
-            { x: 0, y: 350 }, 
-            { x: 0, y: 350 }
+            { x: -5, y: 406 },  // Station 0
+            { x: -37, y: 410 }, // Station 1
+            { x: -65, y: 409 }  // Station 2
         ]
     },
     taps: [
@@ -38,6 +39,8 @@ const ASSETS_PATHS = {
 
 const assets = {}; 
 
+// --- 2. GAME ENGINE ---
+
 class Game {
     constructor() {
         this.taps = [];
@@ -56,16 +59,13 @@ class Game {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
+            return { x: clientX - rect.left, y: clientY - rect.top };
         };
 
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
             
-            // Check for Glass Dragging
+            // Check for Glass Dragging (Calibration)
             for (let g of this.activeGlasses) {
                 if (Math.abs(pos.x - g.renderX) < 50 && Math.abs(pos.y - (g.renderY - 50)) < 80) {
                     this.selectedGlass = g;
@@ -73,7 +73,7 @@ class Game {
                 }
             }
 
-            // Check for Tap Pull
+            // Check for Tap Pull (Pouring)
             this.taps.forEach((tap, i) => {
                 if (Math.abs(pos.x - tap.x) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
                     tap.pulled = !tap.pulled;
@@ -107,20 +107,25 @@ class Game {
     draw() {
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
         
-        // Render order: Glasses -> Taps (Taps on top)
-        this.activeGlasses.forEach(glass => glass.draw());
+        // --- RENDERING ORDER ---
+        // 1. Draw Towers First (Back)
         this.taps.forEach(t => t.draw());
+
+        // 2. Draw Glasses Second (Front)
+        this.activeGlasses.forEach(glass => glass.draw());
 
         // HUD
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(10, 10, 420, 140);
         ctx.fillStyle = "#0f0";
         ctx.font = "13px monospace";
-        ctx.fillText("🍺 STABLE GLASS LAB", 20, 30);
+        ctx.fillText("🍺 FINAL CALIBRATION LAB", 20, 30);
         this.activeGlasses.forEach((g, i) => {
             const off = SPRITE_DATA.glass.offsets[g.station];
             ctx.fillText(`Station ${g.station}: { x: ${off.x}, y: ${off.y} }`, 20, 55 + (i * 20));
         });
+        ctx.fillStyle = "#aaa";
+        ctx.fillText("Drag glasses to align. Click towers to pull.", 20, 125);
     }
 }
 
@@ -182,12 +187,26 @@ class BeerGlass {
 
         if (img) {
             const fW = img.width / cols;
+            const fH = img.height;
+            
+            // --- ASPECT RATIO FIX ---
+            // Calculate height proportional to width to stop "smashed" look
+            const aspectRatio = fH / fW;
             const drawW = s.w * s.scale;
-            const drawH = s.h * s.scale;
-            ctx.drawImage(img, (this.station * fW) + s.clip.sx, 0, fW + s.clip.sw, img.height, this.renderX - drawW/2, this.renderY - drawH, drawW, drawH);
+            const drawH = drawW * aspectRatio; 
+            
+            ctx.drawImage(
+                img, 
+                (this.station * fW) + s.clip.sx, 0, 
+                fW + s.clip.sw, fH, 
+                this.renderX - drawW/2, this.renderY - drawH, 
+                drawW, drawH
+            );
         }
     }
 }
+
+// --- 3. BOOTSTRAP ---
 
 function loadImages() {
     let loaded = 0;
