@@ -49,6 +49,21 @@ const SPRITE_DATA = {
     }
 };
 
+const SPRITE_DATA = {
+    customer: { h: 600 },
+    tower: { h: 350, cols: 3 },
+    // BEER GLASSES
+    beer: { w: 64, h: 64, scale: 2.0 },
+    
+    // CALIBRATION SECTION
+    // Adjust these numbers for each tap (0=Left, 1=Center, 2=Right)
+    taps: [
+        { h: 150, offsetX: 0, offsetY: -110 }, // Tap 0 (Left)
+        { h: 150, offsetX: 0, offsetY: -110 }, // Tap 1 (Center)
+        { h: 150, offsetX: 0, offsetY: -110 }  // Tap 2 (Right)
+    ]
+};
+
 class Game {
     constructor() {
         this.width = canvas.width;
@@ -59,9 +74,11 @@ class Game {
         this.timer = 0;
         
         CONFIG.Stations.forEach((xRatio, index) => {
-            this.taps.push(new TapStation(index, xRatio));
+            // We now pass the specific calibration data to each tap
+            const calibration = SPRITE_DATA.taps[index];
+            this.taps.push(new TapStation(index, xRatio, calibration));
         });
-
+        
         const handleInput = (e) => {
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
@@ -102,10 +119,11 @@ class Game {
 }
 
 class TapStation {
-    constructor(index, xRatio) {
+    constructor(index, xRatio, calibration) {
         this.index = index;
         this.x = canvas.width * xRatio;
         this.y = CONFIG.TapY;
+        this.cal = calibration; // Store the specific offsets
         this.pulled = false;
         this.pullTimer = 0;
     }
@@ -123,7 +141,7 @@ class TapStation {
     }
 
     draw() {
-        // 1. Draw Tower (SLICED)
+        // 1. Draw Tower
         if (assets.tower) {
             const sT = SPRITE_DATA.tower;
             const frameW = assets.tower.width / sT.cols;
@@ -132,23 +150,26 @@ class TapStation {
             
             ctx.drawImage(
                 assets.tower,
-                this.index * frameW, 0, frameW, frameH, // Slicing the correct tower
+                this.index * frameW, 0, frameW, frameH,
                 this.x - (drawW/2), this.y, drawW, sT.h
             );
         }
 
-        // 2. Draw Handle (Animated)
+        // 2. Draw Handle (Independently Calibrated)
         if (assets.taps) {
-            const sH = SPRITE_DATA.taps;
-            const frameW = assets.taps.width / sH.cols;
-            const frameH = assets.taps.height / sH.rows;
-            const drawW = sH.h * (frameW / frameH);
+            const frameW = assets.taps.width / 3; // 3 columns
+            const frameH = assets.taps.height / 2; // 2 rows (closed/open)
+            const drawW = this.cal.h * (frameW / frameH);
             const row = this.pulled ? 1 : 0;
 
+            // We use this.cal.offsetX and this.cal.offsetY here
             ctx.drawImage(
                 assets.taps,
                 this.index * frameW, row * frameH, frameW, frameH,
-                this.x - (drawW/2), this.y + sH.offsetY, drawW, sH.h
+                (this.x - (drawW/2)) + this.cal.offsetX, 
+                this.y + this.cal.offsetY, 
+                drawW, 
+                this.cal.h
             );
         }
     }
