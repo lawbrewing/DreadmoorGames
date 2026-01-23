@@ -12,15 +12,12 @@ const CONFIG = {
 let SPRITE_DATA = {
     customer: { h: 369 },
     tower: { h: 433 },
-    glass: { 
-        w: 64, h: 64, scale: 2.2,
-        clip: { sx: 2, sw: -4 }, 
-        offsets: [
-            { x: -5, y: 406 },  // Station 0
-            { x: -37, y: 410 }, // Station 1
-            { x: -65, y: 409 }  // Station 2
-        ]
-    },
+    // --- INDEPENDENT GLASS CALIBRATION ---
+    glasses: [
+        { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -5, y: 510 },  // Station 0
+        { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -35, y: 514 }, // Station 1
+        { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -62, y: 514 }  // Station 2
+    ],
     taps: [
         { h: 150, closed: { x: -1, y: 133 }, open: { x: -66, y: 54, rot: Math.PI / 2 }, crop: { sx: 2, sy: 41, sw: -4, sh: -2 } },
         { h: 150, closed: { x: -32, y: 140 }, open: { x: -32, y: 13, rot: Math.PI }, crop: { sx: 2, sy: 42, sw: -2, sh: -4 } },
@@ -38,8 +35,6 @@ const ASSETS_PATHS = {
 };
 
 const assets = {}; 
-
-// --- 2. GAME ENGINE ---
 
 class Game {
     constructor() {
@@ -65,7 +60,6 @@ class Game {
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
             
-            // Check for Glass Dragging (Calibration)
             for (let g of this.activeGlasses) {
                 if (Math.abs(pos.x - g.renderX) < 50 && Math.abs(pos.y - (g.renderY - 50)) < 80) {
                     this.selectedGlass = g;
@@ -73,7 +67,6 @@ class Game {
                 }
             }
 
-            // Check for Tap Pull (Pouring)
             this.taps.forEach((tap, i) => {
                 if (Math.abs(pos.x - tap.x) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
                     tap.pulled = !tap.pulled;
@@ -87,9 +80,9 @@ class Game {
         window.addEventListener('mousemove', (e) => {
             if (!this.selectedGlass) return;
             const pos = getPos(e);
-            const off = SPRITE_DATA.glass.offsets[this.selectedGlass.station];
-            off.x = Math.round(pos.x - this.selectedGlass.baseX);
-            off.y = Math.round(pos.y - CONFIG.TapY);
+            const cal = SPRITE_DATA.glasses[this.selectedGlass.station];
+            cal.x = Math.round(pos.x - this.selectedGlass.baseX);
+            cal.y = Math.round(pos.y - CONFIG.TapY);
         });
 
         window.addEventListener('mouseup', () => { this.selectedGlass = null; });
@@ -107,25 +100,25 @@ class Game {
     draw() {
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
         
-        // --- RENDERING ORDER ---
-        // 1. Draw Towers First (Back)
+        // 1. Towers First (Layered Behind)
         this.taps.forEach(t => t.draw());
 
-        // 2. Draw Glasses Second (Front)
+        // 2. Glasses Second (Layered in Front)
         this.activeGlasses.forEach(glass => glass.draw());
 
         // HUD
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 420, 140);
+        ctx.fillRect(10, 10, 420, 160);
         ctx.fillStyle = "#0f0";
         ctx.font = "13px monospace";
-        ctx.fillText("🍺 FINAL CALIBRATION LAB", 20, 30);
+        ctx.fillText("🍺 INDEPENDENT GLASS LAB", 20, 30);
         this.activeGlasses.forEach((g, i) => {
-            const off = SPRITE_DATA.glass.offsets[g.station];
-            ctx.fillText(`Station ${g.station}: { x: ${off.x}, y: ${off.y} }`, 20, 55 + (i * 20));
+            const cal = SPRITE_DATA.glasses[g.station];
+            ctx.fillText(`Station ${g.station}: x:${cal.x}, y:${cal.y}, scale:${cal.scale}`, 20, 55 + (i * 20));
         });
         ctx.fillStyle = "#aaa";
-        ctx.fillText("Drag glasses to align. Click towers to pull.", 20, 125);
+        ctx.fillText("Scale issue? Increase 'scale' in SPRITE_DATA.", 20, 130);
+        ctx.fillText("Drag to position, click towers to pour.", 20, 150);
     }
 }
 
@@ -136,7 +129,6 @@ class TapStation {
         this.cal = calibration;
         this.pulled = false;
     }
-
     draw() {
         if (assets.tower) {
             const fW = assets.tower.width / 3;
@@ -169,10 +161,9 @@ class BeerGlass {
     }
 
     draw() {
-        const off = SPRITE_DATA.glass.offsets[this.station];
-        const s = SPRITE_DATA.glass;
-        this.renderX = this.baseX + off.x;
-        this.renderY = CONFIG.TapY + off.y;
+        const cal = SPRITE_DATA.glasses[this.station];
+        this.renderX = this.baseX + cal.x;
+        this.renderY = CONFIG.TapY + cal.y;
 
         let img = assets.empty;
         let cols = 4; 
@@ -189,24 +180,20 @@ class BeerGlass {
             const fW = img.width / cols;
             const fH = img.height;
             
-            // --- ASPECT RATIO FIX ---
-            // Calculate height proportional to width to stop "smashed" look
             const aspectRatio = fH / fW;
-            const drawW = s.w * s.scale;
+            const drawW = cal.w * cal.scale;
             const drawH = drawW * aspectRatio; 
             
             ctx.drawImage(
                 img, 
-                (this.station * fW) + s.clip.sx, 0, 
-                fW + s.clip.sw, fH, 
+                (this.station * fW) + cal.clip.sx, 0, 
+                fW + cal.clip.sw, fH, 
                 this.renderX - drawW/2, this.renderY - drawH, 
                 drawW, drawH
             );
         }
     }
 }
-
-// --- 3. BOOTSTRAP ---
 
 function loadImages() {
     let loaded = 0;
