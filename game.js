@@ -35,9 +35,9 @@ const SPRITE_DATA = {
     // ADJUST THESE INDEPENDENTLY
     // 0 = Left, 1 = Center, 2 = Right
     taps: [
-        { h: 150, offsetX: 0, offsetY: -110 }, // Left
-        { h: 150, offsetX: 0, offsetY: -110 }, // Center
-        { h: 150, offsetX: 0, offsetY: -110 }  // Right
+        { h: 150, offsetX: 0, offsetY: -130 }, // Left
+        { h: 150, offsetX: 0, offsetY: -130 }, // Center
+        { h: 150, offsetX: 0, offsetY: -130 }  // Right
     ]
 };
 
