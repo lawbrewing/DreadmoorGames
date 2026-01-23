@@ -8,9 +8,10 @@ const ctx = canvas.getContext('2d');
 
 // --- 1. CONFIG ---
 const CONFIG = {
-    BarHeight: window.innerHeight * 0.7, // Place bar at 70% down the screen
-    Stations: [0.2, 0.5, 0.8], // 20%, 50%, 80% width
-    SpawnRate: 1000, // Spawn fast (1 second) for testing!
+    // Moved from 0.7 to 0.85 (Lower down the screen)
+    BarHeight: window.innerHeight * 0.85, 
+    Stations: [0.2, 0.5, 0.8], 
+    SpawnRate: 1000, 
 };
 
 // --- 2. ASSETS ---
@@ -65,27 +66,19 @@ class Game {
     }
 
     draw() {
-        // 1. Draw Background
-        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
+        const sprite = assets.customers[this.type];
         
-        // 2. Draw Customers
-        this.customers.forEach(c => c.draw());
+        // 1. DRAW RED BOX (Keep this for now as a guide)
+        ctx.fillStyle = "rgba(255, 0, 0, 0.3)"; // Semi-transparent red
+        ctx.fillRect(this.x, this.y, 150, 150); // Made box bigger (150px)
 
-        // 3. DRAW DEBUG HUD (The important part!)
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(0, 0, 300, 200);
-        ctx.fillStyle = "#0f0"; // Bright Green
-        ctx.font = "16px monospace";
-        ctx.fillText(`Canvas: ${this.width}x${this.height}`, 10, 20);
-        ctx.fillText(`Customers: ${this.customers.length}`, 10, 40);
-        
-        this.customers.forEach((c, i) => {
-            if (i < 5) { // Only show first 5
-                ctx.fillText(`C${i}: X=${Math.floor(c.x)} Y=${Math.floor(c.y)} Type=${c.type}`, 10, 70 + (i*20));
-            }
-        });
+        // 2. DRAW FULL SPRITE (The Scanner Fix)
+        if (sprite) {
+             // Instead of cropping, we draw the WHOLE image squeezed into the box
+             // verify the image is loaded and see how many frames there are.
+             ctx.drawImage(sprite, this.x, this.y, 150, 150);
+        }
     }
-}
 
 class Customer {
     constructor(lane, type) {
