@@ -12,9 +12,9 @@ let SPRITE_DATA = {
     customer: { h: 600, frames: 1 }, // We'll detect frames automatically
     tower: { h: 445, cols: 3 },
     taps: [
-        { h: 150, offsetX: -3, offsetY: -43 }, 
-        { h: 150, offsetX: 25, offsetY: -39 }, 
-        { h: 150, offsetX: -41, offsetY: -40 }  
+        { h: 150, offsetX: -1, offsetY: -15 }, 
+        { h: 150, offsetX: -32, offsetY: -9 }, 
+        { h: 150, offsetX: -56, offsetY: -10 }  
     ]
 };
 
