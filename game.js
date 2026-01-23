@@ -12,12 +12,12 @@ const ctx = canvas.getContext('2d');
 // --- 1. CONFIGURATION ---
 const CONFIG = {
     // 70% down the screen (Your requested "Sweet Spot")
-    BarHeight: window.innerHeight * 0.70, 
+    BarHeight: window.innerHeight * 0.60, 
     
     // VISUAL SIZE SETTINGS
     // How tall should the characters be in pixels?
     // 100 was "very small". 300 is "3x bigger".
-    CustomerHeight: 300, 
+    CustomerHeight: 600, 
     
     Stations: [0.2, 0.5, 0.8], 
     SpawnRate: 2000, 
