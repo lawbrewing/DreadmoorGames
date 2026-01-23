@@ -13,10 +13,11 @@ let SPRITE_DATA = {
     customer: { h: 369 },
     tower: { h: 433 },
     // --- INDEPENDENT GLASS CALIBRATION ---
+    // sx/sw and scale are shared from index 0 if not defined in others
     glasses: [
         { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -5, y: 510 },  // Station 0
-        { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -35, y: 514 }, // Station 1
-        { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -62, y: 514 }  // Station 2
+        { x: -35, y: 514 }, // Station 1
+        { x: -62, y: 514 }  // Station 2
     ],
     taps: [
         { h: 150, closed: { x: -1, y: 133 }, open: { x: -66, y: 54, rot: Math.PI / 2 }, crop: { sx: 2, sy: 41, sw: -4, sh: -2 } },
@@ -31,10 +32,13 @@ const ASSETS_PATHS = {
     taps: 'assets/taps.png',
     empty: 'assets/fullpints.png', 
     half: 'assets/halfpour.png',
+    mix: 'assets/mixpour.png',
     full: 'assets/fullpints.png'
 };
 
 const assets = {}; 
+
+// --- 2. GAME ENGINE ---
 
 class Game {
     constructor() {
@@ -60,6 +64,7 @@ class Game {
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
             
+            // 1. Check for Glass Dragging
             for (let g of this.activeGlasses) {
                 if (Math.abs(pos.x - g.renderX) < 50 && Math.abs(pos.y - (g.renderY - 50)) < 80) {
                     this.selectedGlass = g;
@@ -67,6 +72,7 @@ class Game {
                 }
             }
 
+            // 2. Check for Tap Pull
             this.taps.forEach((tap, i) => {
                 if (Math.abs(pos.x - tap.x) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
                     tap.pulled = !tap.pulled;
@@ -100,10 +106,10 @@ class Game {
     draw() {
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
         
-        // 1. Towers First (Layered Behind)
+        // --- DRAWING ORDER (Z-INDEX) ---
+        // Towers first (behind)
         this.taps.forEach(t => t.draw());
-
-        // 2. Glasses Second (Layered in Front)
+        // Glasses second (in front)
         this.activeGlasses.forEach(glass => glass.draw());
 
         // HUD
@@ -111,14 +117,13 @@ class Game {
         ctx.fillRect(10, 10, 420, 160);
         ctx.fillStyle = "#0f0";
         ctx.font = "13px monospace";
-        ctx.fillText("🍺 INDEPENDENT GLASS LAB", 20, 30);
+        ctx.fillText("🍺 MASTER GLASS & POUR LAB", 20, 30);
         this.activeGlasses.forEach((g, i) => {
             const cal = SPRITE_DATA.glasses[g.station];
-            ctx.fillText(`Station ${g.station}: x:${cal.x}, y:${cal.y}, scale:${cal.scale}`, 20, 55 + (i * 20));
+            ctx.fillText(`Station ${g.station}: x:${cal.x}, y:${cal.y}`, 20, 55 + (i * 20));
         });
         ctx.fillStyle = "#aaa";
-        ctx.fillText("Scale issue? Increase 'scale' in SPRITE_DATA.", 20, 130);
-        ctx.fillText("Drag to position, click towers to pour.", 20, 150);
+        ctx.fillText("Transition: Empty -> Half -> Mix -> Full", 20, 130);
     }
 }
 
@@ -161,39 +166,50 @@ class BeerGlass {
     }
 
     draw() {
-        const cal = SPRITE_DATA.glasses[this.station];
-        this.renderX = this.baseX + cal.x;
-        this.renderY = CONFIG.TapY + cal.y;
+        const cal = SPRITE_DATA.glasses[this.station] || SPRITE_DATA.glasses[0];
+        const baseCal = SPRITE_DATA.glasses[0]; // Global defaults
+        
+        this.renderX = this.baseX + (cal.x || 0);
+        this.renderY = CONFIG.TapY + (cal.y || 0);
 
         let img = assets.empty;
         let cols = 4; 
 
+        // Transition logic
         if (this.fillLevel > 0.8) {
             img = assets.full;
             cols = 4;
+        } else if (this.fillLevel > 0.5) {
+            img = assets.mix;
+            cols = 3;
         } else if (this.fillLevel > 0.2) {
             img = assets.half;
             cols = 3;
         }
 
-        if (img) {
+        if (img && img.complete) {
             const fW = img.width / cols;
-            const fH = img.height;
+            const fH = img.height; 
             
+            // DYNAMIC ASPECT RATIO FIX
             const aspectRatio = fH / fW;
-            const drawW = cal.w * cal.scale;
+            const drawW = (baseCal.w) * (baseCal.scale);
             const drawH = drawW * aspectRatio; 
             
+            const clip = baseCal.clip;
+
             ctx.drawImage(
                 img, 
-                (this.station * fW) + cal.clip.sx, 0, 
-                fW + cal.clip.sw, fH, 
+                (this.station * fW) + clip.sx, 0, 
+                fW + clip.sw, fH, 
                 this.renderX - drawW/2, this.renderY - drawH, 
                 drawW, drawH
             );
         }
     }
 }
+
+// --- 3. BOOTSTRAP ---
 
 function loadImages() {
     let loaded = 0;
