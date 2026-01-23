@@ -8,10 +8,30 @@ const ctx = canvas.getContext('2d');
 
 // --- CONFIG ---
 const CONFIG = {
-    Lanes: [200, 360, 520],
-    BeerSpeed: 5,
-    CustomerSpeed: 2,
+    // VISUAL SETTINGS
+    // The Y-coordinate where the bar counter top is.
+    // Adjust this until their elbows rest on the bar.
+    BarHeight: 600, 
+    
+    // The 3 spots where customers stand (Left, Center, Right)
+    Stations: [
+        window.innerWidth * 0.2, // Left (20%)
+        window.innerWidth * 0.5, // Center (50%)
+        window.innerWidth * 0.8  // Right (80%)
+    ],
+
+    // GAMEPLAY
+    BeerSpeed: 10,   // Beers slide UP or ACROSS? (See below)
     SpawnRate: 2000
+};
+
+const SPRITE_DATA = {
+    beer: { w: 32, h: 32, scale: 3.0 },
+    customer: { 
+        w: 64, h: 64, 
+        scale: 4.0, // Big "Portrait" size since they are waist up
+        animSpeed: 15
+    }
 };
 
 // --- ASSETS ---
