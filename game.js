@@ -3,18 +3,18 @@ const ctx = canvas.getContext('2d');
 
 // --- 1. CONFIGURATION (Live State) ---
 let CONFIG = {
-    BarHeight: window.innerHeight * 0.40, 
+    BarHeight: 882, 
     TapY: window.innerHeight * 0.55,
     Stations: [0.2, 0.5, 0.8], 
 };
 
 let SPRITE_DATA = {
     customer: { h: 600, frames: 1 }, // We'll detect frames automatically
-    tower: { h: 350, cols: 3 },
+    tower: { h: 445, cols: 3 },
     taps: [
-        { h: 150, offsetX: 0, offsetY: -110 }, 
-        { h: 150, offsetX: 0, offsetY: -110 }, 
-        { h: 150, offsetX: 0, offsetY: -110 }  
+        { h: 150, offsetX: -3, offsetY: -43 }, 
+        { h: 150, offsetX: 25, offsetY: -39 }, 
+        { h: 150, offsetX: -41, offsetY: -40 }  
     ]
 };
 
