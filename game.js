@@ -1,16 +1,10 @@
 /**
- * TAPROOM TAPPER - DIAGNOSTIC MODE
- * Use this to find broken images and invisible sprites.
+ * LAW ON TAP - VISIBILITY FIX
+ * This version forces the full image to draw so we can see the sprites.
  */
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-// --- DEBUG CONSOLE (On-Screen) ---
-const debugLog = [];
-function log(msg, color = 'white') {
-    debugLog.push({ text: msg, color: color });
-}
 
 // --- CONFIG ---
 const CONFIG = {
@@ -34,13 +28,6 @@ const ASSETS = {
     }
 };
 
-// --- SPRITE DATA (Check these!) ---
-const SPRITE_DATA = {
-    // If these numbers are wrong, the sprites will be invisible!
-    beer: { w: 32, h: 32 }, 
-    customer: { w: 64, h: 64, animSpeed: 10 }
-};
-
 // --- ENGINE ---
 
 class Game {
@@ -50,10 +37,9 @@ class Game {
         this.beers = [];
         this.customers = [];
         this.timer = 0;
-        
-        // Spawn a test customer immediately to see if it works
-        this.spawnCustomer(); 
+        this.score = 0;
 
+        // Input
         canvas.addEventListener('touchstart', (e) => this.handleInput(e), {passive: false});
         canvas.addEventListener('mousedown', (e) => this.handleInput(e));
     }
@@ -80,46 +66,33 @@ class Game {
     }
 
     update() {
-        // Spawner
         if (this.timer > CONFIG.SpawnRate) {
             this.spawnCustomer();
             this.timer = 0;
-        } else {
-            this.timer += 16;
-        }
+        } else { this.timer += 16; }
 
         this.beers.forEach(b => b.update());
         this.customers.forEach(c => c.update());
         
-        // Cleanup (simple)
+        // Simple Cleanup
         this.beers = this.beers.filter(b => b.x < canvas.width);
         this.customers = this.customers.filter(c => c.x > 0);
     }
 
     draw() {
-        // 1. Draw BG
-        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
-        else { ctx.fillStyle = '#333'; ctx.fillRect(0,0,this.width, this.height); }
+        // Draw Background
+        if (assets.bg) {
+            ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
+        } else {
+            ctx.fillStyle = "#333"; ctx.fillRect(0,0,this.width, this.height);
+        }
 
-        // 2. Draw Lanes (Visual Guide)
-        CONFIG.Lanes.forEach(y => {
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.width, y); ctx.stroke();
-        });
-
-        // 3. Draw Entities
         this.beers.forEach(b => b.draw());
         this.customers.forEach(c => c.draw());
-
-        // 4. Draw Debug Log
-        ctx.fillStyle = "rgba(0,0,0,0.8)";
-        ctx.fillRect(0, 0, 400, 300);
-        ctx.font = "14px monospace";
-        debugLog.forEach((item, i) => {
-            ctx.fillStyle = item.color;
-            ctx.fillText(item.text, 10, 20 + (i * 20));
-        });
+        
+        // Score
+        ctx.fillStyle = "white"; ctx.font = "30px Arial";
+        ctx.fillText("Score: " + this.score, 20, 50);
     }
 }
 
@@ -128,19 +101,15 @@ class Beer {
         this.lane = lane;
         this.x = 100;
         this.y = CONFIG.Lanes[lane] - 30;
-        this.width = 64; this.height = 64;
     }
     update() { this.x += CONFIG.BeerSpeed; }
     draw() {
-        // HITBOX (Green Box = Physics is working)
-        ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        // SPRITE
+        // FORCE DRAW: Draw the FULL image scaled to 50x50
         if (assets.beers) {
-            ctx.drawImage(assets.beers, 
-                0, 0, 32, 32, // Grab 32x32 from Top Left
-                this.x, this.y, 64, 64);
+            ctx.drawImage(assets.beers, this.x, this.y, 50, 50);
+        } else {
+            // Fallback yellow box
+            ctx.fillStyle = "gold"; ctx.fillRect(this.x, this.y, 40, 40);
         }
     }
 }
@@ -150,29 +119,18 @@ class Customer {
         this.lane = lane;
         this.type = type;
         this.x = canvas.width - 100;
-        this.y = CONFIG.Lanes[lane] - 50;
-        this.width = 64; this.height = 64;
-        this.frameX = 0;
-        this.tick = 0;
+        this.y = CONFIG.Lanes[lane] - 60;
     }
-    update() { 
-        this.x -= CONFIG.CustomerSpeed; 
-        this.tick++;
-        if (this.tick > 10) { this.frameX = (this.frameX + 1) % 2; this.tick = 0; }
-    }
+    update() { this.x -= CONFIG.CustomerSpeed; }
     draw() {
-        // HITBOX (Red Box = Physics is working)
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        // SPRITE
         const img = assets.customers[this.type];
         if (img) {
-            // Trying to draw first frame
-            ctx.drawImage(img, 
-                this.frameX * 64, 0, 64, 64, // Source Slice
-                this.x, this.y, 64, 64 // Dest
-            );
+            // FORCE DRAW: Draw the FULL image scaled to 80x80
+            // If your sprite sheet is a strip, you will see the WHOLE strip here.
+            ctx.drawImage(img, this.x, this.y, 80, 80);
+        } else {
+            // Fallback red box
+            ctx.fillStyle = "red"; ctx.fillRect(this.x, this.y, 50, 80);
         }
     }
 }
@@ -182,8 +140,6 @@ const assets = { customers: {} };
 let game;
 
 function loadImages() {
-    log("System Check Started...");
-    
     const list = [
         { key: 'bg', src: ASSETS.bg },
         { key: 'beers', src: ASSETS.beers },
@@ -194,26 +150,12 @@ function loadImages() {
     list.forEach(item => {
         const img = new Image();
         img.src = item.src;
-        
         img.onload = () => {
-            log("✔ Loaded: " + item.src, "#0f0");
             if (item.isCust) assets.customers[item.key] = img;
             else assets[item.key] = img;
-            checkStart(++loaded, list.length);
-        };
-        
-        img.onerror = () => {
-            log("✖ FAILED: " + item.src, "#f00");
-            checkStart(++loaded, list.length);
+            if (++loaded === list.length) init();
         };
     });
-}
-
-function checkStart(count, total) {
-    if (count === total) {
-        log("Starting Game Loop...", "yellow");
-        init();
-    }
 }
 
 function init() {
