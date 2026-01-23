@@ -24,7 +24,7 @@ const SPRITE_DATA = {
     // IMPORTANT: How many "Guys" are in your sprite sheet image?
     // If you see 4 guys in the sheet, set this to 4.
     // If you see 6 guys, set this to 6.
-    FrameCount: 4, 
+    FrameCount: 3, 
     
     // How much to zoom in on them
     Scale: 4.0 
