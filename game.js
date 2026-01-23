@@ -149,30 +149,67 @@ class TapStation {
         this.pulled = false;
         this.pullTimer = 0;
     }
-    pull() { this.pulled = true; this.pullTimer = 20; }
-    update() { if (this.pulled && --this.pullTimer <= 0) this.pulled = false; }
+
+    pull() {
+        this.pulled = true;
+        this.pullTimer = 20; 
+    }
+
+    update() {
+        // Freeze open if being dragged or recently pulled
+        if (game.selectedItem && game.selectedItem.obj === this) {
+            this.pulled = true;
+            this.pullTimer = 20;
+        } else if (this.pulled && --this.pullTimer <= 0) {
+            this.pulled = false;
+        }
+    }
+
     draw() {
         this.y = CONFIG.TapY;
-        // Tower
+        
+        // 1. Draw Tower
         if (assets.tower) {
             const frameW = assets.tower.width / 3;
             const drawW = SPRITE_DATA.tower.h * (frameW / assets.tower.height);
             ctx.drawImage(assets.tower, this.index * frameW, 0, frameW, assets.tower.height, this.x - (drawW/2), this.y, drawW, SPRITE_DATA.tower.h);
         }
-        // Handle
+
+        // 2. Draw Handle with Bottom-Anchor Pivot
         if (assets.taps) {
             const frameW = assets.taps.width / 3;
             const frameH = assets.taps.height / 2;
             const drawW = this.cal.h * (frameW / frameH);
             const drawH = this.cal.h;
+            
             ctx.save();
+            // Move to the 'Base' of where the handle should connect
             ctx.translate(this.x + this.cal.offsetX, this.y + this.cal.offsetY);
+
             if (this.pulled) {
-                if (this.index === 0) ctx.rotate(-Math.PI / 2);
-                if (this.index === 1) ctx.rotate(Math.PI);
-                if (this.index === 2) ctx.rotate(Math.PI / 2);
+                // FIXED ROTATIONS
+                // If they are upside down, we flip the math (adding/subtracting PI)
+                if (this.index === 0) ctx.rotate(Math.PI / 2);  // Left Tap
+                if (this.index === 1) ctx.rotate(0);            // Middle (Stay upright if sheet is upside down)
+                if (this.index === 2) ctx.rotate(-Math.PI / 2); // Right Tap
+                
+                // If the middle one is upside down on your SHEET, 
+                // we rotate it 180 (Math.PI) to make it look right.
+                if (this.index === 1) ctx.rotate(Math.PI); 
             }
-            ctx.drawImage(assets.taps, this.index * frameW, this.pulled ? frameH : 0, frameW, frameH, -drawW/2, -drawH/2, drawW, drawH);
+
+            // PIVOT FIX: 
+            // Instead of drawing from -drawW/2, -drawH/2 (Center)
+            // We draw from -drawW/2, -drawH (Bottom)
+            // This makes the (0,0) point the BOTTOM MIDDLE of the handle.
+            ctx.drawImage(
+                assets.taps,
+                this.index * frameW, this.pulled ? frameH : 0, 
+                frameW, frameH, 
+                -drawW / 2, -drawH, // <--- This anchors it to the bottom
+                drawW, drawH
+            );
+            
             ctx.restore();
         }
     }
