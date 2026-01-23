@@ -2,53 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Law on Tap</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="static/style.css">
+    <title>Law on Tap</title>
+    <style>
+        /* RESET & LAYOUT */
+        body { margin: 0; background: #111; overflow: hidden; touch-action: none; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; margin: 0 auto; background: #222; }
+
+        /* ORIENTATION WARNING (The "Bouncer") */
+        #rotate-screen {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 999; color: #f4d03f;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        
+        /* Show warning only in Portrait */
+        @media screen and (orientation: portrait) {
+            #rotate-screen { display: flex; }
+            canvas { display: none; }
+        }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="bar-background"></div>
-
-        <div id="tap-0" class="tap-station" style="left: 20%;">
-            <div class="tower"></div>
-            <div class="handle"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="hitbox"></div>
-        </div>
-
-        <div id="tap-1" class="tap-station" style="left: 45%;">
-            <div class="tower"></div>
-            <div class="handle"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="hitbox"></div>
-        </div>
-
-        <div id="tap-2" class="tap-station" style="left: 70%;">
-            <div class="tower"></div>
-            <div class="handle"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="hitbox"></div>
-        </div>
-
-        <div id="loading-screen"><h1>LOADING...</h1></div>
+    <div id="rotate-screen">
+        <div style="font-size: 4rem;">🍺</div>
+        <h2>BAR CLOSED</h2>
+        <p>Turn your phone sideways to open.</p>
     </div>
 
-    <script src="static/game.js?v=11"></script>
+    <canvas id="gameCanvas"></canvas>
+    
+    <script src="game.js"></script>
 </body>
 </html>
