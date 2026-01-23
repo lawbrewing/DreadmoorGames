@@ -10,7 +10,7 @@ let SPRITE_DATA = {
     taps: [
         { h: 150, 
           closed: { x: -1, y: 133 }, 
-          open:   { x: -58, y: -52, rot: Math.PI / 2 } 
+          open:   { x: -58, y: 51, rot: Math.PI / 2 } 
         },
         { h: 150, 
           closed: { x: -31, y: 137 }, 
