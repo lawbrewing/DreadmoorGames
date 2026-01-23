@@ -6,14 +6,13 @@ const CONFIG = {
     BarHeight: 719, 
     TapY: 376, 
     Stations: [0.2, 0.5, 0.8],
-    PourSpeed: 0.01 
+    PourSpeed: 0.008 // Slightly slower for smoother visual transitions
 };
 
 let SPRITE_DATA = {
     customer: { h: 369 },
     tower: { h: 433 },
-    // --- INDEPENDENT GLASS CALIBRATION ---
-    // sx/sw and scale are shared from index 0 if not defined in others
+    // --- GLASS CALIBRATION ---
     glasses: [
         { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 }, x: -5, y: 510 },  // Station 0
         { x: -35, y: 514 }, // Station 1
@@ -64,7 +63,7 @@ class Game {
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
             
-            // 1. Check for Glass Dragging
+            // Check for Glass Dragging
             for (let g of this.activeGlasses) {
                 if (Math.abs(pos.x - g.renderX) < 50 && Math.abs(pos.y - (g.renderY - 50)) < 80) {
                     this.selectedGlass = g;
@@ -72,7 +71,7 @@ class Game {
                 }
             }
 
-            // 2. Check for Tap Pull
+            // Check for Tap Pull
             this.taps.forEach((tap, i) => {
                 if (Math.abs(pos.x - tap.x) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
                     tap.pulled = !tap.pulled;
@@ -106,10 +105,13 @@ class Game {
     draw() {
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
         
-        // --- DRAWING ORDER (Z-INDEX) ---
-        // Towers first (behind)
-        this.taps.forEach(t => t.draw());
-        // Glasses second (in front)
+        // 1. Draw Towers & Streams
+        this.taps.forEach(t => {
+            t.draw();
+            t.drawStream(); 
+        });
+
+        // 2. Draw Glasses (On top of stream)
         this.activeGlasses.forEach(glass => glass.draw());
 
         // HUD
@@ -117,13 +119,13 @@ class Game {
         ctx.fillRect(10, 10, 420, 160);
         ctx.fillStyle = "#0f0";
         ctx.font = "13px monospace";
-        ctx.fillText("🍺 MASTER GLASS & POUR LAB", 20, 30);
+        ctx.fillText("🍺 MASTER POUR LAB", 20, 30);
         this.activeGlasses.forEach((g, i) => {
             const cal = SPRITE_DATA.glasses[g.station];
             ctx.fillText(`Station ${g.station}: x:${cal.x}, y:${cal.y}`, 20, 55 + (i * 20));
         });
         ctx.fillStyle = "#aaa";
-        ctx.fillText("Transition: Empty -> Half -> Mix -> Full", 20, 130);
+        ctx.fillText("Adjust 'sizeAdjust' in BeerGlass to fix jumps.", 20, 145);
     }
 }
 
@@ -134,6 +136,7 @@ class TapStation {
         this.cal = calibration;
         this.pulled = false;
     }
+
     draw() {
         if (assets.tower) {
             const fW = assets.tower.width / 3;
@@ -154,6 +157,18 @@ class TapStation {
             ctx.restore();
         }
     }
+
+    drawStream() {
+        if (!this.pulled) return;
+        const state = this.cal.open;
+        const streamX = this.x + state.x;
+        const streamY = CONFIG.TapY + state.y;
+        
+        ctx.fillStyle = "rgba(255, 190, 0, 0.7)"; // Beer stream color
+        ctx.fillRect(streamX - 3, streamY, 6, CONFIG.BarHeight - streamY);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)"; // Shine line
+        ctx.fillRect(streamX - 1, streamY, 2, CONFIG.BarHeight - streamY);
+    }
 }
 
 class BeerGlass {
@@ -167,35 +182,29 @@ class BeerGlass {
 
     draw() {
         const cal = SPRITE_DATA.glasses[this.station] || SPRITE_DATA.glasses[0];
-        const baseCal = SPRITE_DATA.glasses[0]; // Global defaults
+        const baseCal = SPRITE_DATA.glasses[0]; 
         
         this.renderX = this.baseX + (cal.x || 0);
         this.renderY = CONFIG.TapY + (cal.y || 0);
 
         let img = assets.empty;
         let cols = 4; 
+        let sizeAdjust = 1.0; // TWEAK THESE TO PREVENT JUMPS
 
-        // Transition logic
         if (this.fillLevel > 0.8) {
-            img = assets.full;
-            cols = 4;
+            img = assets.full; cols = 4; sizeAdjust = 1.0; 
         } else if (this.fillLevel > 0.5) {
-            img = assets.mix;
-            cols = 3;
+            img = assets.mix; cols = 3; sizeAdjust = 0.98; // Example adjustment
         } else if (this.fillLevel > 0.2) {
-            img = assets.half;
-            cols = 3;
+            img = assets.half; cols = 3; sizeAdjust = 1.02; // Example adjustment
         }
 
         if (img && img.complete) {
             const fW = img.width / cols;
             const fH = img.height; 
-            
-            // DYNAMIC ASPECT RATIO FIX
             const aspectRatio = fH / fW;
-            const drawW = (baseCal.w) * (baseCal.scale);
+            const drawW = baseCal.w * baseCal.scale * sizeAdjust;
             const drawH = drawW * aspectRatio; 
-            
             const clip = baseCal.clip;
 
             ctx.drawImage(
@@ -208,8 +217,6 @@ class BeerGlass {
         }
     }
 }
-
-// --- 3. BOOTSTRAP ---
 
 function loadImages() {
     let loaded = 0;
