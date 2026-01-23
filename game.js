@@ -1,29 +1,29 @@
 /**
- * LAW ON TAP - GAME ENGINE
- * Mobile-First, Canvas-Based, Sprite-Sheet Ready
+ * TAPROOM TAPPER - DIAGNOSTIC MODE
+ * Use this to find broken images and invisible sprites.
  */
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 1. THE CONTROL PANEL (Config) ---
+// --- DEBUG CONSOLE (On-Screen) ---
+const debugLog = [];
+function log(msg, color = 'white') {
+    debugLog.push({ text: msg, color: color });
+}
+
+// --- CONFIG ---
 const CONFIG = {
-    // Lane positions (Y coordinates) - Adjust these to match your background.png!
-    Lanes: [200, 360, 520], 
-    
-    // Game Physics
+    Lanes: [200, 360, 520],
     BeerSpeed: 5,
-    CustomerSpeed: 1.5,
-    SpawnRate: 2000, // Time between customers (ms)
-    
-    // Debugging (Set to true to see hitboxes)
-    Debug: false
+    CustomerSpeed: 2,
+    SpawnRate: 2000
 };
 
+// --- ASSETS ---
 const ASSETS = {
-    // Graphics
     bg: 'assets/background.png',
-    beers: 'assets/fullpints.png', 
+    beers: 'assets/fullpints.png',
     customers: {
         regular: 'assets/regular.png',
         hipster: 'assets/hipster.png',
@@ -31,21 +31,17 @@ const ASSETS = {
         karen: 'assets/karen.png',
         vip: 'assets/vip.png',
         judge: 'assets/judge.png'
-    },
-    // Audio (Uncomment when you upload sounds)
-    // sounds: {
-    //     pour: 'assets/pour.mp3',
-    //     crash: 'assets/crash.mp3'
-    // }
+    }
 };
 
+// --- SPRITE DATA (Check these!) ---
 const SPRITE_DATA = {
-    // Adjust these numbers based on your actual PNG dimensions
+    // If these numbers are wrong, the sprites will be invisible!
     beer: { w: 32, h: 32 }, 
     customer: { w: 64, h: 64, animSpeed: 10 }
 };
 
-// --- 2. THE ENGINE (Classes) ---
+// --- ENGINE ---
 
 class Game {
     constructor() {
@@ -53,145 +49,98 @@ class Game {
         this.height = canvas.height;
         this.beers = [];
         this.customers = [];
-        this.score = 0;
-        this.gameOver = false;
         this.timer = 0;
         
-        // Mobile Touch Input
-        canvas.addEventListener('touchstart', (e) => this.handleTap(e), {passive: false});
-        // Mouse Input (for testing on PC)
-        canvas.addEventListener('mousedown', (e) => this.handleTap(e));
+        // Spawn a test customer immediately to see if it works
+        this.spawnCustomer(); 
+
+        canvas.addEventListener('touchstart', (e) => this.handleInput(e), {passive: false});
+        canvas.addEventListener('mousedown', (e) => this.handleInput(e));
     }
 
-    handleTap(e) {
-        if(this.gameOver) return this.restart();
-
+    handleInput(e) {
         e.preventDefault();
-        // Get touch coordinates relative to canvas
         const rect = canvas.getBoundingClientRect();
-        const clientY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
         
-        // Check which lane was tapped
         CONFIG.Lanes.forEach((laneY, index) => {
-            // If tap is within 60px of the lane line
-            if (Math.abs(clientY - laneY) < 70) {
-                this.spawnBeer(index);
-            }
+            if (Math.abs(y - laneY) < 70) this.spawnBeer(index);
         });
     }
 
-    spawnBeer(laneIndex) {
-        this.beers.push(new Beer(laneIndex));
-        // if(assets.sounds.pour) assets.sounds.pour.play();
+    spawnBeer(lane) {
+        this.beers.push(new Beer(lane));
     }
 
     spawnCustomer() {
         const lane = Math.floor(Math.random() * CONFIG.Lanes.length);
-        // Pick a random customer type
         const types = Object.keys(ASSETS.customers);
         const type = types[Math.floor(Math.random() * types.length)];
-        
         this.customers.push(new Customer(lane, type));
     }
 
     update() {
-        if (this.gameOver) return;
-
-        // Spawner Logic
+        // Spawner
         if (this.timer > CONFIG.SpawnRate) {
             this.spawnCustomer();
             this.timer = 0;
-            // Make game harder over time
-            if (CONFIG.SpawnRate > 800) CONFIG.SpawnRate -= 20; 
         } else {
             this.timer += 16;
         }
 
-        // Update Objects
         this.beers.forEach(b => b.update());
         this.customers.forEach(c => c.update());
-
-        // Collision Detection
-        this.beers.forEach(beer => {
-            this.customers.forEach(cust => {
-                // If in same lane AND overlapping
-                if (beer.lane === cust.lane &&
-                    beer.x < cust.x + cust.width &&
-                    beer.x + beer.width > cust.x) {
-                    
-                    // Success!
-                    beer.delete = true;
-                    cust.delete = true;
-                    this.score += 10;
-                    // if(assets.sounds.catch) assets.sounds.catch.play();
-                }
-            });
-        });
-
-        // Cleanup deleted objects
-        this.beers = this.beers.filter(b => !b.delete);
-        this.customers = this.customers.filter(c => !c.delete);
+        
+        // Cleanup (simple)
+        this.beers = this.beers.filter(b => b.x < canvas.width);
+        this.customers = this.customers.filter(c => c.x > 0);
     }
 
     draw() {
-        // 1. Draw Background
-        if (assets.bg) {
-            ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
-        } else {
-            ctx.fillStyle = "#333"; ctx.fillRect(0,0,this.width, this.height);
-        }
+        // 1. Draw BG
+        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
+        else { ctx.fillStyle = '#333'; ctx.fillRect(0,0,this.width, this.height); }
 
-        // 2. Draw Entities
+        // 2. Draw Lanes (Visual Guide)
+        CONFIG.Lanes.forEach(y => {
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.width, y); ctx.stroke();
+        });
+
+        // 3. Draw Entities
         this.beers.forEach(b => b.draw());
         this.customers.forEach(c => c.draw());
 
-        // 3. Draw UI
-        ctx.fillStyle = "white";
-        ctx.font = "bold 30px Courier New";
-        ctx.shadowColor="black"; ctx.shadowBlur=4;
-        ctx.fillText("TIPS: $" + this.score, 20, 50);
-        ctx.shadowBlur=0;
-
-        if (this.gameOver) {
-            ctx.fillStyle = "rgba(0,0,0,0.7)";
-            ctx.fillRect(0, 0, this.width, this.height);
-            ctx.fillStyle = "red";
-            ctx.font = "50px Courier New";
-            ctx.fillText("BAR CLOSED", this.width/2 - 140, this.height/2);
-            ctx.fillStyle = "white";
-            ctx.font = "20px Courier New";
-            ctx.fillText("Tap to Re-open", this.width/2 - 80, this.height/2 + 50);
-        }
-    }
-
-    restart() {
-        this.beers = [];
-        this.customers = [];
-        this.score = 0;
-        this.gameOver = false;
-        CONFIG.SpawnRate = 2000;
+        // 4. Draw Debug Log
+        ctx.fillStyle = "rgba(0,0,0,0.8)";
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.font = "14px monospace";
+        debugLog.forEach((item, i) => {
+            ctx.fillStyle = item.color;
+            ctx.fillText(item.text, 10, 20 + (i * 20));
+        });
     }
 }
 
 class Beer {
     constructor(lane) {
         this.lane = lane;
-        this.x = 100; // Start at Left (Tap)
-        this.y = CONFIG.Lanes[lane] - 30; // Center on lane
-        this.width = SPRITE_DATA.beer.w;
-        this.height = SPRITE_DATA.beer.h;
-        this.delete = false;
+        this.x = 100;
+        this.y = CONFIG.Lanes[lane] - 30;
+        this.width = 64; this.height = 64;
     }
-    update() {
-        this.x += CONFIG.BeerSpeed;
-        if (this.x > canvas.width) this.delete = true; // Wasted beer!
-    }
+    update() { this.x += CONFIG.BeerSpeed; }
     draw() {
+        // HITBOX (Green Box = Physics is working)
+        ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // SPRITE
         if (assets.beers) {
-            // Draw first frame of beer sprite sheet
-            ctx.drawImage(assets.beers, 0, 0, this.width, this.height, this.x, this.y, this.width*1.5, this.height*1.5);
-        } else {
-            ctx.fillStyle = "gold"; ctx.fillRect(this.x, this.y, 30, 40);
+            ctx.drawImage(assets.beers, 
+                0, 0, 32, 32, // Grab 32x32 from Top Left
+                this.x, this.y, 64, 64);
         }
     }
 }
@@ -200,67 +149,74 @@ class Customer {
     constructor(lane, type) {
         this.lane = lane;
         this.type = type;
-        this.x = canvas.width; // Start at Right (Door)
-        this.y = CONFIG.Lanes[lane] - 50; 
-        this.width = SPRITE_DATA.customer.w;
-        this.height = SPRITE_DATA.customer.h;
-        this.delete = false;
-        
-        // Animation State
-        this.frameX = 0; 
-        this.animTimer = 0;
+        this.x = canvas.width - 100;
+        this.y = CONFIG.Lanes[lane] - 50;
+        this.width = 64; this.height = 64;
+        this.frameX = 0;
+        this.tick = 0;
     }
-    update() {
-        this.x -= CONFIG.CustomerSpeed;
-        if (this.x < 80) {
-            // Reached the bar! Game Over.
-            game.gameOver = true;
-        }
-
-        // Animate (Cycle through 3 frames)
-        this.animTimer++;
-        if (this.animTimer > SPRITE_DATA.customer.animSpeed) {
-            this.frameX = (this.frameX + 1) % 3; 
-            this.animTimer = 0;
-        }
+    update() { 
+        this.x -= CONFIG.CustomerSpeed; 
+        this.tick++;
+        if (this.tick > 10) { this.frameX = (this.frameX + 1) % 2; this.tick = 0; }
     }
     draw() {
-        const sprite = assets.customers[this.type];
-        if (sprite) {
-            ctx.drawImage(sprite, 
-                this.frameX * this.width, 0, this.width, this.height, // Source Slice
-                this.x, this.y, this.width*1.5, this.height*1.5       // Dest (Scaled 1.5x)
+        // HITBOX (Red Box = Physics is working)
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // SPRITE
+        const img = assets.customers[this.type];
+        if (img) {
+            // Trying to draw first frame
+            ctx.drawImage(img, 
+                this.frameX * 64, 0, 64, 64, // Source Slice
+                this.x, this.y, 64, 64 // Dest
             );
-        } else {
-            ctx.fillStyle = "red"; ctx.fillRect(this.x, this.y, 40, 60);
         }
     }
 }
 
-// --- 3. BOOTSTRAP (Asset Loading) ---
+// --- BOOTSTRAP ---
 const assets = { customers: {} };
 let game;
-let loadedCount = 0;
-// Create list of images to load
-const toLoad = [
-    {k: 'bg', src: ASSETS.bg},
-    {k: 'beers', src: ASSETS.beers},
-    ...Object.keys(ASSETS.customers).map(key => ({k: key, src: ASSETS.customers[key], isCust: true}))
-];
 
-toLoad.forEach(item => {
-    const img = new Image();
-    img.src = item.src;
-    img.onload = () => {
-        if(item.isCust) assets.customers[item.k] = img;
-        else assets[item.k] = img;
+function loadImages() {
+    log("System Check Started...");
+    
+    const list = [
+        { key: 'bg', src: ASSETS.bg },
+        { key: 'beers', src: ASSETS.beers },
+        ...Object.keys(ASSETS.customers).map(k => ({ key: k, src: ASSETS.customers[k], isCust: true }))
+    ];
+
+    let loaded = 0;
+    list.forEach(item => {
+        const img = new Image();
+        img.src = item.src;
         
-        loadedCount++;
-        if(loadedCount === toLoad.length) initGame();
-    };
-});
+        img.onload = () => {
+            log("✔ Loaded: " + item.src, "#0f0");
+            if (item.isCust) assets.customers[item.key] = img;
+            else assets[item.key] = img;
+            checkStart(++loaded, list.length);
+        };
+        
+        img.onerror = () => {
+            log("✖ FAILED: " + item.src, "#f00");
+            checkStart(++loaded, list.length);
+        };
+    });
+}
 
-function initGame() {
+function checkStart(count, total) {
+    if (count === total) {
+        log("Starting Game Loop...", "yellow");
+        init();
+    }
+}
+
+function init() {
     resize();
     game = new Game();
     animate();
@@ -274,9 +230,9 @@ function resize() {
 
 function animate() {
     ctx.clearRect(0,0,canvas.width, canvas.height);
-    if(game) game.update();
-    if(game) game.draw();
+    if(game) { game.update(); game.draw(); }
     requestAnimationFrame(animate);
 }
 
 window.addEventListener('resize', resize);
+loadImages();
