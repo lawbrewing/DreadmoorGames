@@ -15,17 +15,18 @@ const SPRITE_DATA = {
         { h: 150, 
           closed: { x: -1, y: 133 }, 
           open:   { x: -58, y: 51, rot: Math.PI / 2 },
-          clip: { x: 1, y: 1, w: -3, h: -2 } // Extra clip on right
+          // ADJUST THESE: x/y shifts the start, w/h changes the box size
+          crop: { sx: 2, sy: 2, sw: -4, sh: -2 } 
         },
         { h: 150, 
           closed: { x: -31, y: 137 }, 
           open:   { x: -31, y: 21, rot: Math.PI },
-          clip: { x: 1, y: 1, w: -2, h: -4 } // Extra clip on bottom
+          crop: { sx: 2, sy: 2, sw: -2, sh: -4 } 
         },
         { h: 150, 
           closed: { x: -53, y: 135 }, 
           open:   { x: 0, y: 53, rot: -Math.PI / 2 },
-          clip: { x: 3, y: 1, w: -4, h: -2 } // Extra clip on left
+          crop: { sx: 4, sy: 2, sw: -6, sh: -2 } 
         }
     ]
 };
@@ -81,7 +82,7 @@ class TapStation {
 
     pull() {
         this.pulled = true;
-        this.pullTimer = 15; // Pull duration
+        this.pullTimer = 15;
     }
 
     update() {
@@ -89,30 +90,36 @@ class TapStation {
     }
 
     draw() {
+        // Draw Tower Base
         if (assets.tower) {
             const fW = assets.tower.width / 3;
             const dW = SPRITE_DATA.tower.h * (fW / assets.tower.height);
             ctx.drawImage(assets.tower, this.index * fW, 0, fW, assets.tower.height, this.x - (dW/2), CONFIG.TapY, dW, SPRITE_DATA.tower.h);
         }
         
+        // Draw Handle
         if (assets.taps) {
-            const fW = assets.taps.width / 3;
-            const fH = assets.taps.height / 2;
+            const fW = assets.taps.width / 3;  // Width of one frame
+            const fH = assets.taps.height / 2; // Height of one row
             const dW = this.cal.h * (fW / fH);
             const dH = this.cal.h;
             const state = this.pulled ? this.cal.open : this.cal.closed;
-            const c = this.cal.clip;
+            
+            // Apply Manual Crop
+            const c = this.cal.crop;
 
             ctx.save();
             ctx.translate(this.x + state.x, CONFIG.TapY + state.y);
             if (this.pulled) ctx.rotate(state.rot);
 
-            // Using the custom clip data to stop artifacts on a per-tap basis
             ctx.drawImage(
                 assets.taps,
-                (this.index * fW) + c.x, (this.pulled ? fH : 0) + c.y, 
-                fW + c.w, fH + c.h, 
-                -dW / 2, -dH, 
+                (this.index * fW) + c.sx,      // Source X + Offset
+                (this.pulled ? fH : 0) + c.sy, // Source Y + Offset
+                fW + c.sw,                     // Source Width + Adjustment
+                fH + c.sh,                     // Source Height + Adjustment
+                -dW / 2,                       // Destination X (Centered)
+                -dH,                           // Destination Y (Bottom Anchored)
                 dW, dH
             );
             ctx.restore();
