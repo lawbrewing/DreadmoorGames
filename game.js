@@ -4,27 +4,25 @@ const ctx = canvas.getContext('2d');
 const CONFIG = { BarHeight: 719, TapY: 376, Stations: [0.2, 0.5, 0.8] };
 
 let SPRITE_DATA = {
-    customer: { h: 369 },
     tower: { h: 433 },
-    // --- CALIBRATION DATA ---
-    // x: offset, y: offset, s: scale adjustment
+    // Individual calibration for EVERY possible visual state
     glasses: [
-        {
+        { // Station 0 (Stout Tap)
             empty: { x: -5, y: 510, s: 1.0 },
             half:  { x: -5, y: 510, s: 1.0 },
-            mix:   { x: -5, y: 510, s: 1.0 },
+            mix_from_2: { x: -5, y: 510, s: 1.0 }, // mixpour index 0
+            mix_from_1: { x: -5, y: 510, s: 1.0 }, // mixpour index 1
             full:  { x: -5, y: 510, s: 1.0 }
         },
-        {
+        { // Station 1 (IPA Tap)
             empty: { x: -35, y: 514, s: 1.0 },
             half:  { x: -35, y: 514, s: 1.0 },
-            mix:   { x: -35, y: 514, s: 1.0 },
             full:  { x: -35, y: 514, s: 1.0 }
         },
-        {
+        { // Station 2 (Lager Tap)
             empty: { x: -62, y: 514, s: 1.0 },
             half:  { x: -62, y: 514, s: 1.0 },
-            mix:   { x: -62, y: 514, s: 1.0 },
+            mix_from_1: { x: -62, y: 514, s: 1.0 }, // mixpour index 2
             full:  { x: -62, y: 514, s: 1.0 }
         }
     ],
@@ -49,7 +47,7 @@ class Game {
         this.activeGlasses = []; 
         this.selectedGlass = null;
         this.activeStationIdx = 0;
-        this.labStage = 'empty'; // 'empty', 'half', 'mix', 'full'
+        this.labStage = 'empty'; 
 
         CONFIG.Stations.forEach((xRatio, i) => {
             this.taps.push(new TapStation(i, xRatio, SPRITE_DATA.taps[i]));
@@ -86,6 +84,7 @@ class Game {
             if (!this.selectedGlass) return;
             const pos = getPos(e);
             const data = SPRITE_DATA.glasses[this.selectedGlass.station][this.labStage];
+            if (!data) return;
             data.x = Math.round(pos.x - this.selectedGlass.baseX);
             data.y = Math.round(pos.y - CONFIG.TapY);
         });
@@ -94,13 +93,16 @@ class Game {
 
         window.addEventListener('keydown', (e) => {
             const data = SPRITE_DATA.glasses[this.activeStationIdx][this.labStage];
-            if (e.key === 'ArrowUp') data.s += 0.01;
-            if (e.key === 'ArrowDown') data.s -= 0.01;
-            // Stage Selector
+            if (data) {
+                if (e.key === 'ArrowUp') data.s += 0.01;
+                if (e.key === 'ArrowDown') data.s -= 0.01;
+            }
+            // LAB CONTROLS
             if (e.key === '1') this.labStage = 'empty';
             if (e.key === '2') this.labStage = 'half';
-            if (e.key === '3') this.labStage = 'mix';
-            if (e.key === '4') this.labStage = 'full';
+            if (e.key === '3') this.labStage = 'mix_from_2';
+            if (e.key === '4') this.labStage = 'mix_from_1';
+            if (e.key === '5') this.labStage = 'full';
         });
     }
 
@@ -110,18 +112,23 @@ class Game {
         this.activeGlasses.forEach(glass => glass.draw(this.labStage));
 
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 520, 200);
+        ctx.fillRect(10, 10, 580, 220);
         ctx.fillStyle = "#0f0";
         ctx.font = "14px monospace";
-        ctx.fillText(`🛠 MASTER LAB | STATION: ${this.activeStationIdx} | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
+        ctx.fillText(`🛠 MIXOLOGIST LAB | STATION: ${this.activeStationIdx} | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
         
         const d = SPRITE_DATA.glasses[this.activeStationIdx][this.labStage];
-        ctx.fillText(`CURRENT OFFSET: x: ${d.x}, y: ${d.y}, scale: ${d.s.toFixed(2)}`, 20, 65);
+        if (d) {
+            ctx.fillText(`POS: x: ${d.x}, y: ${d.y} | SCALE: ${d.s.toFixed(2)}`, 20, 65);
+        } else {
+            ctx.fillStyle = "#f33";
+            ctx.fillText(`INVALID STAGE FOR THIS STATION`, 20, 65);
+        }
         
         ctx.fillStyle = "#aaa";
-        ctx.fillText("KEYS: [1] Empty  [2] Half  [3] Mix  [4] Full", 20, 100);
+        ctx.fillText("KEYS: [1]Empty [2]Half [3]Mix(from 2) [4]Mix(from 1) [5]Full", 20, 100);
         ctx.fillText("DRAG glass to position | UP/DOWN to scale", 20, 125);
-        ctx.fillText("Switch stages and align each one independently.", 20, 150);
+        ctx.fillText("NOTE: Mix Stage 3 & 4 only apply to Taps 0 and 2.", 20, 150);
     }
 }
 
@@ -154,21 +161,35 @@ class BeerGlass {
         this.renderX = 0;
         this.renderY = 0;
     }
+
     draw(stage) {
         const data = SPRITE_DATA.glasses[this.station][stage];
+        if (!data) return; // Skip if this station doesn't have this stage
+
         const def = SPRITE_DATA.glassDefaults;
         this.renderX = this.baseX + data.x;
         this.renderY = CONFIG.TapY + data.y;
 
-        let img = assets[stage];
-        let cols = (stage === 'half' || stage === 'mix') ? 3 : 4;
+        let img, cols, frameIdx;
 
-        if (img && img.complete) {
+        switch(stage) {
+            case 'empty': 
+                img = assets.empty; cols = 4; frameIdx = 0; break;
+            case 'half': 
+                img = assets.half; cols = 3; frameIdx = this.station; break;
+            case 'mix_from_2': 
+                img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
+            case 'mix_from_1': 
+                img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 1 : (this.station === 2 ? 2 : -1); break;
+            case 'full': 
+                img = assets.full; cols = 4; frameIdx = this.station + 1; break;
+        }
+
+        if (img && frameIdx !== -1) {
             const fW = img.width / cols;
-            const aspectRatio = img.height / fW;
             const drawW = def.w * def.scale * data.s;
-            const drawH = drawW * aspectRatio;
-            ctx.drawImage(img, (this.station * fW) + def.clip.sx, 0, fW + def.clip.sw, img.height, this.renderX - drawW/2, this.renderY - drawH, drawW, drawH);
+            const drawH = drawW * (img.height / fW);
+            ctx.drawImage(img, (frameIdx * fW) + def.clip.sx, 0, fW + def.clip.sw, img.height, this.renderX - drawW/2, this.renderY - drawH, drawW, drawH);
         }
     }
 }
