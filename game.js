@@ -9,21 +9,21 @@ let SPRITE_DATA = {
     glasses: [
         { // Station 0 (Stout Tap)
             empty: { x: -5, y: 510, s: 1.0 },
-            half:  { x: -5, y: 510, s: 1.0 },
-            mix_from_2: { x: -5, y: 510, s: 1.0 }, // mixpour index 0
-            mix_from_1: { x: -5, y: 510, s: 1.0 }, // mixpour index 1
-            full:  { x: -5, y: 510, s: 1.0 }
+            half:  { x: 10, y: 490, s: 1.0 },
+            mix_from_2: { x: -5, y: 478, s: 1.0 }, // mixpour index 0
+            mix_from_1: { x: 7, y: 473, s: 1.0 }, // mixpour index 1
+            full:  { x: 6, y: 510, s: 1.0 }
         },
         { // Station 1 (IPA Tap)
-            empty: { x: -35, y: 514, s: 1.0 },
-            half:  { x: -35, y: 514, s: 1.0 },
-            full:  { x: -35, y: 514, s: 1.0 }
+            empty: { x: -42, y: 511, s: 1.0 },
+            half:  { x: -33, y: 484, s: 1.0 },
+            full:  { x: -25, y: 514, s: 1.0 }
         },
         { // Station 2 (Lager Tap)
-            empty: { x: -62, y: 514, s: 1.0 },
-            half:  { x: -62, y: 514, s: 1.0 },
+            empty: { x: -78, y: 508, s: 1.0 },
+            half:  { x: -67, y: 482, s: 1.0 },
             mix_from_1: { x: -62, y: 514, s: 1.0 }, // mixpour index 2
-            full:  { x: -62, y: 514, s: 1.0 }
+            full:  { x: -52, y: 513, s: 1.0 }
         }
     ],
     glassDefaults: { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 } },
