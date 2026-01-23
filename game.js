@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 // --- 1. CONFIGURATION (Live State) ---
 let CONFIG = {
     BarHeight: 719, 
-    TapY: 433,
+    TapY: 376,
     Stations: [0.2, 0.5, 0.8], 
 };
 
@@ -14,7 +14,7 @@ let SPRITE_DATA = {
     taps: [
         { h: 150, offsetX: -1, offsetY: -15 }, 
         { h: 150, offsetX: -32, offsetY: -9 }, 
-        { h: 150, offsetX: -56, offsetY: -10 }  
+        { h: 150, offsetX: -54, offsetY: -15 }  
     ]
 };
 
