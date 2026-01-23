@@ -3,14 +3,14 @@ const ctx = canvas.getContext('2d');
 
 // --- 1. CONFIGURATION (Live State) ---
 let CONFIG = {
-    BarHeight: 721, 
+    BarHeight: 719, 
     TapY: window.innerHeight * 0.55,
     Stations: [0.2, 0.5, 0.8], 
 };
 
 let SPRITE_DATA = {
     customer: { h: 369, frames: 1 }, // We'll detect frames automatically
-    tower: { h: 445, cols: 3 },
+    tower: { h: 364, cols: 3 },
     taps: [
         { h: 150, offsetX: -1, offsetY: -15 }, 
         { h: 150, offsetX: -32, offsetY: -9 }, 
