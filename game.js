@@ -1,16 +1,14 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 1. CONFIGURATION ---
 const CONFIG = {
     BarHeight: window.innerHeight * 0.40, 
-    TapY: window.innerHeight * 0.65, 
+    TapY: window.innerHeight * 0.55, // Adjusted higher as requested
     Stations: [0.2, 0.5, 0.8], 
-    SpawnRate: 2000, 
+    SpawnRate: 2500, 
     BeerSpeed: 12,
 };
 
-// --- 2. ASSETS ---
 const ASSETS = {
     bg: 'assets/background.png',
     beers: 'assets/fullpints.png',
@@ -26,18 +24,15 @@ const ASSETS = {
     }
 };
 
-// --- 3. THE CALIBRATION TABLE ---
+// --- STARTING VALUES (Copy your final results from the screen back to here!) ---
 const SPRITE_DATA = {
     customer: { h: 600 },
     tower: { h: 350, cols: 3 },
     beer: { w: 64, h: 64, scale: 2.0 },
-    
-    // ADJUST THESE INDEPENDENTLY
-    // 0 = Left, 1 = Center, 2 = Right
     taps: [
-        { h: 150, offsetX: 0, offsetY: -130 }, // Left
-        { h: 150, offsetX: 0, offsetY: -130 }, // Center
-        { h: 150, offsetX: 0, offsetY: -130 }  // Right
+        { h: 150, offsetX: 0, offsetY: -110 }, 
+        { h: 150, offsetX: 0, offsetY: -110 }, 
+        { h: 150, offsetX: 0, offsetY: -110 }  
     ]
 };
 
@@ -49,28 +44,47 @@ class Game {
         this.beers = [];
         this.taps = [];
         this.timer = 0;
+        this.selectedTap = null; // For Calibration
         
-        // Initialize Taps safely
         CONFIG.Stations.forEach((xRatio, index) => {
-            const calibration = SPRITE_DATA.taps[index] || { h: 150, offsetX: 0, offsetY: -110 };
+            const calibration = SPRITE_DATA.taps[index];
             this.taps.push(new TapStation(index, xRatio, calibration));
         });
 
-        const handleInput = (e) => {
-            e.preventDefault();
+        // --- CALIBRATION INPUT ---
+        const handleDown = (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
             const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             
             this.taps.forEach(tap => {
-                if (Math.abs(x - tap.x) < 100 && y > CONFIG.BarHeight) {
-                    tap.pull();
-                    this.beers.push(new Beer(tap.x, tap.y, tap.index));
+                // If you click near a handle, select it
+                if (Math.abs(x - tap.x) < 50 && Math.abs(y - (tap.y + tap.cal.offsetY)) < 100) {
+                    this.selectedTap = tap;
                 }
             });
         };
-        canvas.addEventListener('touchstart', handleInput, {passive: false});
-        canvas.addEventListener('mousedown', handleInput);
+
+        const handleMove = (e) => {
+            if (!this.selectedTap) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+
+            // Update offsets in real-time
+            this.selectedTap.cal.offsetX = x - this.selectedTap.x;
+            this.selectedTap.cal.offsetY = y - this.selectedTap.y;
+        };
+
+        const handleUp = () => { this.selectedTap = null; };
+
+        canvas.addEventListener('mousedown', handleDown);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleUp);
+        
+        canvas.addEventListener('touchstart', handleDown, {passive: false});
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('touchend', handleUp);
     }
 
     update() {
@@ -84,7 +98,6 @@ class Game {
         this.customers.forEach(c => c.update());
         this.taps.forEach(t => t.update());
         this.beers.forEach(b => b.update());
-        this.beers = this.beers.filter(b => b.y > -100);
     }
 
     draw() {
@@ -92,6 +105,16 @@ class Game {
         this.customers.forEach(c => c.draw());
         this.beers.forEach(b => b.draw());
         this.taps.forEach(t => t.draw());
+
+        // --- CALIBRATION HUD ---
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(10, 10, 350, 120);
+        ctx.fillStyle = "#0f0";
+        ctx.font = "14px monospace";
+        ctx.fillText("DRAG HANDLES TO ALIGN", 20, 30);
+        this.taps.forEach((t, i) => {
+            ctx.fillText(`Tap ${i}: offsetX: ${Math.round(t.cal.offsetX)}, offsetY: ${Math.round(t.cal.offsetY)}`, 20, 55 + (i * 20));
+        });
     }
 }
 
@@ -105,49 +128,36 @@ class TapStation {
         this.pullTimer = 0;
     }
 
-    pull() {
-        this.pulled = true;
-        this.pullTimer = 10;
-    }
+    pull() { /* Disabled pull during calibration to prevent beer spam */ }
 
-    update() {
-        if (this.pulled) {
-            this.pullTimer--;
-            if (this.pullTimer <= 0) this.pulled = false;
-        }
-    }
+    update() {}
 
     draw() {
         if (assets.tower) {
-            const sT = SPRITE_DATA.tower;
-            const frameW = assets.tower.width / sT.cols;
+            const frameW = assets.tower.width / 3;
             const frameH = assets.tower.height;
-            const drawW = sT.h * (frameW / frameH);
-            ctx.drawImage(assets.tower, this.index * frameW, 0, frameW, frameH, this.x - (drawW/2), this.y, drawW, sT.h);
+            const drawW = SPRITE_DATA.tower.h * (frameW / frameH);
+            ctx.drawImage(assets.tower, this.index * frameW, 0, frameW, frameH, this.x - (drawW/2), this.y, drawW, SPRITE_DATA.tower.h);
         }
 
         if (assets.taps) {
             const frameW = assets.taps.width / 3;
             const frameH = assets.taps.height / 2;
             const drawW = this.cal.h * (frameW / frameH);
-            const row = this.pulled ? 1 : 0;
-
-            ctx.drawImage(
-                assets.taps,
-                this.index * frameW, row * frameH, frameW, frameH,
-                (this.x - (drawW/2)) + this.cal.offsetX, 
-                this.y + this.cal.offsetY, 
-                drawW, 
-                this.cal.h
-            );
+            ctx.drawImage(assets.taps, this.index * frameW, 0, frameW, frameH, (this.x - (drawW/2)) + this.cal.offsetX, this.y + this.cal.offsetY, drawW, this.cal.h);
+            
+            // Draw a small selection circle if being dragged
+            if (this.pulled) {
+                ctx.strokeStyle = "yellow";
+                ctx.strokeRect((this.x - (drawW/2)) + this.cal.offsetX, this.y + this.cal.offsetY, drawW, this.cal.h);
+            }
         }
     }
 }
 
+// ... Beer and Customer classes remain same as previous version ...
 class Beer {
-    constructor(x, y, typeIndex) {
-        this.x = x; this.y = y; this.typeIndex = typeIndex; 
-    }
+    constructor(x, y, typeIndex) { this.x = x; this.y = y; this.typeIndex = typeIndex; }
     update() { this.y -= CONFIG.BeerSpeed; }
     draw() {
         if (assets.beers) {
