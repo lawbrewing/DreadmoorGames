@@ -9,17 +9,17 @@ let SPRITE_DATA = {
     taps: [
         { h: 150, 
           closed: { x: -1, y: 133 }, 
-          open:   { x: -58, y: 51, rot: Math.PI / 2 },
+          open:   { x: -66, y: 54, rot: Math.PI / 2 },
           crop: { sx: 2, sy: 41, sw: -4, sh: -2 } 
         },
         { h: 150, 
-          closed: { x: -31, y: 137 }, 
-          open:   { x: -31, y: 21, rot: Math.PI },
+          closed: { x: -32, y: 140 }, 
+          open:   { x: -32, y: 13, rot: Math.PI },
           crop: { sx: 2, sy: 42, sw: -2, sh: -4 } 
         },
         { h: 150, 
-          closed: { x: -53, y: 135 }, 
-          open:   { x: 0, y: 53, rot: -Math.PI / 2 },
+          closed: { x: -54, y: 137 }, 
+          open:   { x: 8, y: 54, rot: -Math.PI / 2 },
           crop: { sx: 4, sy: 43, sw: -6, sh: -2 } 
         }
     ]
