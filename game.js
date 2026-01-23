@@ -1,36 +1,22 @@
 /**
- * TAPROOM TAPPER - FINAL TUNED ENGINE
- * Visuals: Waist-Up View
- * Logic: Single Frame Cropping
+ * TAPROOM TAPPER - FORCE VISIBILITY MODE
+ * 1. Red Boxes show where customers are.
+ * 2. Spinning Green Square shows if game is running.
+ * 3. No fancy cropping - shows full image to prevent errors.
  */
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 1. CONFIGURATION ---
+// --- CONFIG ---
 const CONFIG = {
-    // HEIGHT ADJUSTMENT
-    // 0.5 = Middle of screen
-    // 0.65 = Lower Middle (Should be perfect for a bar)
-    // 0.85 = Too low (What you had before)
+    // 75% down the screen (The Sweet Spot?)
     BarHeight: window.innerHeight * 0.75, 
-    
     Stations: [0.2, 0.5, 0.8], 
-    SpawnRate: 2000, 
+    SpawnRate: 1500, 
 };
 
-// --- 2. SPRITE SETTINGS (THE CROPPER) ---
-const SPRITE_DATA = {
-    // IMPORTANT: How many "Guys" are in your sprite sheet image?
-    // If you see 4 guys in the sheet, set this to 4.
-    // If you see 6 guys, set this to 6.
-    FrameCount: 3, 
-    
-    // How much to zoom in on them
-    Scale: 4.0 
-};
-
-// --- 3. ASSETS ---
+// --- ASSETS ---
 const ASSETS = {
     bg: 'assets/background.png',
     beers: 'assets/fullpints.png',
@@ -44,7 +30,7 @@ const ASSETS = {
     }
 };
 
-// --- 4. ENGINE ---
+// --- GAME ENGINE ---
 
 class Game {
     constructor() {
@@ -52,7 +38,10 @@ class Game {
         this.height = canvas.height;
         this.customers = [];
         this.timer = 0;
-        this.spawnCustomer(); // Test spawn
+        this.frame = 0; // For heartbeat animation
+        
+        // Spawn one immediately
+        this.spawnCustomer();
     }
 
     spawnCustomer() {
@@ -63,22 +52,33 @@ class Game {
     }
 
     update() {
+        this.frame++;
         this.timer += 16;
         if (this.timer > CONFIG.SpawnRate) {
             this.spawnCustomer();
             this.timer = 0;
         }
         this.customers.forEach(c => c.update());
-        // Clean up off-screen
+        
+        // Keep list clean
         this.customers = this.customers.filter(c => c.x > -200);
     }
 
     draw() {
-        // Draw BG
+        // 1. Draw Background
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
         else { ctx.fillStyle = "#333"; ctx.fillRect(0,0,this.width, this.height); }
 
-        // Draw Customers
+        // 2. Draw "Heartbeat" (Spinning Square in Corner)
+        // If this stops spinning, the game crashed.
+        ctx.save();
+        ctx.translate(50, 50);
+        ctx.rotate(this.frame * 0.05);
+        ctx.fillStyle = "#0f0";
+        ctx.fillRect(-20, -20, 40, 40);
+        ctx.restore();
+
+        // 3. Draw Customers
         this.customers.forEach(c => c.draw());
     }
 }
@@ -87,53 +87,34 @@ class Customer {
     constructor(lane, type) {
         this.type = type;
         this.targetX = canvas.width * CONFIG.Stations[lane];
-        this.x = canvas.width + 100; // Start off screen right
+        this.x = canvas.width + 50; 
         
-        // Y Position Calculation
-        // We need to know the sprite height to place their feet (or waist) correctly
-        // For now, we place them at the BarHeight line
+        // Position at the Bar Height
         this.y = CONFIG.BarHeight; 
         
         this.state = 'walking';
-        this.frameX = 0; // Current animation frame
-        this.tick = 0;
     }
 
     update() {
-        if (this.x > this.targetX) {
-            this.x -= 8; // Move Left
-            
-            // Animation Loop
-            this.tick++;
-            if (this.tick > 10) {
-                // Cycle through frames 0 to (FrameCount - 1)
-                this.frameX = (this.frameX + 1) % SPRITE_DATA.FrameCount;
-                this.tick = 0;
-            }
-        }
+        if (this.x > this.targetX) this.x -= 8;
     }
 
     draw() {
+        // A. RED BOX (The Locator)
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillRect(this.x, this.y, 100, 100);
+
+        // B. FULL SPRITE (No Math, Just Draw)
         const sprite = assets.customers[this.type];
         if (sprite) {
-            // 1. Calculate Single Frame Size
-            const frameW = sprite.width / SPRITE_DATA.FrameCount;
-            const frameH = sprite.height; // Assuming 1 row
+            // Draw the WHOLE image squeezed into 100x100
+            // This guarantees we see it if it exists
+            ctx.drawImage(sprite, this.x, this.y, 100, 100);
             
-            // 2. Flip Logic (Face Left)
-            ctx.save();
-            // Move "Pivot Point" to where the character is
-            ctx.translate(this.x + (frameW * SPRITE_DATA.Scale), this.y);
-            ctx.scale(-1, 1); // Flip
-            
-            // 3. Draw The CROP (Single Frame)
-            ctx.drawImage(
-                sprite,
-                this.frameX * frameW, 0, frameW, frameH, // Source (Crop)
-                0, 0, frameW * SPRITE_DATA.Scale, frameH * SPRITE_DATA.Scale // Dest (Draw)
-            );
-            
-            ctx.restore();
+            // Draw Name
+            ctx.fillStyle = "white";
+            ctx.font = "12px monospace";
+            ctx.fillText(this.type, this.x, this.y - 10);
         }
     }
 }
@@ -156,8 +137,9 @@ function loadImages() {
             else assets[item.k] = img;
         };
     });
+    
     // Start immediately
-    setTimeout(init, 500); 
+    setTimeout(init, 500);
 }
 
 function init() {
