@@ -11,7 +11,7 @@ const ctx = canvas.getContext('2d');
 // --- CONFIG ---
 const CONFIG = {
     // 75% down the screen (The Sweet Spot?)
-    BarHeight: window.innerHeight * 0.75, 
+    BarHeight: window.innerHeight * 0.65, 
     Stations: [0.2, 0.5, 0.8], 
     SpawnRate: 1500, 
 };
