@@ -1,6 +1,6 @@
 /**
- * TAPROOM TAPPER - HUD DEBUG MODE
- * This prints text on screen to tell us where the customers are hiding.
+ * TAPROOM TAPPER - SAFE MODE (DATA DUMP)
+ * This will tell us the exact size of your images without crashing.
  */
 
 const canvas = document.getElementById('gameCanvas');
@@ -8,10 +8,10 @@ const ctx = canvas.getContext('2d');
 
 // --- 1. CONFIG ---
 const CONFIG = {
-    // Moved from 0.7 to 0.85 (Lower down the screen)
+    // 85% down the screen (Near bottom)
     BarHeight: window.innerHeight * 0.85, 
     Stations: [0.2, 0.5, 0.8], 
-    SpawnRate: 1000, 
+    SpawnRate: 1500, 
 };
 
 // --- 2. ASSETS ---
@@ -28,12 +28,6 @@ const ASSETS = {
     }
 };
 
-const SPRITE_DATA = {
-    // Make them HUGE so we can't miss them
-    beer: { w: 32, h: 32, scale: 3.0 },
-    customer: { w: 64, h: 64, scale: 4.0 }
-};
-
 // --- 3. GAME ENGINE ---
 
 class Game {
@@ -41,9 +35,9 @@ class Game {
         this.width = canvas.width;
         this.height = canvas.height;
         this.customers = [];
-        this.timer = 2000; // Start ready to spawn
+        this.timer = 0;
         
-        // Force spawn immediately
+        // Spawn one immediately to test
         this.spawnCustomer();
     }
 
@@ -55,59 +49,77 @@ class Game {
     }
 
     update() {
-        // Spawner
         this.timer += 16;
         if (this.timer > CONFIG.SpawnRate) {
             this.spawnCustomer();
             this.timer = 0;
         }
-        
         this.customers.forEach(c => c.update());
+        
+        // Keep list clean
+        this.customers = this.customers.filter(c => c.x > -100);
     }
 
     draw() {
-        const sprite = assets.customers[this.type];
-        
-        // 1. DRAW RED BOX (Keep this for now as a guide)
-        ctx.fillStyle = "rgba(255, 0, 0, 0.3)"; // Semi-transparent red
-        ctx.fillRect(this.x, this.y, 150, 150); // Made box bigger (150px)
-
-        // 2. DRAW FULL SPRITE (The Scanner Fix)
-        if (sprite) {
-             // Instead of cropping, we draw the WHOLE image squeezed into the box
-             // verify the image is loaded and see how many frames there are.
-             ctx.drawImage(sprite, this.x, this.y, 150, 150);
+        // 1. Draw Background
+        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
+        else {
+            ctx.fillStyle = "#333"; 
+            ctx.fillRect(0,0,this.width, this.height);
         }
+        
+        // 2. Draw Customers
+        this.customers.forEach(c => c.draw());
+
+        // 3. Global HUD
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, 250, 50);
+        ctx.fillStyle = "white";
+        ctx.font = "16px monospace";
+        ctx.fillText(`Active Customers: ${this.customers.length}`, 10, 30);
     }
+}
 
 class Customer {
     constructor(lane, type) {
+        this.lane = lane;
         this.type = type;
         this.targetX = canvas.width * CONFIG.Stations[lane];
-        this.x = canvas.width - 50; // Start visible on right edge
-        this.y = CONFIG.BarHeight; 
+        this.x = canvas.width; 
+        this.y = CONFIG.BarHeight - 100; // Floating above bar
         this.state = 'walking';
     }
 
     update() {
-        // Move Left
-        if (this.x > this.targetX) {
-            this.x -= 5;
-        }
+        if (this.x > this.targetX) this.x -= 5;
     }
 
     draw() {
+        // 1. DRAW RED BOX (Safe Visual)
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillRect(this.x, this.y, 100, 100);
+
+        // 2. DRAW DATA TEXT (Instead of the image)
+        ctx.fillStyle = "white";
+        ctx.font = "12px monospace";
+        
         const sprite = assets.customers[this.type];
         
-        // DRAW RED BOX (In case sprite is invisible)
-        ctx.fillStyle = "red";
-        ctx.fillRect(this.x, this.y, 50, 50);
-
-        // DRAW SPRITE
         if (sprite) {
-             const s = SPRITE_DATA.customer;
-             // Simple draw (no fancy flipping yet)
-             ctx.drawImage(sprite, 0, 0, s.w, s.h, this.x, this.y, s.w*s.scale, s.h*s.scale);
+            // If image is loaded, print its dimensions
+            ctx.fillText(`${this.type}`, this.x, this.y + 20);
+            ctx.fillText(`W: ${sprite.width}`, this.x, this.y + 40);
+            ctx.fillText(`H: ${sprite.height}`, this.x, this.y + 60);
+            
+            // ATTEMPT TO DRAW TINY PREVIEW
+            // (Wrapped in try/catch to prevent crashing)
+            try {
+                 ctx.drawImage(sprite, 0, 0, sprite.width, sprite.height, this.x, this.y, 50, 50);
+            } catch(e) { /* Ignore */ }
+            
+        } else {
+            // If image is missing
+            ctx.fillText("LOADING...", this.x, this.y + 40);
         }
     }
 }
@@ -122,21 +134,17 @@ function loadImages() {
         ...Object.keys(ASSETS.customers).map(k => ({k:k, src:ASSETS.customers[k], isCust:true}))
     ];
 
-    let loaded = 0;
     list.forEach(item => {
         const img = new Image();
         img.src = item.src;
         img.onload = () => {
             if(item.isCust) assets.customers[item.k] = img;
             else assets[item.k] = img;
-            checkLoad(++loaded, list.length);
         };
-        img.onerror = () => checkLoad(++loaded, list.length);
     });
-}
-
-function checkLoad(count, total) {
-    if (count === total) init();
+    
+    // Start game immediately (Images will pop in when ready)
+    init();
 }
 
 function init() {
@@ -151,5 +159,11 @@ function animate() {
     if(game) { game.update(); game.draw(); }
     requestAnimationFrame(animate);
 }
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if(game) { game.width = canvas.width; game.height = canvas.height; }
+});
 
 loadImages();
