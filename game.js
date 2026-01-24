@@ -1,6 +1,14 @@
 // ==========================================
 // 1. SETUP & UTILS
 // ==========================================
+// Inject CSS for mobile stability
+const style = document.createElement('style');
+style.textContent = `
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; margin: 0 auto; }
+`;
+document.head.appendChild(style);
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -14,7 +22,6 @@ let screenOffset = { x: 0, y: 0 };
 
 const TAPS = { STOUT: 0, IPA: 1, LAGER: 2 };
 
-// RECIPES
 const RECIPES = {
     'stout': { name: "STOUT", steps: [{ tap: TAPS.STOUT, limit: 1.0 }] },
     'ipa':   { name: "IPA",   steps: [{ tap: TAPS.IPA,   limit: 1.0 }] },
@@ -24,7 +31,6 @@ const RECIPES = {
     'lawnmower':    { name: "LAWNMOWER HOP", steps: [{ tap: TAPS.LAGER, limit: 0.5 }, { tap: TAPS.IPA,   limit: 1.0 }] }
 };
 
-// CUSTOMER LOGIC
 const CUSTOMER_TYPES = {
     'viking':  { id: 'viking',  patience: 15000, orders: ['stout'] },
     'hipster': { id: 'viking',  patience: 12000, orders: ['ipa'] }, 
@@ -34,21 +40,30 @@ const CUSTOMER_TYPES = {
     'judge':   { id: 'judge',   patience: 25000, orders: ['flight'] }
 };
 
-// *** MASTER CALIBRATIONS ***
+// *** RESTORED CALIBRATION DATA ***
 let SPRITE_DATA = {
-    tower: { x: 960, y: 1080, s: 1.0 },
+    // TOWER & TAPS (Foreground)
+    // Using s:1.0 as requested in Master Calibration, but please adjust if the asset itself is too large
+    tower: { x: 960, y: 1080, s: 1.0 }, 
     taps: { 
+        // Offsets from tower center
         positions: [{x: -180, y: -350}, {x: 0, y: -350}, {x: 180, y: -350}],
     },
+    
+    // SPILLS (Restored Calibrated Coordinates)
     spills: [
         { x: -64, y: 450, s: .05 }, 
         { x: -29, y: 454, s: .05 }, 
         { x: 8,   y: 451, s: .05 }
     ],
+
+    // PADDLES (Restored Calibrated Coordinates)
     paddles: [
         { owner: 'judge', x: -300, y: 408, s: .16 }, 
         { owner: 'vip',   x: -270, y: 401, s: .16 }
     ],
+
+    // HUD (Restored Calibrated Coordinates)
     hud_elements: {
         score: { x: 1871, y: 76, s: .85 },
         lives: { x: 1624, y: 172, s: 0.5, spacing: 100 },
@@ -56,9 +71,13 @@ let SPRITE_DATA = {
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
     menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 },
+    
+    // CUSTOMERS (Restored Calibrated Coordinates & Clips)
     customers: [
-        { id: 'viking', name: "Viking", poses: [ {x:167, y:966, s:.48} ] },
-        { id: 'judge',  name: "Judge",  poses: [ {x:703, y:911, s:.39} ] }
+        // Viking: y=966, s=0.48
+        { id: 'viking', name: "Viking", poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}} ] },
+        // Judge: y=911, s=0.39
+        { id: 'judge',  name: "Judge",  poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
     ]
 };
 
@@ -119,10 +138,12 @@ class Customer {
         this.type = typeKey;
         this.spriteId = type.id;
         
+        // Find specific pose data
         const poseData = SPRITE_DATA.customers.find(c => c.id === this.spriteId).poses[0];
         this.targetX = poseData.x;
         this.y = poseData.y;
         this.scale = poseData.s;
+        this.clip = poseData.clip || {sx:0, sy:0, sw:0, sh:0}; // Fallback if missing
         
         this.x = -300; 
         this.state = 'walking_in'; 
@@ -134,6 +155,9 @@ class Customer {
         this.currentOrderIndex = 0; 
         this.currentDrinkProgress = 0; 
         this.currentStepIndex = 0; 
+        
+        // Pose Logic: 0=Idle, 1=Happy, 2=Angry
+        this.poseIndex = 0; 
     }
 
     generateOrder(typeKey) {
@@ -225,6 +249,7 @@ class Game {
             if (c.currentDrinkProgress > step.limit + 0.1) {
                 this.activePour.spillTimer = 20; 
                 c.satisfaction -= 1; 
+                c.poseIndex = 2; // Angry
                 if (c.satisfaction % 20 === 0) this.notifications.trigger("TRASH!", "#f00", 30);
             }
         }
@@ -234,8 +259,7 @@ class Game {
         const c = this.customer;
         if (c.type === 'karen') {
             if (c.currentDrinkProgress > 0.8) {
-                const win = Math.random() < 0.33;
-                this.completeOrder(win);
+                this.completeOrder(Math.random() < 0.33);
             }
             return;
         }
@@ -250,8 +274,8 @@ class Game {
             if (c.currentDrinkProgress >= step.limit - 0.02 && c.currentDrinkProgress <= step.limit + 0.02) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.score += 50; 
+                c.poseIndex = 1; // Happy
             }
-            
             if (c.currentStepIndex < recipe.steps.length - 1) {
                 c.currentStepIndex++; 
             } else {
@@ -301,7 +325,6 @@ class Game {
                 
                 const ord = this.customer.order;
                 let startY = -20;
-                
                 if (this.customer.type === 'judge') {
                     ctx.font = "bold 20px 'MedievalSharp', monospace";
                     ctx.fillText("FLIGHT:", 0, startY);
@@ -336,14 +359,18 @@ class Game {
                 if (this.activePour.active && this.activePour.tapIndex === idx) {
                     ctx.rotate(Math.PI / 4); 
                 }
+                
+                // Draw single handle (Slicing logic in case it's a sheet, or just drawing if single)
+                // Assuming standard handle asset, we center it
                 ctx.drawImage(assets.taps, -assets.taps.width/2, 0);
                 ctx.restore();
 
-                // Draw Spill
+                // Draw Spill (Restored Calibrated Logic)
                 if (this.activePour.active && this.activePour.tapIndex === idx && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
-                        ctx.drawImage(assets.spill, sp.x, sp.y - 100, assets.spill.width * sp.s, assets.spill.height * sp.s);
+                        // Drawing relative to tower/tap location, plus offset
+                        ctx.drawImage(assets.spill, sp.x, sp.y - 450, assets.spill.width * sp.s, assets.spill.height * sp.s);
                     }
                 }
             });
@@ -430,22 +457,27 @@ class Game {
         this.updatePouring();
         this.notifications.update();
         
-        if (this.customer) {
-            const status = this.customer.update();
-            if (status === 'arrived') this.customer.state = 'waiting';
-            if (status === 'timeout') this.completeOrder(false);
-            if (status === 'gone') this.customer = null;
-        }
-
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         
+        // 1. CUSTOMER DRAW (WITH SLICING FIXED)
         if (this.customer && assets[this.customer.spriteId]) {
             const img = assets[this.customer.spriteId];
             const s = this.customer.scale;
-            ctx.drawImage(img, this.customer.x - (img.width*s)/2, this.customer.y - img.height*s, img.width*s, img.height*s);
+            
+            // Calculate Frame Logic: Assuming 3 poses side-by-side
+            const frameW = img.width / 3;
+            const frameH = img.height;
+            const frameX = this.customer.poseIndex * frameW;
+            
+            // Draw Sliced Image
+            ctx.drawImage(img, 
+                frameX, 0, frameW, frameH, // Source X,Y,W,H
+                this.customer.x - (frameW*s)/2, this.customer.y - frameH*s, // Dest X,Y
+                frameW*s, frameH*s // Dest W,H
+            );
             
             if (this.customer.state === 'waiting') {
                 const pct = this.customer.patience / this.customer.patienceMax;
@@ -457,7 +489,10 @@ class Game {
             }
         }
 
+        // 2. TOWER
         this.drawTower();
+
+        // 3. UI
         this.drawMenu();
 
         const h = SPRITE_DATA.hud_elements;
@@ -475,7 +510,6 @@ class Game {
     }
 
     resize() {
-        // FIXED RESIZE: Prevents zoomed-in madness
         const dpr = window.devicePixelRatio || 1;
         canvas.width = window.innerWidth * dpr; 
         canvas.height = window.innerHeight * dpr;
