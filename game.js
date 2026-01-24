@@ -40,8 +40,8 @@ let SPRITE_DATA = {
     ],
     // --- CALIBRATE THESE NUMBERS USING THE HUD ---
     menu: {
-        x: 960,
-        targetY: 200,
+        x: 218,
+        targetY: 295,
         s: 0.60,
         textX: 0,
         textY: 0
