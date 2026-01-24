@@ -1,30 +1,35 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 1. RESOLUTION LOCK ---
-const WORLD = { w: 1920, h: 1080 }; // The "Virtual" size we calibrate for
+const WORLD = { w: 1920, h: 1080 }; 
 let screenScale = 1;
 let screenOffset = { x: 0, y: 0 };
 
-const CONFIG = { BarHeight: 719, TapY: 376, Stations: [0.2, 0.5, 0.8] };
+// --- 1. SYSTEM CONFIG ---
+// Use the W and S keys in the lab to find these perfect numbers
+let CONFIG = { 
+    BarHeight: 900, 
+    TapY: 550, 
+    Stations: [0.2, 0.5, 0.8] 
+};
 
 let SPRITE_DATA = {
     tower: { h: 433 },
     glasses: [
-        { // Station 0 (Stout Tap)
+        { 
             empty: { x: -5, y: 510, s: 1.0 },
             half:  { x: 10, y: 490, s: 1.11 },
             mix_from_2: { x: -5, y: 478, s: 1.11 }, 
             mix_from_1: { x: 7, y: 473, s: 1.11 }, 
             full:  { x: 6, y: 510, s: 1.0 }
         },
-        { // Station 1 (IPA Tap)
+        { 
             empty: { x: -42, y: 511, s: 1.0 },
             half:  { x: -28, y: 488, s: 1.11 },
             mix_from_1: { x: -16, y: 478, s: 1.11 }, 
             full:  { x: -25, y: 514, s: 1.0 }
         },
-        { // Station 2 (Lager Tap)
+        { 
             empty: { x: -78, y: 508, s: 1.0 },
             half:  { x: -67, y: 482, s: 1.11 },
             full:  { x: -52, y: 513, s: 1.0 }
@@ -65,11 +70,9 @@ class Game {
     resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
         const scaleX = canvas.width / WORLD.w;
         const scaleY = canvas.height / WORLD.h;
-        screenScale = Math.min(scaleX, scaleY); // Maintain Aspect Ratio
-
+        screenScale = Math.min(scaleX, scaleY);
         screenOffset.x = (canvas.width - WORLD.w * screenScale) / 2;
         screenOffset.y = (canvas.height - WORLD.h * screenScale) / 2;
     }
@@ -77,14 +80,9 @@ class Game {
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
-            const rawX = (e.clientX || e.touches?.[0].clientX) - rect.left;
-            const rawY = (e.clientY || e.touches?.[0].clientY) - rect.top;
-            
-            // Convert screen click back to World Coordinates
-            return { 
-                x: (rawX - screenOffset.x) / screenScale, 
-                y: (rawY - screenOffset.y) / screenScale 
-            };
+            const rawX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+            const rawY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+            return { x: (rawX - screenOffset.x) / screenScale, y: (rawY - screenOffset.y) / screenScale };
         };
 
         canvas.addEventListener('mousedown', (e) => {
@@ -98,7 +96,7 @@ class Game {
             }
             this.taps.forEach((tap, i) => {
                 const worldX = WORLD.w * tap.xRatio;
-                if (Math.abs(pos.x - worldX) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
+                if (Math.abs(pos.x - worldX) < 60 && Math.abs(pos.y - CONFIG.TapY) < 250) {
                     this.activeStationIdx = i;
                     if (!this.activeGlasses.find(g => g.station === i)) {
                         this.activeGlasses.push(new BeerGlass(i, worldX));
@@ -119,6 +117,10 @@ class Game {
         window.addEventListener('mouseup', () => { this.selectedGlass = null; });
 
         window.addEventListener('keydown', (e) => {
+            // GLOBAL SYSTEM NUDGE (W/S)
+            if (e.key === 'w') { CONFIG.TapY -= 5; CONFIG.BarHeight -= 5; }
+            if (e.key === 's') { CONFIG.TapY += 5; CONFIG.BarHeight += 5; }
+            
             const data = SPRITE_DATA.glasses[this.activeStationIdx][this.labStage];
             if (data) {
                 if (e.key === 'ArrowUp') data.s += 0.01;
@@ -133,26 +135,29 @@ class Game {
     }
 
     draw() {
-        ctx.fillStyle = "#000"; // Background for letterboxing
+        ctx.fillStyle = "#000"; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(screenOffset.x, screenOffset.y);
         ctx.scale(screenScale, screenScale);
 
-        // --- ALL DRAWING HAPPENS IN 1920x1080 WORLD ---
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         this.taps.forEach(t => t.draw());
         this.activeGlasses.forEach(glass => glass.draw(this.labStage));
 
-        // HUD (also scaled)
+        // HUD
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 580, 220);
+        ctx.fillRect(10, 10, 580, 240);
         ctx.fillStyle = "#0f0";
         ctx.font = "14px monospace";
-        ctx.fillText(`🛠 MIXOLOGIST LAB (SCALED) | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
-        const d = SPRITE_DATA.glasses[this.activeStationIdx][this.labStage];
-        if (d) ctx.fillText(`POS: x: ${d.x}, y: ${d.y} | SCALE: ${d.s.toFixed(2)}`, 20, 65);
+        ctx.fillText(`🛠 BAR TOP ALIGNMENT LAB | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
+        ctx.fillText(`CONFIG: TapY: ${CONFIG.TapY}, BarHeight: ${CONFIG.BarHeight}`, 20, 65);
+        
+        ctx.fillStyle = "#fff";
+        ctx.fillText("W / S: Nudge EVERYTHING Up/Down", 20, 100);
+        ctx.fillText("DRAG: Move active glass | 1-5: Switch stages", 20, 125);
+        ctx.fillText("Align the system to the bar top first, then fix glass offsets.", 20, 160);
         
         ctx.restore();
     }
@@ -161,7 +166,7 @@ class Game {
 class TapStation {
     constructor(index, xRatio, calibration) {
         this.index = index;
-        this.xRatio = xRatio; // Store ratio instead of fixed pixel
+        this.xRatio = xRatio; 
         this.cal = calibration;
     }
     draw() {
@@ -188,7 +193,6 @@ class BeerGlass {
         this.renderX = 0;
         this.renderY = 0;
     }
-
     draw(stage) {
         const data = SPRITE_DATA.glasses[this.station][stage];
         if (!data) return; 
