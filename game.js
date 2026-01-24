@@ -7,7 +7,6 @@ let screenOffset = { x: 0, y: 0 };
 
 let CONFIG = { BarHeight: 850, TapY: 500, Stations: [0.2, 0.5, 0.8] };
 
-// --- FULL DATA STRUCTURE ---
 let SPRITE_DATA = {
     tower: { h: 433 },
     spills: [
@@ -20,17 +19,15 @@ let SPRITE_DATA = {
         { owner: 'vip',   x: -339, y: 400, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     paddleDrinks: [
-        [ // Judge (Owner 0)
-            [ {x:-30, y:0, s:1}, {x:30, y:0, s:1} ], // Size 0 (2 slots)
-            [ {x:-50, y:0, s:1}, {x:0, y:0, s:1}, {x:50, y:0, s:1} ], // Size 1 (3 slots)
-            [ {x:-60, y:0, s:1}, {x:-20, y:0, s:1}, {x:20, y:0, s:1}, {x:60, y:0, s:1} ], // Size 2 (4 slots)
-            [ {x:-80, y:0, s:1}, {x:-40, y:0, s:1}, {x:0, y:0, s:1}, {x:40, y:0, s:1}, {x:80, y:0, s:1} ] // Size 3 (5 slots)
-        ],
-        [ // VIP (Owner 1)
+        [ // Judge (Owner 0): Sizes 2, 3, 4, 5 (All types)
             [ {x:-30, y:0, s:1}, {x:30, y:0, s:1} ], 
             [ {x:-50, y:0, s:1}, {x:0, y:0, s:1}, {x:50, y:0, s:1} ], 
             [ {x:-60, y:0, s:1}, {x:-20, y:0, s:1}, {x:20, y:0, s:1}, {x:60, y:0, s:1} ], 
             [ {x:-80, y:0, s:1}, {x:-40, y:0, s:1}, {x:0, y:0, s:1}, {x:40, y:0, s:1}, {x:80, y:0, s:1} ]
+        ],
+        [ // VIP (Owner 1): Sizes 2, 3 (Pure only)
+            [ {x:-30, y:0, s:1}, {x:30, y:0, s:1} ], 
+            [ {x:-50, y:0, s:1}, {x:0, y:0, s:1}, {x:50, y:0, s:1} ]
         ]
     ],
     customers: [
@@ -64,7 +61,6 @@ const ASSETS_PATHS = {
 
 const assets = {}; 
 
-// --- SUPPORT CLASSES ---
 class TapStation {
     constructor(index, xRatio, calibration) {
         this.index = index; this.xRatio = xRatio; this.cal = calibration;
@@ -100,16 +96,16 @@ class BeerGlass {
         }
         if (img && frameIdx !== -1) {
             const fW = img.width / cols;
-            const drawW = def.w * def.scale * (data ? data.s : 1) * overrideS;
+            const dS = data ? data.s : 1;
+            const drawW = def.w * def.scale * dS * overrideS;
             const drawH = drawW * (img.height / fW);
-            const rX = overrideX !== undefined ? overrideX : this.baseX + data.x;
-            const rY = overrideY !== undefined ? overrideY : CONFIG.TapY + data.y;
+            const rX = overrideX !== undefined ? overrideX : this.baseX + (data ? data.x : 0);
+            const rY = overrideY !== undefined ? overrideY : CONFIG.TapY + (data ? data.y : 0);
             ctx.drawImage(img, (frameIdx * fW) + def.clip.sx, 0, fW + def.clip.sw, img.height, rX - drawW/2, rY - drawH, drawW, drawH);
         }
     }
 }
 
-// --- MAIN ENGINE ---
 class Game {
     constructor() {
         this.taps = [];
@@ -150,7 +146,7 @@ class Game {
 
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
-            if (pos.y < 150 && pos.x < 350) {
+            if (pos.y < 150 && pos.x < 350 && this.labMode === 'paddle') {
                  this.editTarget = this.editTarget === 'paddle' ? 'drink' : 'paddle';
                  if (this.editTarget === 'drink') this.showGhostDrink = true;
                  return;
@@ -207,10 +203,15 @@ class Game {
                     if (slot < currentPaddle.sizeIdx + 2) this.activeSlotIdx = slot;
                 }
                 if (e.key === 'v') { 
-                    currentPaddle.sizeIdx = (currentPaddle.sizeIdx + 1) % 4;
+                    const maxRows = currentPaddle.owner === 'vip' ? 2 : 4;
+                    currentPaddle.sizeIdx = (currentPaddle.sizeIdx + 1) % maxRows;
                     this.activeSlotIdx = 0; 
                 }
                 if (e.key === 'g') this.showGhostDrink = !this.showGhostDrink;
+            } else if (this.labMode === 'customer') {
+                if (e.key === '1') this.activePoseIdx = 0;
+                if (e.key === '2') this.activePoseIdx = 1;
+                if (e.key === '3') this.activePoseIdx = 2;
             }
 
             if (e.key === 'Tab') { 
@@ -223,7 +224,7 @@ class Game {
             if (target) {
                 if (e.key === 'ArrowUp') target.s += 0.01;
                 if (e.key === 'ArrowDown') target.s -= 0.01;
-                if (target.clip) {
+                if (target.clip && (this.editTarget === 'paddle' || this.labMode !== 'paddle')) {
                     if (e.key === 'q') target.clip.sx++; if (e.key === 'a') target.clip.sx--;
                     if (e.key === 'w') target.clip.sw--; if (e.key === 's') target.clip.sw++;
                     if (e.key === 'e') target.clip.sy++; if (e.key === 'd') target.clip.sy--;
@@ -272,35 +273,34 @@ class Game {
             }
             if (this.showGhostDrink || this.editTarget === 'drink') {
                 const currentSlots = SPRITE_DATA.paddleDrinks[this.activePaddleIdx][p.sizeIdx];
-                const ghostTypes = ['full', 'half', 'mix_from_1', 'mix_from_2', 'empty'];
                 currentSlots.forEach((d, i) => {
                     ctx.globalAlpha = (this.editTarget === 'drink' && i === this.activeSlotIdx) ? 1.0 : 0.4;
-                    const g = new BeerGlass(stationIdx, worldX);
-                    g.draw(ghostTypes[i % ghostTypes.length], worldX + p.x + d.x, CONFIG.TapY + p.y + d.y, d.s);
+                    const g = new BeerGlass(i % 3, worldX); 
+                    // VIP only shows pure beers (full/half/empty); Judge cycles through mixed too
+                    const stage = (p.owner === 'vip') ? ['full', 'half', 'empty'][i % 3] : ['full', 'half', 'mix_from_1', 'mix_from_2', 'empty'][i % 5];
+                    g.draw(stage, worldX + p.x + d.x, CONFIG.TapY + p.y + d.y, d.s);
                 });
                 ctx.globalAlpha = 1.0;
             }
         }
 
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 650, 310);
+        ctx.fillRect(10, 10, 650, 240);
         ctx.fillStyle = "#0f0";
         ctx.font = "16px monospace";
-        ctx.fillText(`🛠 LAB MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-        let cur = (this.labMode === 'customer') ? pData : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : (this.editTarget === 'paddle' ? SPRITE_DATA.paddles[this.activePaddleIdx] : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx][this.activeSlotIdx]));
+        ctx.fillText(`🛠 MODE: ${this.labMode.toUpperCase()}`, 20, 40);
         
+        let cur = (this.labMode === 'customer') ? pData : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : (this.editTarget === 'paddle' ? SPRITE_DATA.paddles[this.activePaddleIdx] : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx][this.activeSlotIdx]));
+
         if (this.labMode === 'paddle') {
             ctx.fillStyle = "#ff0";
-            ctx.fillText(`EDITING: ${this.editTarget.toUpperCase()} (Click Top HUD to toggle)`, 20, 70);
+            ctx.fillText(`EDIT: ${this.editTarget.toUpperCase()} | PADDLE: ${SPRITE_DATA.paddles[this.activePaddleIdx].owner.toUpperCase()}`, 20, 70);
             ctx.fillStyle = "#0f0";
-            ctx.fillText(`FLIGHT SIZE: ${SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx + 2} | ACTIVE SLOT: ${this.activeSlotIdx + 1}`, 20, 100);
-            ctx.fillText(`G: Toggle Ghost | V: Cycle Row | TAB: Toggle Judge/VIP`, 20, 130);
-        } else {
-            ctx.fillText(`6: Spill | 7: Paddle | 8: Customer | TAB: Cycle Item`, 20, 70);
+            ctx.fillText(`BEERS: ${SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx + 2} | SLOT: ${this.activeSlotIdx + 1}`, 20, 100);
         }
         if (cur) {
-            ctx.fillText(`X:${cur.x} Y:${cur.y} SCALE:${cur.s.toFixed(2)}`, 20, 170);
-            if (cur.clip) ctx.fillText(`CLIP: L:${cur.clip.sx} R:${cur.clip.sw} T:${cur.clip.sy} B:${cur.clip.sh}`, 20, 200);
+            ctx.fillText(`X:${cur.x} Y:${cur.y} S:${cur.s.toFixed(2)}`, 20, 130);
+            if (cur.clip) ctx.fillText(`CLIP L:${cur.clip.sx} R:${cur.clip.sw} T:${cur.clip.sy} B:${cur.clip.sh}`, 20, 160);
         }
         ctx.restore();
     }
