@@ -8,21 +8,25 @@
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
 
     <style>
-        /* RESET & LAYOUT */
+        /* CSS HANDLES LAYOUT ONLY */
         body { 
             margin: 0; 
-            background: #000; /* Changed to pure black to match game letterboxing */
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
             overflow: hidden; 
             touch-action: none; 
             font-family: 'Courier New', Courier, monospace; 
         }
         canvas { 
             display: block; 
+            /* We do NOT set width/height here. We let JS handle it to prevent zooming issues. */
             margin: 0 auto; 
             background: #222; 
         }
 
-        /* ORIENTATION WARNING (The "Bouncer") */
+        /* ORIENTATION WARNING */
         #rotate-screen {
             display: none; 
             position: fixed; 
@@ -37,7 +41,6 @@
             text-align: center;
         }
         
-        /* Show warning only in Portrait */
         @media screen and (orientation: portrait) {
             #rotate-screen { display: flex; }
             canvas { display: none; }
