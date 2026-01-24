@@ -11,14 +11,14 @@ let SPRITE_DATA = {
     tower: { h: 433 },
     // --- SPILLS (One for each tap) ---
     spills: [
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+        { x: 8, y: 451, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: -29, y: 454, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: -64, y: 450, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
     ],
     // --- PADDLES (One for Judge/Middle, one for VIP/Right) ---
     paddles: [
-        { owner: 'judge', x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }, 
-        { owner: 'vip',   x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
+        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }, 
+        { owner: 'vip',   x: -339, y: 400, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     customers: [
         { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}}, {x:214, y:967, s:.47, clip:{sx:-67, sy:0, sw:0, sh:0}}, {x:271, y:978, s:.51, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
