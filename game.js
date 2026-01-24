@@ -15,9 +15,9 @@ let screenOffset = { x: 0, y: 0 };
 
 let SPRITE_DATA = {
     hud_elements: {
-        score: { x: 1650, y: 100, s: 1.0 },
-        lives: { x: 100, y: 100, s: 1.0, spacing: 80 },
-        gameOver: { x: 960, y: 540, s: 1.0, visible: false }
+        score: { x: 1871, y: 76, s: .85 },
+        lives: { x: 1642, y: 138, s: 1.0, spacing: 80 },
+        gameOver: { x: 969, y: 56, s: .45, visible: false }
     },
     menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 }
 };
