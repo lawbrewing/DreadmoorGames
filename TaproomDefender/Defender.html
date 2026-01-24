@@ -560,7 +560,7 @@
                 </div>
                 <div class="icon-box">
                     <canvas id="demo-green" width="60" height="70" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>GREEN BOTTLE</strong><br>Heavy Swill<br>(Shoot It!)</span>
+                    <span class="icon-desc"><strong>ALL SWILL</strong><br>Is Bad<br>(Shoot It!)</span>
                 </div>
             </div>
 
@@ -632,15 +632,18 @@
 
 <script>
     /* --- Asset Preloader --- */
-    const imagesToLoad = [
-        "https://lawbrewing.github.io/LawBrewing/vip.png",
-        "https://lawbrewing.github.io/LawBrewing/vip2.png",
-        "https://lawbrewing.github.io/LawBrewing/oldtimer.png",
-        "https://lawbrewing.github.io/LawBrewing/oldtimerright.png",
-        "https://lawbrewing.github.io/LawBrewing/bosstimer.png"
-    ];
+    const ASSET_BASE_URL = "https://lawbrewing.github.io/DreadmoorGames/TaproomDefender/assets/";
+    
+    // Key-Map for Assets
+    const imageSources = {
+        beers: ASSET_BASE_URL + "beers.png",
+        oldtimer: ASSET_BASE_URL + "oldtimer.png",
+        vip: ASSET_BASE_URL + "vip.png",
+        boss: ASSET_BASE_URL + "bosstimer.png"
+    };
 
     const assets = {};
+    const imagesToLoad = Object.keys(imageSources).length;
     let loadedCount = 0;
 
     const enterBtn = document.getElementById('enter-btn');
@@ -648,7 +651,7 @@
     // Robust Loading: Failsafe if images fail
     function onAssetEvent() {
         loadedCount++;
-        if (loadedCount === imagesToLoad.length) {
+        if (loadedCount === imagesToLoad) {
             enableGame();
         }
     }
@@ -666,31 +669,14 @@
         }
     }, 3000);
 
-    // Load Images with Error Handlers
-    const vipInstructionImg = new Image();
-    vipInstructionImg.onload = onAssetEvent;
-    vipInstructionImg.onerror = onAssetEvent;
-    vipInstructionImg.src = imagesToLoad[0];
-
-    const vipGameImg = new Image();
-    vipGameImg.onload = onAssetEvent;
-    vipGameImg.onerror = onAssetEvent;
-    vipGameImg.src = imagesToLoad[1];
-
-    const oldTimerLeftImg = new Image();
-    oldTimerLeftImg.onload = onAssetEvent;
-    oldTimerLeftImg.onerror = onAssetEvent;
-    oldTimerLeftImg.src = imagesToLoad[2];
-
-    const oldTimerRightImg = new Image();
-    oldTimerRightImg.onload = onAssetEvent;
-    oldTimerRightImg.onerror = onAssetEvent;
-    oldTimerRightImg.src = imagesToLoad[3];
-
-    const bossImg = new Image();
-    bossImg.onload = onAssetEvent;
-    bossImg.onerror = onAssetEvent;
-    bossImg.src = imagesToLoad[4];
+    // Load Images
+    for (const [key, src] of Object.entries(imageSources)) {
+        const img = new Image();
+        img.onload = onAssetEvent;
+        img.onerror = onAssetEvent;
+        img.src = src;
+        assets[key] = img;
+    }
 
     /* --- Sound System (Synthesized) & Background Music --- */
     let audioCtx = null;
@@ -834,15 +820,6 @@
             osc.frequency.setValueAtTime(100, now);
             osc.frequency.linearRampToValueAtTime(50, now + 0.3);
             gain.gain.setValueAtTime(0.5, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-            osc.start(now);
-            osc.stop(now + 0.4);
-        }
-        else if (type === 'toxicHit') {
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(50, now);
-            osc.frequency.exponentialRampToValueAtTime(10, now + 0.3);
-            gain.gain.setValueAtTime(0.8, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
             osc.start(now);
             osc.stop(now + 0.4);
@@ -1089,9 +1066,10 @@
             
             if (dist < 40) {
                 hitBeer = true;
-                if (b.type === 'BAD' || b.type === 'GREEN_SWILL') {
-                    // CORRECT ACTION: Shoot the Swill (Green is now just regular swill to shoot)
-                    let shardCols = b.type === 'GREEN_SWILL' ? ['#22c55e', '#166534', '#dcfce7'] : ['#9ca3af', '#4b5563', '#ef4444'];
+                // Green swill logic removed - all BAD beers are targets
+                if (b.type === 'BAD') {
+                    // CORRECT ACTION: Shoot the Swill
+                    let shardCols = ['#9ca3af', '#4b5563', '#ef4444'];
                     createExplosion(b.x, b.y, shardCols, 'square'); 
                     beers.splice(i, 1);
                     triggerShake(5, 2); 
@@ -1255,8 +1233,7 @@
                      const b = new Beer(5, this.x);
                      // Boss items fall 1.2x faster
                      b.speed *= 1.2;
-                     // 5% chance of green swill in Boss Wave (Reduced)
-                     b.type = (Math.random() > 0.95) ? 'GREEN_SWILL' : 'BAD'; 
+                     b.type = 'BAD'; 
                      beers.push(b);
                  }
                  this.spawnTimer = 0;
@@ -1264,8 +1241,7 @@
         }
         draw(ctx) {
             ctx.save();
-            // Removed shadowBlur to prevent box artifact
-            ctx.drawImage(bossImg, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+            ctx.drawImage(assets.boss, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
             ctx.restore();
         }
     }
@@ -1394,6 +1370,11 @@
             this.radius = 30;
             this.isSpecial = isSpecial;
             
+            // Animation props
+            this.frame = 0;
+            this.frameTimer = 0;
+            this.animationSpeed = 150; // ms per frame
+
             if (this.isSpecial) {
                 this.type = 'GOOD';
                 this.initialX = x;
@@ -1402,38 +1383,28 @@
                 this.x = x;
                 let isBad = Math.random() > 0.35; 
                 if (isBad) {
-                    // Level 3+ allows green swill. 15% chance normally.
-                    if (level >= 3 && Math.random() > 0.85) {
-                        this.type = 'GREEN_SWILL';
-                    } else {
-                        this.type = 'BAD';
-                    }
+                    this.type = 'BAD';
                 } else {
                     this.type = 'GOOD'; 
                 }
             }
             
             this.y = -50;
-            this.initialX = this.x; // Store spawn X for wave calc
+            this.initialX = this.x; 
             
             const baseSpeed = canvas.height / 500; 
             let s = (baseSpeed * speedMultiplier) * (1 + Math.random() * 0.4);
             
-            if (this.type === 'GREEN_SWILL') {
-                s = baseSpeed * 0.5; // Slower green swill
-            }
-
             this.speed = s;
             this.rotation = 0;
             this.rotSpeed = (Math.random() - 0.5) * 0.1;
-            this.pulse = 0;
         }
 
         update(dt) {
             this.y += this.speed;
             
             // Standard Spirals
-            if (this.isSpecial || this.type === 'GREEN_SWILL') {
+            if (this.isSpecial) {
                 this.x = this.initialX + Math.sin(this.y * 0.05) * 30;
                  if (this.isSpecial && Math.random() > 0.8) {
                     particles.push(new Particle(this.x, this.y, '#ffd700', 'circle'));
@@ -1445,74 +1416,45 @@
             }
             
             this.rotation += this.rotSpeed;
-            if (this.type === 'BAD' || this.type === 'GREEN_SWILL') {
-                this.pulse += 0.1;
+
+            // Animate Frame
+            this.frameTimer += dt;
+            if (this.frameTimer > this.animationSpeed) {
+                this.frame = (this.frame + 1) % 3; // 3 Frames per row
+                this.frameTimer = 0;
             }
         }
 
         draw(ctx) {
+            if (!assets.beers) return; // Asset safety
+
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.rotation);
 
-            if (this.type === 'BAD') {
-                const scale = 1 + Math.sin(this.pulse) * 0.1;
-                ctx.scale(scale, scale);
-                ctx.fillStyle = '#9ca3af'; 
-                ctx.fillRect(-15, -25, 30, 50); 
-                ctx.fillStyle = '#d1d5db';
-                ctx.fillRect(-15, -25, 30, 5);
-                ctx.fillRect(-15, 20, 30, 5);
-                ctx.fillStyle = '#ef4444';
-                ctx.fillRect(-15, -10, 30, 20); 
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 10px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText("SWILL", 0, 5);
-            } else if (this.type === 'GREEN_SWILL') {
-                const scale = 1 + Math.sin(this.pulse) * 0.1;
-                ctx.scale(scale, scale);
-                ctx.fillStyle = '#15803d'; 
-                ctx.fillRect(-5, -35, 10, 20);
-                ctx.fillRect(-15, -15, 30, 45);
-                ctx.fillStyle = '#f0fdf4';
-                ctx.fillRect(-15, -5, 30, 15);
-                ctx.fillStyle = '#166534';
-                ctx.font = 'bold 10px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText("SWILL", 0, 6);
-            } else {
-                // Good Beer
-                ctx.beginPath();
-                ctx.moveTo(-15, -25);
-                ctx.lineTo(-10, 25);
-                ctx.lineTo(10, 25);
-                ctx.lineTo(15, -25);
-                ctx.closePath();
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.fill();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#fff';
-                ctx.stroke();
+            // Sprite Sheet Logic
+            // Image is 3 columns, 2 rows
+            // Row 0 = Good
+            // Row 1 = Bad (Swill)
+            
+            const frameWidth = assets.beers.width / 3;
+            const frameHeight = assets.beers.height / 2;
+            
+            let row = (this.type === 'GOOD') ? 0 : 1;
+            let col = this.frame;
 
-                ctx.beginPath();
-                ctx.moveTo(-13, -15);
-                ctx.lineTo(-9, 23);
-                ctx.lineTo(9, 23);
-                ctx.lineTo(9, 23);
-                ctx.lineTo(13, -15);
-                ctx.closePath();
-                ctx.fillStyle = this.isSpecial ? '#ffd700' : '#d97706'; 
-                ctx.fill();
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.ellipse(0, -15, 13, 5, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                ctx.fill();
+            if (this.isSpecial) {
+                 // Gold glow under texture
+                 ctx.shadowColor = "gold";
+                 ctx.shadowBlur = 15;
             }
+
+            ctx.drawImage(
+                assets.beers,
+                col * frameWidth, row * frameHeight, frameWidth, frameHeight,
+                -frameWidth/2, -frameHeight/2, frameWidth, frameHeight
+            );
+
             ctx.restore();
         }
     }
@@ -1559,16 +1501,17 @@
                 ctx.stroke();
             }
 
-            if (this.side === 'left') {
-                ctx.shadowColor = "white"; ctx.shadowBlur = 10;
-                ctx.drawImage(oldTimerLeftImg, -imgSize/2, -imgSize/2, imgSize, imgSize);
-                ctx.shadowBlur = 0;
-            } else {
-                ctx.shadowColor = "white"; ctx.shadowBlur = 10;
-                ctx.drawImage(oldTimerRightImg, -imgSize/2, -imgSize/2, imgSize, imgSize);
-                ctx.shadowBlur = 0;
+            ctx.shadowColor = "white"; ctx.shadowBlur = 10;
+
+            // Flip Logic: Image faces RIGHT
+            // If moving LEFT (vx < 0), Flip it.
+            if (this.vx < 0) {
+                ctx.scale(-1, 1);
             }
 
+            ctx.drawImage(assets.oldtimer, -imgSize/2, -imgSize/2, imgSize, imgSize);
+            
+            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1.0;
             ctx.restore();
         }
@@ -1597,7 +1540,7 @@
 
             const vipSize = 120; 
             ctx.shadowColor = "white"; ctx.shadowBlur = 10;
-            ctx.drawImage(vipGameImg, -vipSize/2, -vipSize/2, vipSize, vipSize);
+            ctx.drawImage(assets.vip, -vipSize/2, -vipSize/2, vipSize, vipSize);
             ctx.shadowBlur = 0;
             ctx.restore();
         }
@@ -2025,14 +1968,29 @@
     function renderTutorialIcons() { 
         // 1. Swill
         const swillCanvas = document.getElementById('demo-swill');
-        if (swillCanvas) { const ctx = swillCanvas.getContext('2d'); const beer = new Beer(1, 0); beer.type = 'BAD'; beer.x = swillCanvas.width/2; beer.y = swillCanvas.height/2+10; beer.rotation=0; beer.draw(ctx); }
+        if (swillCanvas && assets.beers) { 
+            const ctx = swillCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'BAD'; 
+            b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
         // 2. Law
         const lawCanvas = document.getElementById('demo-law');
-        if (lawCanvas) { const ctx = lawCanvas.getContext('2d'); const beer = new Beer(1, 0); beer.type = 'GOOD'; beer.x = lawCanvas.width/2; beer.y = lawCanvas.height/2+10; beer.rotation=0; beer.draw(ctx); }
-        // 3. Green
+        if (lawCanvas && assets.beers) { 
+            const ctx = lawCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'GOOD'; 
+            b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
+        // 3. Green (Now just "Bad")
         const greenCanvas = document.getElementById('demo-green');
-        if (greenCanvas) { const ctx = greenCanvas.getContext('2d'); const beer = new Beer(4, 0); beer.type = 'GREEN_SWILL'; beer.x = greenCanvas.width/2; beer.y = greenCanvas.height/2+10; beer.rotation=0; beer.draw(ctx); }
-        // 4. Special (Using pretzel/curd canvases instead of generic "special")
+        if (greenCanvas && assets.beers) { 
+            const ctx = greenCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'BAD'; 
+            b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
+        // 4. Special
         const pretzelCanvas = document.getElementById('demo-pretzel');
         if (pretzelCanvas) { const ctx = pretzelCanvas.getContext('2d'); const p = new Pretzel(20); p.x = 20; p.y = 25; p.radius = 15; p.draw(ctx); }
         const curdCanvas = document.getElementById('demo-curd');
@@ -2040,10 +1998,21 @@
         
         // 5. Old Timer
         const otCanvas = document.getElementById('demo-oldtimer');
-        if (otCanvas) { const ctx = otCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; ctx.drawImage(oldTimerLeftImg, (otCanvas.width-60)/2, (otCanvas.height-60)/2, 60, 60); ctx.shadowBlur=0; }
+        if (otCanvas && assets.oldtimer) { 
+            const ctx = otCanvas.getContext('2d'); 
+            ctx.shadowColor="white"; ctx.shadowBlur=10; 
+            // Draw normally (facing right)
+            ctx.drawImage(assets.oldtimer, (otCanvas.width-60)/2, (otCanvas.height-60)/2, 60, 60); 
+            ctx.shadowBlur=0; 
+        }
         // 6. VIP
         const vipCanvas = document.getElementById('demo-vip');
-        if (vipCanvas) { const ctx = vipCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; ctx.drawImage(vipInstructionImg, (vipCanvas.width-85)/2, (vipCanvas.height-85)/2, 85, 85); ctx.shadowBlur=0; }
+        if (vipCanvas && assets.vip) { 
+            const ctx = vipCanvas.getContext('2d'); 
+            ctx.shadowColor="white"; ctx.shadowBlur=10; 
+            ctx.drawImage(assets.vip, (vipCanvas.width-85)/2, (vipCanvas.height-85)/2, 85, 85); 
+            ctx.shadowBlur=0; 
+        }
     }
 
     function gameLoop(timestamp) {
@@ -2086,7 +2055,7 @@
                 
                 // EXPLODE EVERYTHING
                 beers.forEach(b => {
-                    let color = (b.type === 'GREEN_SWILL') ? '#22c55e' : (b.type === 'BAD') ? '#9ca3af' : '#d97706';
+                    let color = (b.type === 'BAD') ? '#9ca3af' : '#d97706';
                     createExplosion(b.x, b.y, color, 'square');
                 });
                 thieves.forEach(t => createExplosion(t.x, t.y, '#fdbd9c', 'circle'));
@@ -2109,7 +2078,7 @@
         if (isBossMode) {
             
             // Draw Boss Always (Idle or Active)
-            if (bossInstance) {
+            if (bossInstance && assets.boss) {
                 // Only update position if NOT warmup
                 if (!bossWarmup) bossInstance.update(dt);
                 bossInstance.draw(ctx);
@@ -2118,9 +2087,9 @@
             // Only run timer if NOT warmup
             if (!bossWarmup) {
                 if (bossCountdown > 0) {
-                      bossCountdown -= dt / 1000;
-                      if (bossCountdown < 0) bossCountdown = 0;
-                      bossTimerDisplay.innerText = Math.ceil(bossCountdown);
+                       bossCountdown -= dt / 1000;
+                       if (bossCountdown < 0) bossCountdown = 0;
+                       bossTimerDisplay.innerText = Math.ceil(bossCountdown);
                 }
 
                 if (bossCountdown <= 0) {
@@ -2230,7 +2199,7 @@
         // VIP Guest (Level 3+)
         if (vipInstance) {
             vipInstance.update();
-            if (vipInstance.isVipActive) {
+            if (vipInstance.isVipActive && assets.vip) {
                 vipInstance.draw(ctx);
                 
                 // VIP Collision BEER
@@ -2253,20 +2222,8 @@
                                 createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
                             }
                             score += pts;
-                            // Score updates in next loop iteration
                             createSparkle(b.x, b.y);
                         } 
-                        else if (b.type === 'GREEN_SWILL') {
-                            if (!isDoubleBubble) loseLife();
-                            score -= 1000; // -1000 for VIP hit
-                            createFloatingText(vipInstance.x, vipInstance.y - 60, "-1000", "red");
-                            if(!isDoubleBubble) playSound('toxicHit'); 
-                            triggerShake(20, 8); 
-                            createExplosion(b.x, b.y, ['#22c55e', '#166534', '#dcfce7'], 'square'); 
-                            streak = 0; 
-                            updateStreakDisplay();
-                            checkGameOver();
-                        }
                         else {
                             if (!isDoubleBubble) loseLife();
                             createFloatingText(vipInstance.x, vipInstance.y - 60, isDoubleBubble ? "SHIELDED!" : "VIP SWILL HIT!", isDoubleBubble ? "#fcd34d" : "red");
@@ -2279,7 +2236,7 @@
                         }
                     }
                 }
-
+                
                 // VIP Collision PRETZEL -> Trigger Happy Hour
                 for (let j = pretzels.length - 1; j >= 0; j--) {
                     const p = pretzels[j];
@@ -2358,11 +2315,6 @@
                              createFloatingText(t.x, t.y, "SHIELDED!", "#fcd34d");
                         }
                         
-                        if (b.type === 'GREEN_SWILL') {
-                            score -= 500; // -500 for thief hit
-                            if(!isDoubleBubble) playSound('toxicTheft');
-                        }
-
                         checkGameOver(); triggerShake(10, 5); t.isHit = true; 
                     }
                 }
