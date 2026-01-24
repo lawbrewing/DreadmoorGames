@@ -11,12 +11,12 @@ let SPRITE_DATA = {
     tower: { h: 433 },
     // --- CHARACTER POSE REPOSITORY ---
     customers: [
-        { id: 'viking',  name: "Viking",  poses: [ {x:384, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:384, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:384, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'hipster', name: "Hipster", poses: [ {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'regular', name: "Regular", poses: [ {x:1536,y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1536,y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1536,y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'judge',   name: "Judge",   poses: [ {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'karen',   name: "Karen",   poses: [ {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'vip',     name: "VIP",     poses: [ {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:960, y:800, s:1.0, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
+        { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}}, {x:214, y:967, s:.47, clip:{sx:-67, sy:0, sw:0, sh:0}}, {x:271, y:978, s:.51, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'hipster', name: "Hipster", poses: [ {x:674, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:709, y:1050, s:.45, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:679, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'regular', name: "Regular", poses: [ {x:1122,y:1015, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1163,y:1013, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1168,y:1014, s:.42, clip:{sx:27, sy:0, sw:0, sh:0}} ] },
+        { id: 'judge',   name: "Judge",   poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:739, y:913, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:738, y:908, s:.37, clip:{sx:14, sy:-2, sw:0, sh:0}} ] },
+        { id: 'karen',   name: "Karen",   poses: [ {x:585, y:1053, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:583, y:1049, s:.41, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:628, y:1043, s:.40, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'vip',     name: "VIP",     poses: [ {x:1151, y:913, s:.35, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1173, y:887, s:.33, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1220, y:865, s:.35, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
     ],
     glasses: [
         { empty: { x: -5, y: 510, s: 1.0 }, half: { x: 10, y: 490, s: 1.11 }, mix_from_2: { x: -5, y: 478, s: 1.11 }, mix_from_1: { x: 7, y: 473, s: 1.11 }, full: { x: 6, y: 510, s: 1.0 } },
