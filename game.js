@@ -12,12 +12,12 @@ let SPRITE_DATA = {
     // --- CHARACTER REPOSITORY ---
     // Every character can have unique scaling and clipping
     customers: [
-        { id: 'hipster', name: "Hipster", x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 },
-        { id: 'judge',   name: "Judge",   x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 },
-        { id: 'karen',   name: "Karen",   x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 },
-        { id: 'regular', name: "Regular", x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 },
-        { id: 'viking',  name: "Viking",  x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 },
-        { id: 'vip',     name: "VIP",     x: 600, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }
+        { id: 'viking',  name: "Viking (Stout)",  x: 384,  y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }, // Tap 0 (20% width)
+        { id: 'hipster', name: "Hipster (IPA)",   x: 960,  y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }, // Tap 1 (50% width)
+        { id: 'regular', name: "Regular (Lager)", x: 1536, y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }, // Tap 2 (80% width)
+        { id: 'judge',   name: "Judge (Flex)",    x: 960,  y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }, // Middle
+        { id: 'karen',   name: "Karen (Flex)",    x: 960,  y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }, // Middle
+        { id: 'vip',     name: "VIP (Flex)",      x: 960,  y: 800, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, cols: 3, frame: 0 }  // Middle
     ],
     glasses: [
         { empty: { x: -5, y: 510, s: 1.0 }, half: { x: 10, y: 490, s: 1.11 }, mix_from_2: { x: -5, y: 478, s: 1.11 }, mix_from_1: { x: 7, y: 473, s: 1.11 }, full: { x: 6, y: 510, s: 1.0 } },
