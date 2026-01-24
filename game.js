@@ -38,10 +38,11 @@ let SPRITE_DATA = {
             [ {x:-106, y:-14, s:.5}, {x:-33, y:-12, s:.5}, {x:46, y:-11, s:.5} ]
         ]
     ],
+    // --- CALIBRATE THESE NUMBERS USING THE HUD ---
     menu: {
         x: 960,
         targetY: 200,
-        s: 0.6,
+        s: 0.60,
         textX: 0,
         textY: 0
     },
@@ -81,7 +82,6 @@ class Game {
         this.selectedObject = null;
         this.activeNotifications = [];
 
-        // Physics State
         this.menuPhysics = {
             active: false,
             y: -600,
@@ -135,7 +135,9 @@ class Game {
                 return;
             }
             const pos = getPos(e);
-            if (pos.y < 150 && pos.x < 450 && this.labMode !== 'none') {
+            
+            // Toggle Edit Target (Clicking the Green HUD box)
+            if (pos.y < 250 && pos.x < 550 && this.labMode !== 'none') {
                 this.editTarget = (this.editTarget === 'bar') ? 'text' : 'bar';
                 return;
             }
@@ -146,7 +148,7 @@ class Game {
         };
 
         canvas.addEventListener('mousedown', handleStart);
-        canvas.addEventListener('touchstart', handleStart);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
 
         window.addEventListener('mousemove', (e) => {
             if (!this.selectedObject) return;
@@ -258,14 +260,23 @@ class Game {
             ctx.restore();
         }
 
-        // Lab Overlay
-        if (this.labMode !== 'none') {
-            ctx.fillStyle = "rgba(0,0,0,0.8)";
-            ctx.fillRect(10, 10, 400, 150);
-            ctx.fillStyle = "#0f0"; ctx.font = "20px monospace"; ctx.textAlign = "left";
-            ctx.fillText(`MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-            ctx.fillText(`EDITING: ${this.editTarget.toUpperCase()}`, 20, 70);
-            ctx.fillText(`O: Test Order | U: Toggle Board`, 20, 100);
+        // --- NEW: CALIBRATION OVERLAY ---
+        if (this.labMode === 'menu') {
+            const mD = SPRITE_DATA.menu;
+            ctx.fillStyle = "rgba(0,0,0,0.85)";
+            ctx.fillRect(10, 10, 550, 220);
+            ctx.fillStyle = "#0f0"; ctx.font = "bold 18px monospace"; ctx.textAlign = "left";
+            
+            ctx.fillText(`🛠 MENU LAB | EDITING: ${this.editTarget.toUpperCase()}`, 30, 40);
+            ctx.fillStyle = "#fff";
+            ctx.fillText(`[X]: ${mD.x}  [targetY]: ${mD.targetY}`, 30, 80);
+            ctx.fillText(`[Scale]: ${mD.s.toFixed(2)}`, 30, 110);
+            ctx.fillText(`[textX]: ${mD.textX}  [textY]: ${mD.textY}`, 30, 140);
+            
+            ctx.fillStyle = "#ff0";
+            ctx.font = "14px monospace";
+            ctx.fillText(`COPY THIS: x: ${mD.x}, targetY: ${mD.targetY}, s: ${mD.s.toFixed(2)}, textX: ${mD.textX}, textY: ${mD.textY}`, 30, 180);
+            ctx.fillText(`CLICK HUD BOX TO TOGGLE BAR/TEXT | ARROWS TO SCALE`, 30, 205);
         }
 
         ctx.restore();
