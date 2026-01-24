@@ -1,3 +1,11 @@
+// Inject CSS to fix mobile scrolling and "bounce"
+const style = document.createElement('style');
+style.textContent = `
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    canvas { display: block; touch-action: none; -webkit-user-select: none; }
+`;
+document.head.appendChild(style);
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -19,13 +27,13 @@ let SPRITE_DATA = {
         { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     paddleDrinks: [
-        [ // Judge (Sizes 2-5)
+        [ // Judge
             [ {x:-103, y:0, s:.63}, {x:-4, y:-13, s:.63} ], 
             [ {x:-111, y:-6, s:.63}, {x:-19, y:-21, s:.63}, {x:61, y:-6, s:.63} ], 
             [ {x:-109, y:-11, s:.55}, {x:-29, y:-23, s:.55}, {x:40, y:-14, s:.55}, {x:100, y:-23, s:.55} ], 
             [ {x:-111, y:-18, s:.5}, {x:-39, y:-23, s:.5}, {x:28, y:-13, s:.5}, {x:90, y:-23, s:.5}, {x:157, y:-12, s:.5} ]
         ],
-        [ // VIP (Sizes 2-3)
+        [ // VIP
             [ {x:-104, y:-8, s:.55}, {x:-13, y:-8, s:.55} ], 
             [ {x:-106, y:-14, s:.5}, {x:-33, y:-12, s:.5}, {x:46, y:-11, s:.5} ]
         ]
@@ -90,41 +98,13 @@ class TapStation {
     }
 }
 
-class BeerGlass {
-    constructor(station, worldX) {
-        this.station = station; this.baseX = worldX;
-    }
-    draw(stage, overrideX, overrideY, overrideS = 1) {
-        const data = SPRITE_DATA.glasses[this.station][stage];
-        const def = SPRITE_DATA.glassDefaults;
-        let img, cols, frameIdx;
-        switch(stage) {
-            case 'empty': img = assets.empty; cols = 4; frameIdx = 0; break;
-            case 'half': img = assets.half; cols = 3; frameIdx = this.station; break;
-            case 'mix_from_1': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 1 : (this.station === 1 ? 2 : -1); break;
-            case 'mix_from_2': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
-            case 'full': img = assets.full; cols = 4; frameIdx = this.station + 1; break;
-        }
-        if (img && frameIdx !== -1) {
-            const fW = img.width / cols;
-            const dS = data ? data.s : 1;
-            const drawW = def.w * def.scale * dS * overrideS;
-            const drawH = drawW * (img.height / fW);
-            const rX = overrideX !== undefined ? overrideX : this.baseX + (data ? data.x : 0);
-            const rY = overrideY !== undefined ? overrideY : CONFIG.TapY + (data ? data.y : 0);
-            ctx.drawImage(img, (frameIdx * fW) + def.clip.sx, 0, fW + def.clip.sw, img.height, rX - drawW/2, rY - drawH, drawW, drawH);
-        }
-    }
-}
-
 class Game {
     constructor() {
+        this.started = false;
         this.taps = [];
         this.activeCharIdx = 0; this.activePoseIdx = 0; this.activeStationIdx = 0;
         this.activePaddleIdx = 0; this.activeSlotIdx = 0;
         this.labMode = 'customer'; this.editTarget = 'paddle'; this.selectedObject = null;
-        this.showGhostDrink = false;
-
         this.activeNotifications = [];
         this.streak = 0;
 
@@ -137,34 +117,48 @@ class Game {
         this.initInput();
     }
 
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+        }
+        this.started = true;
+    }
+
+    resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const scaleX = canvas.width / WORLD.w;
+        const scaleY = canvas.height / WORLD.h;
+        screenScale = Math.min(scaleX, scaleY);
+        screenOffset.x = (canvas.width - WORLD.w * screenScale) / 2;
+        screenOffset.y = (canvas.height - WORLD.h * screenScale) / 2;
+    }
+
     triggerNotification(frameIdx, message) {
         this.activeNotifications.push({ 
             frameIdx, message, timestamp: Date.now(), duration: 2500 
         });
     }
 
-    resize() {
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        const scaleX = canvas.width / WORLD.w; const scaleY = canvas.height / WORLD.h;
-        screenScale = Math.min(scaleX, scaleY);
-        screenOffset.x = (canvas.width - WORLD.w * screenScale) / 2;
-        screenOffset.y = (canvas.height - WORLD.h * screenScale) / 2;
-    }
-
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
-            const rawX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-            const rawY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const rawX = clientX - rect.left;
+            const rawY = clientY - rect.top;
             return { x: (rawX - screenOffset.x) / screenScale, y: (rawY - screenOffset.y) / screenScale };
         };
 
-        canvas.addEventListener('mousedown', (e) => {
+        const handleStart = (e) => {
+            if(!this.started) {
+                this.toggleFullscreen();
+                return;
+            }
             const pos = getPos(e);
             if (pos.y < 150 && pos.x < 450) {
                  if(this.labMode === 'paddle') this.editTarget = (this.editTarget === 'paddle') ? 'drink' : 'paddle';
                  if(this.labMode === 'hud') this.editTarget = (this.editTarget === 'bar') ? 'text' : 'bar';
-                 if (this.editTarget === 'drink') this.showGhostDrink = true;
                  return;
             }
             if (this.labMode === 'customer') {
@@ -178,9 +172,12 @@ class Game {
             } else if (this.labMode === 'hud') {
                 this.selectedObject = SPRITE_DATA.hud.notifications[SPRITE_DATA.hud.activeFrame];
             }
-        });
+        };
 
-        window.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
+
+        const handleMove = (e) => {
             if (!this.selectedObject) return;
             const pos = getPos(e);
             if (this.labMode === 'customer') {
@@ -205,9 +202,13 @@ class Game {
                 const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
                 this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
             }
-        });
+        };
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', (e) => { handleMove(e); }, { passive: false });
 
         window.addEventListener('mouseup', () => { this.selectedObject = null; });
+        window.addEventListener('touchend', () => { this.selectedObject = null; });
 
         window.addEventListener('keydown', (e) => {
             if (e.key === '6') this.labMode = 'spill';
@@ -253,6 +254,15 @@ class Game {
     draw() {
         ctx.imageSmoothingEnabled = false;
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if(!this.started) {
+            ctx.fillStyle = "#fff";
+            ctx.font = "40px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("TAP TO START FULLSCREEN", canvas.width/2, canvas.height/2);
+            return;
+        }
+
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         
@@ -265,17 +275,7 @@ class Game {
 
         this.taps.forEach(t => t.draw());
 
-        if (this.labMode === 'hud' && assets.notification) {
-            const frameIdx = SPRITE_DATA.hud.activeFrame;
-            const n = SPRITE_DATA.hud.notifications[frameIdx];
-            const fw = assets.notification.width / 2; const fh = assets.notification.height / 2;
-            const sx = (frameIdx % 2) * fw; const sy = Math.floor(frameIdx / 2) * fh;
-            const dw = fw * n.s; const dh = fh * n.s;
-            ctx.drawImage(assets.notification, sx + n.clip.sx, sy + n.clip.sy, fw + n.clip.sw, fh + n.clip.sh, n.x - dw/2, n.y - dh/2, dw, dh);
-            ctx.fillStyle = "#fff"; ctx.font = `${Math.round(24 * n.s)}px monospace`; ctx.textAlign = "center";
-            ctx.fillText("CALIBRATION GUIDE", n.x + n.textX, n.y + n.textY);
-        }
-
+        // Notifications
         const now = Date.now();
         this.activeNotifications = this.activeNotifications.filter(n => now - n.timestamp < n.duration);
         this.activeNotifications.forEach((n, i) => {
@@ -291,29 +291,10 @@ class Game {
             ctx.restore();
         });
 
-        if (this.labMode === 'paddle') {
-            const p = SPRITE_DATA.paddles[this.activePaddleIdx];
-            const stationIdx = p.owner === 'judge' ? 1 : 2;
-            const worldX = WORLD.w * CONFIG.Stations[stationIdx];
-            if (assets.paddles) {
-                const img = assets.paddles; const fH = img.height / 4; 
-                const dW = img.width * p.s; const dH = fH * p.s;
-                ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, img.width + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
-            }
-        }
-
         if (this.labMode !== 'none') {
             ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 650, 240);
             ctx.fillStyle = "#0f0"; ctx.font = "16px monospace"; ctx.textAlign = "left";
             ctx.fillText(`🛠 MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-            let cur = (this.labMode === 'customer') ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : 
-                      (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : 
-                      (this.labMode === 'paddle' ? (this.editTarget === 'paddle' ? SPRITE_DATA.paddles[this.activePaddleIdx] : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx][this.activeSlotIdx]) :
-                      SPRITE_DATA.hud.notifications[SPRITE_DATA.hud.activeFrame]));
-            if (cur) {
-                ctx.fillText(`X:${cur.x} Y:${cur.y} S:${cur.s.toFixed(2)}`, 20, 130);
-                if (cur.clip) ctx.fillText(`CLIP L:${cur.clip.sx} R:${cur.clip.sw} T:${cur.clip.sy} B:${cur.clip.sh}`, 20, 160);
-            }
         }
         ctx.restore();
     }
