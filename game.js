@@ -125,14 +125,31 @@ class Game {
     }
 
     resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const scaleX = canvas.width / WORLD.w;
-        const scaleY = canvas.height / WORLD.h;
-        screenScale = Math.min(scaleX, scaleY);
-        screenOffset.x = (canvas.width - WORLD.w * screenScale) / 2;
-        screenOffset.y = (canvas.height - WORLD.h * screenScale) / 2;
-    }
+    // Get the device pixel ratio (default to 1 if not found)
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Set the display size (CSS pixels)
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+
+    // Set the actual rendering resolution (Physical pixels)
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // Scale the context so our drawing coordinates (0 to 1920) still work
+    ctx.scale(dpr, dpr);
+
+    const scaleX = window.innerWidth / WORLD.w;
+    const scaleY = window.innerHeight / WORLD.h;
+    
+    screenScale = Math.min(scaleX, scaleY);
+    
+    screenOffset.x = (window.innerWidth - WORLD.w * screenScale) / 2;
+    screenOffset.y = (window.innerHeight - WORLD.h * screenScale) / 2;
+
+    // Re-disable smoothing after a resize, as it often resets
+    ctx.imageSmoothingEnabled = false;
+}
 
     triggerNotification(frameIdx, message) {
         this.activeNotifications.push({ 
