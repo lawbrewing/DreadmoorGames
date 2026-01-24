@@ -39,37 +39,8 @@ const CUSTOMER_TYPES = {
     'judge':   { id: 'judge',   patience: 25000, orders: ['flight'] }
 };
 
-// *** DATA STRUCTURE PREPARED FOR YOUR CLIPPING VALUES ***
 let SPRITE_DATA = {
-    // TOWER: Base configuration
-    tower: { x: 960, y: 1080, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-    
-    // TAPS: Now supports individual clips per handle
-    taps: { 
-        positions: [
-            // Left Tap
-            {x: -180, y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
-            // Mid Tap
-            {x: 0,    y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
-            // Right Tap
-            {x: 180,  y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}
-        ],
-    },
-    
-    // SPILLS
-    spills: [
-        { x: -64, y: 450, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: -29, y: 454, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 8,   y: 451, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
-    ],
-
-    // PADDLES
-    paddles: [
-        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
-    ],
-
-    // HUD
+    // HUD Elements
     hud_elements: {
         score: { x: 1871, y: 76, s: .85 },
         lives: { x: 1624, y: 172, s: 0.5, spacing: 100 },
@@ -78,8 +49,38 @@ let SPRITE_DATA = {
     },
     menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 },
     
-    // CUSTOMERS
+    // Tap Hitboxes (Renamed to avoid conflict)
+    taps_hitboxes: [
+        { x: 0.2, w: 0.1 }, 
+        { x: 0.5, w: 0.1 }, 
+        { x: 0.8, w: 0.1 }  
+    ],
+    
+    // VISUAL DATA
+    tower: { x: 960, y: 1080, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+    
+    // VISUAL TAPS (Renamed key to 'taps_visual')
+    taps_visual: { 
+        positions: [
+            {x: -180, y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
+            {x: 0,    y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
+            {x: 180,  y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}
+        ],
+    },
+    
+    spills: [
+        { x: -64, y: 450, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: -29, y: 454, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: 8,   y: 451, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+    ],
+
+    paddles: [
+        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+    ],
+
     customers: [
+        // Note: sx is -98. We will handle this as a DESTINATION offset in the draw loop, not a source clip.
         { id: 'viking', name: "Viking", poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}} ] },
         { id: 'judge',  name: "Judge",  poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
     ]
@@ -131,11 +132,16 @@ class Customer {
         this.scale = poseData.s;
         this.clip = poseData.clip || {sx:0, sy:0, sw:0, sh:0};
         
-        this.x = -300; this.state = 'walking_in'; 
-        this.patienceMax = type.patience; this.patience = this.patienceMax;
-        this.satisfaction = 100; this.order = this.generateOrder(typeKey);
+        this.x = -300; 
+        this.state = 'walking_in'; 
+        this.patienceMax = type.patience;
+        this.patience = this.patienceMax;
+        this.satisfaction = 100; 
+        this.order = this.generateOrder(typeKey);
         
-        this.currentOrderIndex = 0; this.currentDrinkProgress = 0; this.currentStepIndex = 0; 
+        this.currentOrderIndex = 0; 
+        this.currentDrinkProgress = 0; 
+        this.currentStepIndex = 0; 
         this.poseIndex = 0; 
     }
 
@@ -292,9 +298,9 @@ class Game {
             const tw = assets.tower.width * t.s;
             const th = assets.tower.height * t.s;
             
-            // TOWER DRAWING WITH CLIPPING SUPPORT
-            // Uses fallback if clip is 0: Draw full image
+            // Safe Source X logic
             let srcX = (t.clip && t.clip.sw > 0) ? t.clip.sx : 0;
+            if (srcX < 0) srcX = 0; // SAFETY CHECK
             let srcY = (t.clip && t.clip.sh > 0) ? t.clip.sy : 0;
             let srcW = (t.clip && t.clip.sw > 0) ? t.clip.sw : assets.tower.width;
             let srcH = (t.clip && t.clip.sh > 0) ? t.clip.sh : assets.tower.height;
@@ -306,7 +312,7 @@ class Game {
         }
 
         if (assets.taps) {
-            const taps = SPRITE_DATA.taps.positions;
+            const taps = SPRITE_DATA.taps_visual.positions;
             taps.forEach((pos, idx) => {
                 ctx.save();
                 ctx.translate(t.x + pos.x, t.y + pos.y);
@@ -314,33 +320,30 @@ class Game {
                     ctx.rotate(Math.PI / 4); 
                 }
                 
-                // TAP HANDLE DRAWING WITH CLIPPING SUPPORT
-                // Fallback: If no clip, assume 3-frame sheet and calculate
+                // FORCE 1/3 WIDTH FOR TAPS
                 let frameW = assets.taps.width / 3;
                 let frameH = assets.taps.height;
-                let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; // Default to frame 0
-                let srcY = (pos.clip && pos.clip.sh > 0) ? pos.clip.sy : 0;
-                let srcW = (pos.clip && pos.clip.sw > 0) ? pos.clip.sw : frameW;
-                let srcH = (pos.clip && pos.clip.sh > 0) ? pos.clip.sh : frameH;
-
+                let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; 
+                if (srcX < 0) srcX = 0; // SAFETY CHECK
+                
                 ctx.drawImage(assets.taps, 
-                    srcX, srcY, srcW, srcH, 
-                    -srcW/2, 0, srcW, srcH // Draw Centered
+                    srcX, 0, frameW, frameH, 
+                    -frameW/2, 0, frameW, frameH 
                 );
                 
                 ctx.restore();
 
-                // DRAW SPILL (Using your clipping logic)
+                // DRAW SPILL 
                 if (this.activePour.active && this.activePour.tapIndex === idx && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
                         let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
                         let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
                         let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0;
-                        let spY = (sp.clip && sp.clip.sh > 0) ? sp.clip.sy : 0;
+                        if (spX < 0) spX = 0;
 
                         ctx.drawImage(assets.spill, 
-                            spX, spY, spW, spH,
+                            spX, 0, spW, spH,
                             sp.x, sp.y - 450, spW * sp.s, spH * sp.s
                         );
                     }
@@ -436,20 +439,31 @@ class Game {
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         
-        // --- DRAW CUSTOMER (USING CLIPPING) ---
+        // --- DRAW CUSTOMER (FIXED) ---
         if (this.customer && assets[this.customer.spriteId]) {
             const img = assets[this.customer.spriteId];
             const s = this.customer.scale;
             
-            // Default 1/3 slice fallback if clipped area is 0
+            // SLICING LOGIC
             let frameW = (this.customer.clip.sw > 0) ? this.customer.clip.sw : (img.width / 3);
             let frameH = (this.customer.clip.sh > 0) ? this.customer.clip.sh : img.height;
-            let srcX = this.customer.clip.sx + (this.customer.poseIndex * frameW);
+            
+            // SAFETY CHECK: Ensure sx is not negative for SOURCE clip
+            let clipSX = this.customer.clip.sx;
+            let destOffsetX = 0;
+
+            // If sx is negative (from your calibration), use it as a destination offset instead of source clip
+            if (clipSX < 0) {
+                destOffsetX = clipSX;
+                clipSX = 0; 
+            }
+
+            let srcX = clipSX + (this.customer.poseIndex * frameW);
             let srcY = this.customer.clip.sy;
 
             ctx.drawImage(img, 
                 srcX, srcY, frameW, frameH, // Source
-                this.customer.x - (frameW*s)/2, this.customer.y - frameH*s, // Destination
+                this.customer.x - (frameW*s)/2 + destOffsetX, this.customer.y - frameH*s, // Destination (With Offset)
                 frameW*s, frameH*s
             );
             
@@ -478,6 +492,7 @@ class Game {
         }
         
         this.notifications.draw();
+
         ctx.restore();
     }
 
