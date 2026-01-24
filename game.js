@@ -9,7 +9,16 @@ let CONFIG = { BarHeight: 850, TapY: 500, Stations: [0.2, 0.5, 0.8] };
 
 let SPRITE_DATA = {
     tower: { h: 433 },
-    // --- CHARACTER POSE REPOSITORY ---
+    spills: [
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+    ],
+    paddles: [
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 },
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 },
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
+    ],
     customers: [
         { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}}, {x:214, y:967, s:.47, clip:{sx:-67, sy:0, sw:0, sh:0}}, {x:271, y:978, s:.51, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
         { id: 'hipster', name: "Hipster", poses: [ {x:674, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:709, y:1050, s:.45, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:679, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
@@ -35,7 +44,8 @@ const ASSETS_PATHS = {
     bg: 'assets/background.png', tower: 'assets/tower.png', taps: 'assets/taps.png',
     empty: 'assets/fullpints.png', half: 'assets/halfpour.png', mix: 'assets/mixpour.png', full: 'assets/fullpints.png',
     hipster: 'assets/hipster.png', judge: 'assets/judge.png', karen: 'assets/karen.png',
-    regular: 'assets/regular.png', viking: 'assets/viking.png', vip: 'assets/vip.png'
+    regular: 'assets/regular.png', viking: 'assets/viking.png', vip: 'assets/vip.png',
+    spill: 'assets/spill.png', paddles: 'assets/paddles.png'
 };
 
 const assets = {}; 
@@ -45,6 +55,8 @@ class Game {
         this.taps = [];
         this.activeCharIdx = 0;
         this.activePoseIdx = 0;
+        this.activeStationIdx = 0;
+        this.labMode = 'customer'; 
         this.selectedObject = null;
 
         CONFIG.Stations.forEach((xRatio, i) => {
@@ -74,41 +86,60 @@ class Game {
 
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
-            const c = SPRITE_DATA.customers[this.activeCharIdx];
-            const p = c.poses[this.activePoseIdx];
-            if (Math.abs(pos.x - p.x) < 150 && Math.abs(pos.y - p.y + 200) < 400) {
-                this.selectedObject = p;
+            if (this.labMode === 'customer') {
+                const p = SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx];
+                if (Math.abs(pos.x - p.x) < 150 && Math.abs(pos.y - p.y + 200) < 400) this.selectedObject = p;
+            } else if (this.labMode === 'spill') {
+                this.selectedObject = SPRITE_DATA.spills[this.activeStationIdx];
+            } else if (this.labMode === 'paddle') {
+                this.selectedObject = SPRITE_DATA.paddles[this.activeStationIdx];
             }
         });
 
         window.addEventListener('mousemove', (e) => {
             if (!this.selectedObject) return;
             const pos = getPos(e);
-            this.selectedObject.x = Math.round(pos.x);
-            this.selectedObject.y = Math.round(pos.y);
+            if (this.labMode === 'customer') {
+                this.selectedObject.x = Math.round(pos.x);
+                this.selectedObject.y = Math.round(pos.y);
+            } else {
+                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
+                this.selectedObject.x = Math.round(pos.x - worldX);
+                this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
+            }
         });
 
         window.addEventListener('mouseup', () => { this.selectedObject = null; });
 
         window.addEventListener('keydown', (e) => {
-            const c = SPRITE_DATA.customers[this.activeCharIdx];
-            const p = c.poses[this.activePoseIdx];
+            let p = null;
+            if (this.labMode === 'customer') p = SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx];
+            if (this.labMode === 'spill') p = SPRITE_DATA.spills[this.activeStationIdx];
+            if (this.labMode === 'paddle') p = SPRITE_DATA.paddles[this.activeStationIdx];
 
             if (e.key === '1') this.activePoseIdx = 0;
             if (e.key === '2') this.activePoseIdx = 1;
             if (e.key === '3') this.activePoseIdx = 2;
+            if (e.key === '6') this.labMode = 'spill';
+            if (e.key === '7') this.labMode = 'paddle';
+            if (e.key === '8') this.labMode = 'customer';
             
+            if (this.labMode === 'paddle' && e.key === 'v') p.sizeIdx = (p.sizeIdx + 1) % 4;
+
             if (e.key === 'Tab') { 
                 e.preventDefault(); 
-                this.activeCharIdx = (this.activeCharIdx + 1) % SPRITE_DATA.customers.length; 
+                if (this.labMode === 'customer') this.activeCharIdx = (this.activeCharIdx + 1) % SPRITE_DATA.customers.length;
+                else this.activeStationIdx = (this.activeStationIdx + 1) % 3;
             }
 
-            if (e.key === 'ArrowUp') p.s += 0.01;
-            if (e.key === 'ArrowDown') p.s -= 0.01;
-            if (e.key === 'q') p.clip.sx++; if (e.key === 'a') p.clip.sx--;
-            if (e.key === 'w') p.clip.sw--; if (e.key === 's') p.clip.sw++;
-            if (e.key === 'e') p.clip.sy++; if (e.key === 'd') p.clip.sy--;
-            if (e.key === 'r') p.clip.sh--; if (e.key === 'f') p.clip.sh++;
+            if (p) {
+                if (e.key === 'ArrowUp') p.s += 0.01;
+                if (e.key === 'ArrowDown') p.s -= 0.01;
+                if (e.key === 'q') p.clip.sx++; if (e.key === 'a') p.clip.sx--;
+                if (e.key === 'w') p.clip.sw--; if (e.key === 's') p.clip.sw++;
+                if (e.key === 'e') p.clip.sy++; if (e.key === 'd') p.clip.sy--;
+                if (e.key === 'r') p.clip.sh--; if (e.key === 'f') p.clip.sh++;
+            }
         });
     }
 
@@ -122,38 +153,56 @@ class Game {
         
         const cData = SPRITE_DATA.customers[this.activeCharIdx];
         const pData = cData.poses[this.activePoseIdx];
-        const img = assets[cData.id];
-        
-        if (img) {
-            const fW = img.width / 3;
-            const fH = img.height;
-            const dW = fW * pData.s;
-            const dH = fH * pData.s;
-            ctx.drawImage(img, (this.activePoseIdx * fW) + pData.clip.sx, pData.clip.sy, fW + pData.clip.sw, fH + pData.clip.sh, pData.x - dW/2, pData.y - dH, dW, dH);
+        const cImg = assets[cData.id];
+        if (cImg) {
+            const fW = cImg.width / 3; const fH = cImg.height;
+            const dW = fW * pData.s; const dH = fH * pData.s;
+            ctx.drawImage(cImg, (this.activePoseIdx * fW) + pData.clip.sx, pData.clip.sy, fW + pData.clip.sw, fH + pData.clip.sh, pData.x - dW/2, pData.y - dH, dW, dH);
         }
 
         this.taps.forEach(t => t.draw());
 
+        if (this.labMode === 'spill') {
+            const s = SPRITE_DATA.spills[this.activeStationIdx];
+            const img = assets.spill;
+            if (img) {
+                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
+                const dW = img.width * s.s; const dH = img.height * s.s;
+                ctx.drawImage(img, s.clip.sx, s.clip.sy, img.width + s.clip.sw, img.height + s.clip.sh, (worldX + s.x) - dW/2, (CONFIG.TapY + s.y) - dH, dW, dH);
+            }
+        }
+
+        if (this.labMode === 'paddle') {
+            const p = SPRITE_DATA.paddles[this.activeStationIdx];
+            const img = assets.paddles;
+            if (img) {
+                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
+                const fW = img.width; const fH = img.height / 4; 
+                const dW = fW * p.s; const dH = fH * p.s;
+                ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, fW + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
+            }
+        }
+
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 650, 250);
+        ctx.fillRect(10, 10, 650, 260);
         ctx.fillStyle = "#0f0";
         ctx.font = "16px monospace";
-        ctx.fillText(`🛠 POSE LAB: ${cData.name.toUpperCase()} (Pose ${this.activePoseIdx + 1})`, 20, 40);
-        ctx.fillText(`KEYS 1, 2, 3: Switch Pose | TAB: Switch Character`, 20, 70);
-        ctx.fillText(`POS: x:${pData.x} y:${pData.y} scale:${pData.s.toFixed(2)}`, 20, 100);
-        ctx.fillText(`CLIP: L:${pData.clip.sx} R:${pData.clip.sw} T:${pData.clip.sy} B:${pData.clip.sh}`, 20, 130);
-        ctx.fillStyle = "#fff";
-        ctx.fillText("Q/A/W/S/E/D/R/F: Shave edges | Arrows: Scale | Drag: Move", 20, 175);
+        ctx.fillText(`🛠 LAB MODE: ${this.labMode.toUpperCase()}`, 20, 40);
+        ctx.fillText(`6: Spill | 7: Paddle | 8: Customer | TAB: Station | V: Cycle Paddle Row`, 20, 70);
         
+        let cur = this.labMode === 'customer' ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : SPRITE_DATA.paddles[this.activeStationIdx]);
+        if (cur) {
+            ctx.fillText(`ID: ${this.labMode === 'customer' ? cData.name : 'Stn ' + this.activeStationIdx} | SIZE/ROW: ${cur.sizeIdx !== undefined ? cur.sizeIdx : 'N/A'}`, 20, 100);
+            ctx.fillText(`POS: x:${cur.x} y:${cur.y} scale:${cur.s.toFixed(2)}`, 20, 130);
+            ctx.fillText(`CLIP: L:${cur.clip.sx} R:${cur.clip.sw} T:${cur.clip.sy} B:${cur.clip.sh}`, 20, 160);
+        }
         ctx.restore();
     }
 }
 
 class TapStation {
     constructor(index, xRatio, calibration) {
-        this.index = index;
-        this.xRatio = xRatio; 
-        this.cal = calibration;
+        this.index = index; this.xRatio = xRatio; this.cal = calibration;
     }
     draw() {
         const worldX = WORLD.w * this.xRatio;
