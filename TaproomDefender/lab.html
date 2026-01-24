@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law Brewing Asset Lab</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Roboto+Slab:wght@400;700&display=swap');
+
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Roboto Slab', serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #controls {
+            width: 350px;
+            height: 100vh;
+            background: #222;
+            border-right: 2px solid gold;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #000000 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 {
+            font-family: 'Rye', serif;
+            color: gold;
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .control-group {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-display {
+            color: gold;
+            font-family: monospace;
+        }
+
+        #output-area {
+            width: 100%;
+            height: 150px;
+            background: #111;
+            color: #0f0;
+            border: 1px solid #555;
+            padding: 10px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        button {
+            background: gold;
+            border: none;
+            padding: 10px;
+            font-family: 'Rye', serif;
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #fff;
+        }
+
+        /* Asset Labels on Canvas */
+        .asset-label {
+            position: absolute;
+            color: #888;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h1>Asset Calibrator</h1>
+    <p style="font-size: 0.9rem; color: #aaa; text-align: center;">Adjust sliders until assets look correct on the canvas.</p>
+
+    <div class="control-group">
+        <label>BEER <span id="val-BEER" class="val-display">0.5</span></label>
+        <input type="range" id="input-BEER" min="0.1" max="2.0" step="0.05" value="0.5">
+    </div>
+
+    <div class="control-group">
+        <label>FOOD (Pretzel/Curd) <span id="val-FOOD" class="val-display">0.5</span></label>
+        <input type="range" id="input-FOOD" min="0.1" max="2.0" step="0.05" value="0.5">
+    </div>
+
+    <div class="control-group">
+        <label>OLDTIMER (Thief) <span id="val-OLDTIMER" class="val-display">0.6</span></label>
+        <input type="range" id="input-OLDTIMER" min="0.1" max="2.0" step="0.05" value="0.6">
+    </div>
+
+    <div class="control-group">
+        <label>VIP TABLE <span id="val-VIP" class="val-display">0.7</span></label>
+        <input type="range" id="input-VIP" min="0.1" max="2.0" step="0.05" value="0.7">
+    </div>
+
+    <div class="control-group">
+        <label>BOSS TIMER <span id="val-BOSS" class="val-display">0.8</span></label>
+        <input type="range" id="input-BOSS" min="0.1" max="2.0" step="0.05" value="0.8">
+    </div>
+
+    <div>
+        <label>Generated Config:</label>
+        <textarea id="output-area" readonly></textarea>
+        <button onclick="copyToClipboard()">COPY CONFIG</button>
+    </div>
+</div>
+
+<div id="canvas-container">
+    <canvas id="labCanvas"></canvas>
+</div>
+
+<script>
+    // --- Configuration ---
+    const ASSET_BASE_URL = "https://lawbrewing.github.io/DreadmoorGames/TaproomDefender/assets/";
+    
+    const imageSources = {
+        beers: ASSET_BASE_URL + "beers.png",
+        food: ASSET_BASE_URL + "food.png",
+        oldtimer: ASSET_BASE_URL + "oldtimer.png",
+        vip: ASSET_BASE_URL + "vip.png",
+        boss: ASSET_BASE_URL + "bosstimer.png"
+    };
+
+    const assets = {};
+    let loadedCount = 0;
+    const totalImages = Object.keys(imageSources).length;
+
+    // Default Scales
+    const scales = {
+        BEER: 0.5,
+        FOOD: 0.5,
+        VIP: 0.7,
+        OLDTIMER: 0.6,
+        BOSS: 0.8
+    };
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('labCanvas');
+    const ctx = canvas.getContext('2d');
+    const outputArea = document.getElementById('output-area');
+
+    // --- Initialization ---
+    function init() {
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Load Images
+        for (const [key, src] of Object.entries(imageSources)) {
+            const img = new Image();
+            img.onload = () => {
+                loadedCount++;
+                if(loadedCount === totalImages) loop();
+            };
+            img.src = src;
+            assets[key] = img;
+        }
+
+        // Bind Sliders
+        Object.keys(scales).forEach(key => {
+            const input = document.getElementById(`input-${key}`);
+            const display = document.getElementById(`val-${key}`);
+            
+            input.addEventListener('input', (e) => {
+                scales[key] = parseFloat(e.target.value);
+                display.innerText = scales[key].toFixed(2);
+                updateOutput();
+            });
+        });
+
+        updateOutput();
+    }
+
+    function resize() {
+        canvas.width = document.getElementById('canvas-container').clientWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    function updateOutput() {
+        const text = `const ASSET_SCALES = {\n` +
+            `    BEER: ${scales.BEER.toFixed(2)},\n` +
+            `    FOOD: ${scales.FOOD.toFixed(2)},\n` +
+            `    VIP: ${scales.VIP.toFixed(2)},\n` +
+            `    OLDTIMER: ${scales.OLDTIMER.toFixed(2)},\n` +
+            `    BOSS: ${scales.BOSS.toFixed(2)}\n` +
+            `};`;
+        outputArea.value = text;
+    }
+
+    function copyToClipboard() {
+        outputArea.select();
+        document.execCommand('copy');
+        alert("Config copied to clipboard!");
+    }
+
+    // --- Rendering Loop ---
+    function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Reference Grid Line
+        ctx.strokeStyle = '#333';
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height/2);
+        ctx.lineTo(canvas.width, canvas.height/2);
+        ctx.stroke();
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // 1. BOSS (Top Center)
+        if(assets.boss) {
+            const w = 150 * scales.BOSS;
+            const h = 150 * scales.BOSS;
+            ctx.drawImage(assets.boss, centerX - w/2, 50, w, h);
+            drawLabel(centerX, 40, "BOSS");
+        }
+
+        // 2. VIP (Bottom Center)
+        if(assets.vip) {
+            const size = 120 * scales.VIP;
+            ctx.drawImage(assets.vip, centerX - size/2, canvas.height - size - 50, size, size);
+            drawLabel(centerX, canvas.height - size - 60, "VIP");
+        }
+
+        // 3. OLD TIMER (Left Side)
+        if(assets.oldtimer) {
+            const size = 70 * scales.OLDTIMER;
+            ctx.drawImage(assets.oldtimer, centerX - 200, centerY - size/2, size, size);
+            drawLabel(centerX - 200 + size/2, centerY - size/2 - 10, "OLD TIMER");
+        }
+
+        // 4. BEERS (Right Side - Row)
+        if(assets.beers) {
+            const fw = assets.beers.width / 3;
+            const fh = assets.beers.height / 2;
+            const dw = fw * scales.BEER;
+            const dh = fh * scales.BEER;
+
+            // Draw Good
+            ctx.drawImage(assets.beers, 0, 0, fw, fh, centerX + 100, centerY - dh/2, dw, dh);
+            drawLabel(centerX + 100 + dw/2, centerY - dh/2 - 10, "GOOD BEER");
+
+            // Draw Swill
+            ctx.drawImage(assets.beers, 0, fh, fw, fh, centerX + 200, centerY - dh/2, dw, dh);
+            drawLabel(centerX + 200 + dw/2, centerY - dh/2 - 10, "SWILL");
+        }
+
+        // 5. FOOD (Bottom Left/Right)
+        if(assets.food) {
+            const fw = assets.food.width / 2;
+            const fh = assets.food.height;
+            const dw = fw * scales.FOOD;
+            const dh = fh * scales.FOOD;
+
+            // Pretzel (Left Frame)
+            ctx.drawImage(assets.food, 0, 0, fw, fh, centerX - 100, centerY + 100, dw, dh);
+            drawLabel(centerX - 100 + dw/2, centerY + 100 - 10, "PRETZEL");
+
+            // Curd (Right Frame)
+            ctx.drawImage(assets.food, fw, 0, fw, fh, centerX + 100, centerY + 100, dw, dh);
+            drawLabel(centerX + 100 + dw/2, centerY + 100 - 10, "CURD");
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    function drawLabel(x, y, text) {
+        ctx.fillStyle = "#888";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(text, x, y);
+    }
+
+    // Start
+    init();
+
+</script>
+</body>
+</html>
