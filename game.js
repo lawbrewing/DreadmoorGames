@@ -19,13 +19,13 @@ let SPRITE_DATA = {
         { owner: 'vip',   x: -339, y: 400, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     paddleDrinks: [
-        [ // Judge (Owner 0): Sizes 2, 3, 4, 5 (All types)
+        [ // Judge (Owner 0): 2, 3, 4, 5 Beers
             [ {x:-30, y:0, s:1}, {x:30, y:0, s:1} ], 
             [ {x:-50, y:0, s:1}, {x:0, y:0, s:1}, {x:50, y:0, s:1} ], 
             [ {x:-60, y:0, s:1}, {x:-20, y:0, s:1}, {x:20, y:0, s:1}, {x:60, y:0, s:1} ], 
             [ {x:-80, y:0, s:1}, {x:-40, y:0, s:1}, {x:0, y:0, s:1}, {x:40, y:0, s:1}, {x:80, y:0, s:1} ]
         ],
-        [ // VIP (Owner 1): Sizes 2, 3 (Pure only)
+        [ // VIP (Owner 1): 2, 3 Beers
             [ {x:-30, y:0, s:1}, {x:30, y:0, s:1} ], 
             [ {x:-50, y:0, s:1}, {x:0, y:0, s:1}, {x:50, y:0, s:1} ]
         ]
@@ -167,22 +167,18 @@ class Game {
             if (!this.selectedObject) return;
             const pos = getPos(e);
             if (this.labMode === 'customer') {
-                this.selectedObject.x = Math.round(pos.x);
-                this.selectedObject.y = Math.round(pos.y);
+                this.selectedObject.x = Math.round(pos.x); this.selectedObject.y = Math.round(pos.y);
             } else if (this.labMode === 'spill') {
                 const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
-                this.selectedObject.x = Math.round(pos.x - worldX);
-                this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
+                this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
             } else if (this.labMode === 'paddle') {
                 const p = SPRITE_DATA.paddles[this.activePaddleIdx];
                 const stationIdx = p.owner === 'judge' ? 1 : 2;
                 const worldX = WORLD.w * CONFIG.Stations[stationIdx];
                 if (this.editTarget === 'drink') {
-                    this.selectedObject.x = Math.round(pos.x - (worldX + p.x));
-                    this.selectedObject.y = Math.round(pos.y - (CONFIG.TapY + p.y));
+                    this.selectedObject.x = Math.round(pos.x - (worldX + p.x)); this.selectedObject.y = Math.round(pos.y - (CONFIG.TapY + p.y));
                 } else {
-                    this.selectedObject.x = Math.round(pos.x - worldX);
-                    this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
+                    this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
                 }
             }
         });
@@ -190,8 +186,8 @@ class Game {
         window.addEventListener('mouseup', () => { this.selectedObject = null; });
 
         window.addEventListener('keydown', (e) => {
-            const currentPaddle = SPRITE_DATA.paddles[this.activePaddleIdx];
-            let target = this.labMode === 'customer' ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : (this.editTarget === 'paddle' ? currentPaddle : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][currentPaddle.sizeIdx][this.activeSlotIdx]));
+            const curP = SPRITE_DATA.paddles[this.activePaddleIdx];
+            let target = this.labMode === 'customer' ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : (this.editTarget === 'paddle' ? curP : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][curP.sizeIdx][this.activeSlotIdx]));
 
             if (e.key === '6') this.labMode = 'spill';
             if (e.key === '7') this.labMode = 'paddle';
@@ -200,18 +196,16 @@ class Game {
             if (this.labMode === 'paddle') {
                 if (['1','2','3','4','5'].includes(e.key)) {
                     const slot = parseInt(e.key) - 1;
-                    if (slot < currentPaddle.sizeIdx + 2) this.activeSlotIdx = slot;
+                    if (slot < curP.sizeIdx + 2) this.activeSlotIdx = slot;
                 }
                 if (e.key === 'v') { 
-                    const maxRows = currentPaddle.owner === 'vip' ? 2 : 4;
-                    currentPaddle.sizeIdx = (currentPaddle.sizeIdx + 1) % maxRows;
+                    const maxRows = curP.owner === 'vip' ? 2 : 4;
+                    curP.sizeIdx = (curP.sizeIdx + 1) % maxRows;
                     this.activeSlotIdx = 0; 
                 }
                 if (e.key === 'g') this.showGhostDrink = !this.showGhostDrink;
             } else if (this.labMode === 'customer') {
-                if (e.key === '1') this.activePoseIdx = 0;
-                if (e.key === '2') this.activePoseIdx = 1;
-                if (e.key === '3') this.activePoseIdx = 2;
+                if (e.key === '1') this.activePoseIdx = 0; if (e.key === '2') this.activePoseIdx = 1; if (e.key === '3') this.activePoseIdx = 2;
             }
 
             if (e.key === 'Tab') { 
@@ -266,8 +260,7 @@ class Game {
             const stationIdx = p.owner === 'judge' ? 1 : 2;
             const worldX = WORLD.w * CONFIG.Stations[stationIdx];
             if (assets.paddles) {
-                const img = assets.paddles;
-                const fH = img.height / 4; 
+                const img = assets.paddles; const fH = img.height / 4; 
                 const dW = img.width * p.s; const dH = fH * p.s;
                 ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, img.width + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
             }
@@ -275,28 +268,22 @@ class Game {
                 const currentSlots = SPRITE_DATA.paddleDrinks[this.activePaddleIdx][p.sizeIdx];
                 currentSlots.forEach((d, i) => {
                     ctx.globalAlpha = (this.editTarget === 'drink' && i === this.activeSlotIdx) ? 1.0 : 0.4;
+                    const stage = (p.owner === 'vip') ? 'full' : (i % 2 === 0 ? 'full' : 'mix_from_1');
                     const g = new BeerGlass(i % 3, worldX); 
-                    // VIP only shows pure beers (full/half/empty); Judge cycles through mixed too
-                    const stage = (p.owner === 'vip') ? ['full', 'half', 'empty'][i % 3] : ['full', 'half', 'mix_from_1', 'mix_from_2', 'empty'][i % 5];
                     g.draw(stage, worldX + p.x + d.x, CONFIG.TapY + p.y + d.y, d.s);
                 });
                 ctx.globalAlpha = 1.0;
             }
         }
 
-        ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 650, 240);
-        ctx.fillStyle = "#0f0";
-        ctx.font = "16px monospace";
+        ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 650, 240);
+        ctx.fillStyle = "#0f0"; ctx.font = "16px monospace";
         ctx.fillText(`🛠 MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-        
         let cur = (this.labMode === 'customer') ? pData : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : (this.editTarget === 'paddle' ? SPRITE_DATA.paddles[this.activePaddleIdx] : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx][this.activeSlotIdx]));
 
         if (this.labMode === 'paddle') {
-            ctx.fillStyle = "#ff0";
-            ctx.fillText(`EDIT: ${this.editTarget.toUpperCase()} | PADDLE: ${SPRITE_DATA.paddles[this.activePaddleIdx].owner.toUpperCase()}`, 20, 70);
-            ctx.fillStyle = "#0f0";
-            ctx.fillText(`BEERS: ${SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx + 2} | SLOT: ${this.activeSlotIdx + 1}`, 20, 100);
+            ctx.fillStyle = "#ff0"; ctx.fillText(`EDIT: ${this.editTarget.toUpperCase()} | PADDLE: ${SPRITE_DATA.paddles[this.activePaddleIdx].owner.toUpperCase()}`, 20, 70);
+            ctx.fillStyle = "#0f0"; ctx.fillText(`FLIGHT: ${SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx + 2} | SLOT: ${this.activeSlotIdx + 1}`, 20, 100);
         }
         if (cur) {
             ctx.fillText(`X:${cur.x} Y:${cur.y} S:${cur.s.toFixed(2)}`, 20, 130);
@@ -307,8 +294,7 @@ class Game {
 }
 
 function loadImages() {
-    let loaded = 0;
-    const keys = Object.keys(ASSETS_PATHS);
+    let loaded = 0; const keys = Object.keys(ASSETS_PATHS);
     keys.forEach(key => {
         const img = new Image(); img.src = ASSETS_PATHS[key];
         img.onload = () => { assets[key] = img; if (++loaded === keys.length) {
