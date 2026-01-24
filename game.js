@@ -26,26 +26,14 @@ let SPRITE_DATA = {
         { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }, 
         { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
-    paddleDrinks: [
-        [ // Judge
-            [ {x:-103, y:0, s:.63}, {x:-4, y:-13, s:.63} ], 
-            [ {x:-111, y:-6, s:.63}, {x:-19, y:-21, s:.63}, {x:61, y:-6, s:.63} ], 
-            [ {x:-109, y:-11, s:.55}, {x:-29, y:-23, s:.55}, {x:40, y:-14, s:.55}, {x:100, y:-23, s:.55} ], 
-            [ {x:-111, y:-18, s:.5}, {x:-39, y:-23, s:.5}, {x:28, y:-13, s:.5}, {x:90, y:-23, s:.5}, {x:157, y:-12, s:.5} ]
-        ],
-        [ // VIP
-            [ {x:-104, y:-8, s:.55}, {x:-13, y:-8, s:.55} ], 
-            [ {x:-106, y:-14, s:.5}, {x:-33, y:-12, s:.5}, {x:46, y:-11, s:.5} ]
-        ]
-    ],
-    // --- CALIBRATE THESE NUMBERS USING THE HUD ---
-    menu: {
-        x: 218,
-        targetY: 295,
-        s: 0.60,
-        textX: 0,
-        textY: 0
+    // --- HUD CALIBRATION DATA ---
+    hud_elements: {
+        score: { x: 1750, y: 50, s: 0.8 },
+        lives: { x: 50, y: 50, s: 0.6, spacing: 70 },
+        clock: { x: 0, y: -250, r: 45, width: 8 }, // Offset relative to customer
+        gameOver: { x: 960, y: 540, s: 1.0 }
     },
+    menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 },
     hud: {
         activeFrame: 0,
         notifications: [
@@ -68,7 +56,9 @@ const ASSETS_PATHS = {
     spill: 'assets/spill.png', paddles: 'assets/paddles.png',
     notification: 'https://lawbrewing.github.io/DreadmoorGames/assets/notification.png', 
     numbers: 'https://lawbrewing.github.io/DreadmoorGames/assets/numbers.png',
-    menu: 'https://lawbrewing.github.io/DreadmoorGames/assets/menu.png'
+    menu: 'https://lawbrewing.github.io/DreadmoorGames/assets/menu.png',
+    hud_sheet: 'https://lawbrewing.github.io/DreadmoorGames/assets/hud.png',
+    dead_life: 'https://lawbrewing.github.io/DreadmoorGames/assets/dead.png'
 };
 
 const assets = {}; 
@@ -78,27 +68,61 @@ class Game {
         this.started = false;
         this.taps = [];
         this.labMode = 'none';
-        this.editTarget = 'bar';
+        this.editTarget = 'score'; 
         this.selectedObject = null;
-        this.activeNotifications = [];
+        
+        // Gameplay State
+        this.score = 1250; // Test score
+        this.lives = 3;
+        this.maxLives = 3;
+        this.isGameOver = false;
 
-        this.menuPhysics = {
-            active: false,
-            y: -600,
-            burnProgress: 0,
-            text: "",
-            smoke: []
-        };
+        this.menuPhysics = { active: false, y: -600, burnProgress: 0, text: "", smoke: [] };
+        
+        // Test Customer with Timer
+        this.activeCustomers = [
+            { id: 'viking', progress: 0.7, x: 167, y: 966 } // 70% time left
+        ];
 
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
     }
 
-    triggerOrder(msg) {
-        this.menuPhysics.text = msg.toUpperCase();
-        this.menuPhysics.burnProgress = 0;
-        this.menuPhysics.active = true;
+    // --- HELPER: DRAW NUMBERS FROM SHEET ---
+    drawScore(num, x, y, scale) {
+        if (!assets.numbers) return;
+        const s = num.toString();
+        const fW = assets.numbers.width / 10;
+        const fH = assets.numbers.height / 2; // Top half is numbers
+        for (let i = 0; i < s.length; i++) {
+            const digit = parseInt(s[i]);
+            ctx.drawImage(assets.numbers, digit * fW, 0, fW, fH, x + (i * fW * scale), y, fW * scale, fH * scale);
+        }
+    }
+
+    // --- HELPER: DRAW CIRCULAR CLOCK ---
+    drawClock(x, y, progress) {
+        const c = SPRITE_DATA.hud_elements.clock;
+        ctx.save();
+        ctx.translate(x + c.x, y + c.y);
+        
+        // Background Circle
+        ctx.beginPath();
+        ctx.arc(0, 0, c.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fill();
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = c.width;
+        ctx.stroke();
+
+        // Progress Arc
+        ctx.beginPath();
+        ctx.arc(0, 0, c.r, -Math.PI/2, (-Math.PI/2) + (progress * Math.PI * 2));
+        // Dynamic Color
+        ctx.strokeStyle = progress > 0.5 ? "#0f0" : (progress > 0.2 ? "#ff0" : "#f00");
+        ctx.stroke();
+        ctx.restore();
     }
 
     resize() {
@@ -108,7 +132,6 @@ class Game {
         canvas.style.width = window.innerWidth + 'px';
         canvas.style.height = window.innerHeight + 'px';
         ctx.scale(dpr, dpr);
-
         const scaleX = window.innerWidth / WORLD.w;
         const scaleY = window.innerHeight / WORLD.h;
         screenScale = Math.min(scaleX, scaleY);
@@ -128,86 +151,39 @@ class Game {
             };
         };
 
-        const handleStart = (e) => {
-            if (!this.started) {
-                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-                this.started = true;
-                return;
-            }
+        canvas.addEventListener('mousedown', (e) => {
+            if (!this.started) { this.started = true; return; }
             const pos = getPos(e);
             
-            // Toggle Edit Target (Clicking the Green HUD box)
-            if (pos.y < 250 && pos.x < 550 && this.labMode !== 'none') {
-                this.editTarget = (this.editTarget === 'bar') ? 'text' : 'bar';
-                return;
+            if (this.labMode === 'hud_main') {
+                this.selectedObject = SPRITE_DATA.hud_elements[this.editTarget];
             }
-
-            if (this.labMode === 'menu') {
-                this.selectedObject = SPRITE_DATA.menu;
-            }
-        };
-
-        canvas.addEventListener('mousedown', handleStart);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
+        });
 
         window.addEventListener('mousemove', (e) => {
             if (!this.selectedObject) return;
             const pos = getPos(e);
-            if (this.labMode === 'menu') {
-                if (this.editTarget === 'text') {
-                    this.selectedObject.textX = Math.round(pos.x - this.selectedObject.x);
-                    this.selectedObject.textY = Math.round(pos.y - this.selectedObject.targetY);
-                } else {
-                    this.selectedObject.x = Math.round(pos.x);
-                    this.selectedObject.targetY = Math.round(pos.y);
-                }
-            }
+            this.selectedObject.x = Math.round(pos.x);
+            this.selectedObject.y = Math.round(pos.y);
         });
 
         window.addEventListener('mouseup', () => { this.selectedObject = null; });
-        window.addEventListener('touchend', () => { this.selectedObject = null; });
 
         window.addEventListener('keydown', (e) => {
-            if (e.key === '5') { this.labMode = 'menu'; this.menuPhysics.active = true; this.editTarget = 'bar'; }
-            if (e.key === '9') this.labMode = 'hud';
-            if (e.key.toLowerCase() === 'o') this.triggerOrder("2x Stout");
-            if (e.key.toLowerCase() === 'u') this.menuPhysics.active = !this.menuPhysics.active;
-            
-            if (this.selectedObject) {
-                if (e.key === 'ArrowUp') this.selectedObject.s += 0.01;
-                if (e.key === 'ArrowDown') this.selectedObject.s -= 0.01;
+            if (e.key === '4') { this.labMode = 'hud_main'; this.editTarget = 'score'; }
+            if (this.labMode === 'hud_main') {
+                if (e.key === 'q') this.editTarget = 'score';
+                if (e.key === 'w') this.editTarget = 'lives';
+                if (e.key === 'e') this.editTarget = 'clock';
+                if (e.key === 'r') this.editTarget = 'gameOver';
+                if (e.key === 'ArrowUp') SPRITE_DATA.hud_elements[this.editTarget].s += 0.05;
+                if (e.key === 'ArrowDown') SPRITE_DATA.hud_elements[this.editTarget].s -= 0.05;
             }
         });
     }
 
-    update() {
-        const mP = this.menuPhysics;
-        const mD = SPRITE_DATA.menu;
-        const speed = 0.12;
-
-        if (mP.active) {
-            mP.y += (mD.targetY - mP.y) * speed;
-            if (mP.y > mD.targetY - 20) {
-                mP.burnProgress = Math.min(1, mP.burnProgress + 0.006);
-            }
-        } else {
-            mP.y += (-600 - mP.y) * speed;
-            mP.burnProgress = 0;
-        }
-
-        if (mP.active && mP.burnProgress < 1 && mP.burnProgress > 0.05) {
-            mP.smoke.push({
-                x: mD.textX + (mP.burnProgress - 0.5) * 450,
-                y: mD.textY, life: 1.0,
-                vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 4
-            });
-        }
-        mP.smoke.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
-        mP.smoke = mP.smoke.filter(p => p.life > 0);
-    }
-
     draw() {
-        this.update();
+        // Physics update would go here
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -223,60 +199,48 @@ class Game {
 
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
 
-        // Draw Menu Board
-        if (assets.menu) {
-            const mP = this.menuPhysics;
-            const mD = SPRITE_DATA.menu;
-            const mw = assets.menu.width * mD.s;
-            const mh = assets.menu.height * mD.s;
-
-            ctx.save();
-            ctx.translate(mD.x, mP.y);
-            
-            ctx.fillStyle = "rgba(150,150,150,0.5)";
-            mP.smoke.forEach(p => {
-                ctx.beginPath(); ctx.arc(p.x, p.y, 8 * p.life, 0, Math.PI*2); ctx.fill();
-            });
-
-            ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
-
-            if (mP.text) {
-                ctx.font = `bold ${Math.round(70 * mD.s)}px "MedievalSharp"`;
-                ctx.textAlign = "center"; ctx.textBaseline = "middle";
-                const charCount = Math.floor(mP.text.length * mP.burnProgress);
-                const visible = mP.text.substring(0, charCount);
-                
-                ctx.fillStyle = "rgba(30, 15, 0, 0.9)";
-                ctx.fillText(visible, mD.textX, mD.textY);
-
-                if (mP.burnProgress < 1 && mP.burnProgress > 0) {
-                    const nextChar = mP.text.charAt(charCount);
-                    const offset = ctx.measureText(visible).width / 2;
-                    ctx.shadowColor = "#ff4400"; ctx.shadowBlur = 15;
-                    ctx.fillStyle = "#ffaa00";
-                    ctx.fillText(nextChar, mD.textX + offset + 15, mD.textY);
-                }
+        // --- DRAW CUSTOMERS & CLOCKS ---
+        this.activeCustomers.forEach(cust => {
+            const data = SPRITE_DATA.customers.find(c => c.id === cust.id).poses[0];
+            const img = assets[cust.id];
+            if (img) {
+                const fW = img.width / 3;
+                ctx.drawImage(img, data.clip.sx, 0, fW, img.height, cust.x - (fW*data.s/2), cust.y - (img.height*data.s), fW*data.s, img.height*data.s);
+                this.drawClock(cust.x, cust.y - (img.height*data.s), cust.progress);
             }
-            ctx.restore();
+        });
+
+        // --- DRAW LIVES ---
+        const liveCfg = SPRITE_DATA.hud_elements.lives;
+        for (let i = 0; i < this.maxLives; i++) {
+            const isDead = i >= this.lives;
+            const img = isDead ? assets.dead_life : assets.hud_sheet;
+            // If using hud_sheet for live, clip top half
+            if (!isDead && assets.hud_sheet) {
+                const fH = assets.hud_sheet.height / 2;
+                ctx.drawImage(assets.hud_sheet, 0, 0, assets.hud_sheet.width, fH, liveCfg.x + (i * liveCfg.spacing), liveCfg.y, assets.hud_sheet.width * liveCfg.s, fH * liveCfg.s);
+            } else if (isDead && assets.dead_life) {
+                ctx.drawImage(assets.dead_life, liveCfg.x + (i * liveCfg.spacing), liveCfg.y, assets.dead_life.width * liveCfg.s, assets.dead_life.height * liveCfg.s);
+            }
         }
 
-        // --- NEW: CALIBRATION OVERLAY ---
-        if (this.labMode === 'menu') {
-            const mD = SPRITE_DATA.menu;
+        // --- DRAW SCORE ---
+        const sc = SPRITE_DATA.hud_elements.score;
+        this.drawScore(this.score, sc.x, sc.y, sc.s);
+
+        // --- HUD LAB OVERLAY ---
+        if (this.labMode === 'hud_main') {
+            const el = SPRITE_DATA.hud_elements[this.editTarget];
+            ctx.fillStyle = "rgba(0,255,0,0.2)";
+            ctx.fillRect(el.x - 20, el.y - 20, 100, 100);
+            
             ctx.fillStyle = "rgba(0,0,0,0.85)";
-            ctx.fillRect(10, 10, 550, 220);
-            ctx.fillStyle = "#0f0"; ctx.font = "bold 18px monospace"; ctx.textAlign = "left";
-            
-            ctx.fillText(`🛠 MENU LAB | EDITING: ${this.editTarget.toUpperCase()}`, 30, 40);
+            ctx.fillRect(10, 10, 600, 200);
+            ctx.fillStyle = "#0f0"; ctx.font = "20px monospace";
+            ctx.fillText(`HUD LAB | EDITING: ${this.editTarget.toUpperCase()}`, 30, 50);
             ctx.fillStyle = "#fff";
-            ctx.fillText(`[X]: ${mD.x}  [targetY]: ${mD.targetY}`, 30, 80);
-            ctx.fillText(`[Scale]: ${mD.s.toFixed(2)}`, 30, 110);
-            ctx.fillText(`[textX]: ${mD.textX}  [textY]: ${mD.textY}`, 30, 140);
-            
-            ctx.fillStyle = "#ff0";
-            ctx.font = "14px monospace";
-            ctx.fillText(`COPY THIS: x: ${mD.x}, targetY: ${mD.targetY}, s: ${mD.s.toFixed(2)}, textX: ${mD.textX}, textY: ${mD.textY}`, 30, 180);
-            ctx.fillText(`CLICK HUD BOX TO TOGGLE BAR/TEXT | ARROWS TO SCALE`, 30, 205);
+            ctx.fillText(`Q:Score W:Lives E:Clock R:GameOver | Arrows: Scale`, 30, 90);
+            ctx.fillText(`COPY: x:${el.x}, y:${el.y}, s:${el.s.toFixed(2)}`, 30, 140);
         }
 
         ctx.restore();
