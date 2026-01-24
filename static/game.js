@@ -16,38 +16,57 @@ const RECIPES = {
     'stout': { name: "STOUT", steps: [{ tap: TAPS.STOUT, limit: 1.0 }] },
     'ipa':   { name: "IPA",   steps: [{ tap: TAPS.IPA,   limit: 1.0 }] },
     'lager': { name: "LAGER", steps: [{ tap: TAPS.LAGER, limit: 1.0 }] },
-    // Mixed Drinks (Base 50%, Topper 100%)
     'black_tan':    { name: "BLACK & TAN", steps: [{ tap: TAPS.LAGER, limit: 0.5 }, { tap: TAPS.STOUT, limit: 1.0 }] },
     'black_bitter': { name: "BLACK & BITTER", steps: [{ tap: TAPS.IPA,   limit: 0.5 }, { tap: TAPS.STOUT, limit: 1.0 }] },
     'lawnmower':    { name: "LAWNMOWER HOP", steps: [{ tap: TAPS.LAGER, limit: 0.5 }, { tap: TAPS.IPA,   limit: 1.0 }] }
 };
 
-// CUSTOMER DATA
+// CUSTOMER DEFINITIONS
 const CUSTOMER_TYPES = {
     'viking':  { id: 'viking',  patience: 15000, orders: ['stout'] },
-    'hipster': { id: 'viking',  patience: 12000, orders: ['ipa'] }, // Placeholder sprite
-    'regular': { id: 'viking',  patience: 12000, orders: ['lager'] }, // Placeholder sprite
+    'hipster': { id: 'viking',  patience: 12000, orders: ['ipa'] }, 
+    'regular': { id: 'viking',  patience: 12000, orders: ['lager'] }, 
     'vip':     { id: 'judge',   patience: 20000, orders: ['all_pure', 'all_mixed'] }, 
     'karen':   { id: 'judge',   patience: 10000, orders: ['???'] }, 
     'judge':   { id: 'judge',   patience: 25000, orders: ['flight'] }
 };
 
+// *** RESTORED CALIBRATION DATA ***
 let SPRITE_DATA = {
+    tower: { h: 433 },
+    spills: [
+        { x: 8, y: 451, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: -29, y: 454, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: -64, y: 450, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+    ],
+    paddles: [
+        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }, 
+        { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
+    ],
+    // HUD & MENU (User Calibrated)
     hud_elements: {
         score: { x: 1871, y: 76, s: .85 },
         lives: { x: 1624, y: 172, s: 0.5, spacing: 100 },
         gameOver: { x: 969, y: 56, s: .45, visible: false },
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
-    menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 }
+    menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 },
+    
+    // CUSTOMER POSES (Restored)
+    customers: [
+        // Viking at y:966, s:0.48
+        { id: 'viking', name: "Viking", poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}} ] },
+        // Judge at y:911, s:0.39
+        { id: 'judge',  name: "Judge",  poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
+    ]
 };
 
 const ASSETS_PATHS = {
-    bg: 'assets/background.png',
+    bg: 'assets/background.png', tower: 'assets/tower.png', taps: 'assets/taps.png',
     menu: 'https://lawbrewing.github.io/DreadmoorGames/assets/menu.png',
     hud_sheet: 'https://lawbrewing.github.io/DreadmoorGames/assets/hud.png',
-    viking: 'assets/viking.png',
-    judge: 'assets/judge.png'
+    viking: 'assets/viking.png', judge: 'assets/judge.png',
+    spill: 'assets/spill.png', paddles: 'assets/paddles.png'
 };
 const assets = {}; 
 
@@ -60,9 +79,16 @@ class Customer {
         const type = CUSTOMER_TYPES[typeKey];
         this.type = typeKey;
         this.spriteId = type.id;
-        this.x = -300; 
-        this.targetX = 960; 
-        this.y = 900; 
+        
+        // LOOKUP POSE DATA
+        const poseData = SPRITE_DATA.customers.find(c => c.id === this.spriteId).poses[0];
+        
+        this.targetX = poseData.x; // Uses your calibrated X (167 or 703)
+        this.y = poseData.y;       // Uses your calibrated Y (966 or 911)
+        this.scale = poseData.s;   // Uses your calibrated Scale (.48 or .39)
+        this.clip = poseData.clip;
+        
+        this.x = -300; // Start off-screen
         this.state = 'walking_in'; 
         
         this.patienceMax = type.patience;
@@ -71,7 +97,6 @@ class Customer {
         this.satisfaction = 100; 
         this.order = this.generateOrder(typeKey);
         
-        // Flight/Mixing Progress
         this.currentOrderIndex = 0; 
         this.currentDrinkProgress = 0; 
         this.currentStepIndex = 0; 
@@ -94,8 +119,8 @@ class Customer {
     }
 
     update() {
-        // Movement Logic
         if (this.state === 'walking_in') {
+            // Lerp to Calibrated TargetX
             this.x += (this.targetX - this.x) * 0.05;
             if (Math.abs(this.x - this.targetX) < 5) {
                 this.state = 'ordering';
@@ -106,7 +131,6 @@ class Customer {
             if (this.x < -300) return 'gone';
         }
         
-        // Timer Logic
         if (this.state === 'waiting') {
             this.patience -= 16; 
             if (this.patience <= 0) return 'timeout';
@@ -132,12 +156,10 @@ class Game {
         window.addEventListener('resize', () => this.resize());
     }
 
-    // --- LOGIC ---
     spawnCustomer() {
         if (this.customer) return;
         const rnd = Math.random();
         let type = 'viking'; 
-        // Simple difficulty ramp could go here
         if (rnd > 0.9) type = 'judge';
         
         this.customer = new Customer(type);
@@ -159,23 +181,19 @@ class Game {
         if (!this.activePour.active) return;
         const c = this.customer;
         
-        // Karen Logic
         if (c.type === 'karen') { c.currentDrinkProgress += 0.01; return; }
 
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
 
-        // Only fill if correct tap
         if (this.activePour.tapIndex === step.tap) {
-            c.currentDrinkProgress += 0.008; // Fill speed
-            // Spill Check
+            c.currentDrinkProgress += 0.008; 
             if (c.currentDrinkProgress > step.limit + 0.1) c.satisfaction -= 25;
         }
     }
 
     evaluatePour() {
         const c = this.customer;
-        // Karen Roulette
         if (c.type === 'karen') {
             if (c.currentDrinkProgress > 0.8) this.completeOrder(Math.random() < 0.33);
             return;
@@ -184,13 +202,12 @@ class Game {
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
         
-        // Tolerance: +/- based on your rules
         const lower = step.limit - 0.15; 
         const upper = step.limit + 0.05; 
 
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
             if (c.currentStepIndex < recipe.steps.length - 1) {
-                c.currentStepIndex++; // Next step in mixed drink
+                c.currentStepIndex++; 
             } else {
                 this.finishDrink(true);
             }
@@ -209,7 +226,7 @@ class Game {
 
     completeOrder(success) {
         if (success && this.customer.satisfaction > 0) {
-            this.score += 50 * this.customer.order.length; // Basic scoring
+            this.score += 50 * this.customer.order.length;
             this.customer.state = 'walking_out';
         } else {
             this.lives--;
@@ -218,7 +235,6 @@ class Game {
         setTimeout(() => { this.customer = null; this.spawnCustomer(); }, 2000);
     }
 
-    // --- DRAWING ---
     drawMenu() {
         const m = SPRITE_DATA.menu;
         const targetY = (this.customer && this.customer.state === 'waiting') ? m.targetY : -600;
@@ -231,7 +247,6 @@ class Game {
             const mh = assets.menu.height * m.s;
             ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
 
-            // Menu Text
             if (this.customer) {
                 ctx.fillStyle = "rgba(40,20,0,0.9)"; ctx.textAlign = "center";
                 ctx.font = "bold 24px 'Courier New'";
@@ -259,13 +274,14 @@ class Game {
     }
 
     drawBeerLife(x, y, scale, isDead) {
+        // [Same detailed draw code from previous step]
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
         const glassColor = "#2d2419";
         const beerGrad = ctx.createLinearGradient(0, -50, 0, 50);
         beerGrad.addColorStop(0, "#FFD700"); beerGrad.addColorStop(1, "#FF8C00");
 
         ctx.lineWidth = 12; ctx.strokeStyle = glassColor; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI/1.5, Math.PI/1.5); ctx.stroke(); // Handle
+        ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI/1.5, Math.PI/1.5); ctx.stroke(); 
 
         ctx.lineWidth = 8; ctx.fillStyle = isDead ? "rgba(255,255,255,0.1)" : "#f9fafb";
         ctx.beginPath(); ctx.moveTo(-50, -75); ctx.lineTo(50, -75); ctx.lineTo(45, 75); 
@@ -278,7 +294,6 @@ class Game {
             ctx.closePath(); ctx.clip();
             ctx.fillStyle = beerGrad; ctx.fillRect(-50, -70, 100, 150);
             
-            // Bubbles
             ctx.fillStyle = "rgba(255,255,255,0.6)";
             const bTime = (Date.now() % 3000) / 3000;
             [-25, 0, 25, -15, 15].forEach((bx, i) => {
@@ -287,7 +302,7 @@ class Game {
             });
             ctx.restore();
 
-            ctx.fillStyle = "white"; // Foam
+            ctx.fillStyle = "white"; 
             ctx.beginPath(); ctx.arc(-35, -80, 35, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(0, -95, 45, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(35, -80, 35, 0, Math.PI * 2); ctx.fill();
@@ -321,7 +336,7 @@ class Game {
             if (!this.started) { this.started = true; this.spawnCustomer(); return; }
             const pos = getPos(e);
             
-            // TAP ZONES: Left, Mid, Right
+            // TAP ZONES: Left, Mid, Right (0-1920 width)
             if (pos.y > 400 && pos.y < 900) {
                 if (pos.x < 1920 * 0.33) this.handlePourInput(true, 0);
                 else if (pos.x < 1920 * 0.66) this.handlePourInput(true, 1);
@@ -351,17 +366,17 @@ class Game {
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         
-        // CUSTOMER & CLOCK
+        // CUSTOMER
         if (this.customer && assets[this.customer.spriteId]) {
             const img = assets[this.customer.spriteId];
-            const s = 0.5; // Scale
+            const s = this.customer.scale; // Uses calibrated Scale
             ctx.drawImage(img, this.customer.x - (img.width*s)/2, this.customer.y - img.height*s, img.width*s, img.height*s);
             
             if (this.customer.state === 'waiting') {
                 const pct = this.customer.patience / this.customer.patienceMax;
                 this.drawClock(this.customer.x, this.customer.y, pct);
                 
-                // DEBUG: Pour Bar
+                // DEBUG BAR for Pouring
                 ctx.fillStyle = "white"; ctx.fillRect(this.customer.x + 120, this.customer.y - 200, 20, -200 * this.customer.currentDrinkProgress);
                 ctx.strokeStyle = "red"; ctx.strokeRect(this.customer.x + 120, this.customer.y - 200, 20, -200);
             }
