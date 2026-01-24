@@ -9,15 +9,16 @@ let CONFIG = { BarHeight: 850, TapY: 500, Stations: [0.2, 0.5, 0.8] };
 
 let SPRITE_DATA = {
     tower: { h: 433 },
+    // --- SPILLS (One for each tap) ---
     spills: [
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
         { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
     ],
+    // --- PADDLES (One for Judge/Middle, one for VIP/Right) ---
     paddles: [
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 },
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 },
-        { x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
+        { owner: 'judge', x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }, 
+        { owner: 'vip',   x: 0, y: 0, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     customers: [
         { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}}, {x:214, y:967, s:.47, clip:{sx:-67, sy:0, sw:0, sh:0}}, {x:271, y:978, s:.51, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
@@ -56,8 +57,10 @@ class Game {
         this.activeCharIdx = 0;
         this.activePoseIdx = 0;
         this.activeStationIdx = 0;
+        this.activePaddleIdx = 0;
         this.labMode = 'customer'; 
         this.selectedObject = null;
+        this.showGhostDrink = false;
 
         CONFIG.Stations.forEach((xRatio, i) => {
             this.taps.push(new TapStation(i, xRatio, SPRITE_DATA.taps[i]));
@@ -92,7 +95,7 @@ class Game {
             } else if (this.labMode === 'spill') {
                 this.selectedObject = SPRITE_DATA.spills[this.activeStationIdx];
             } else if (this.labMode === 'paddle') {
-                this.selectedObject = SPRITE_DATA.paddles[this.activeStationIdx];
+                this.selectedObject = SPRITE_DATA.paddles[this.activePaddleIdx];
             }
         });
 
@@ -103,7 +106,8 @@ class Game {
                 this.selectedObject.x = Math.round(pos.x);
                 this.selectedObject.y = Math.round(pos.y);
             } else {
-                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
+                const stationIdx = this.labMode === 'spill' ? this.activeStationIdx : (SPRITE_DATA.paddles[this.activePaddleIdx].owner === 'judge' ? 1 : 2);
+                const worldX = WORLD.w * CONFIG.Stations[stationIdx];
                 this.selectedObject.x = Math.round(pos.x - worldX);
                 this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
             }
@@ -115,7 +119,7 @@ class Game {
             let p = null;
             if (this.labMode === 'customer') p = SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx];
             if (this.labMode === 'spill') p = SPRITE_DATA.spills[this.activeStationIdx];
-            if (this.labMode === 'paddle') p = SPRITE_DATA.paddles[this.activeStationIdx];
+            if (this.labMode === 'paddle') p = SPRITE_DATA.paddles[this.activePaddleIdx];
 
             if (e.key === '1') this.activePoseIdx = 0;
             if (e.key === '2') this.activePoseIdx = 1;
@@ -124,12 +128,16 @@ class Game {
             if (e.key === '7') this.labMode = 'paddle';
             if (e.key === '8') this.labMode = 'customer';
             
-            if (this.labMode === 'paddle' && e.key === 'v') p.sizeIdx = (p.sizeIdx + 1) % 4;
+            if (this.labMode === 'paddle') {
+                if (e.key === 'v') p.sizeIdx = (p.sizeIdx + 1) % 4;
+                if (e.key === 'g') this.showGhostDrink = !this.showGhostDrink;
+            }
 
             if (e.key === 'Tab') { 
                 e.preventDefault(); 
                 if (this.labMode === 'customer') this.activeCharIdx = (this.activeCharIdx + 1) % SPRITE_DATA.customers.length;
-                else this.activeStationIdx = (this.activeStationIdx + 1) % 3;
+                else if (this.labMode === 'spill') this.activeStationIdx = (this.activeStationIdx + 1) % 3;
+                else this.activePaddleIdx = (this.activePaddleIdx + 1) % 2;
             }
 
             if (p) {
@@ -151,6 +159,7 @@ class Game {
 
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         
+        // Draw Customer
         const cData = SPRITE_DATA.customers[this.activeCharIdx];
         const pData = cData.poses[this.activePoseIdx];
         const cImg = assets[cData.id];
@@ -162,6 +171,7 @@ class Game {
 
         this.taps.forEach(t => t.draw());
 
+        // Draw Spills
         if (this.labMode === 'spill') {
             const s = SPRITE_DATA.spills[this.activeStationIdx];
             const img = assets.spill;
@@ -172,27 +182,46 @@ class Game {
             }
         }
 
+        // Draw Paddles
         if (this.labMode === 'paddle') {
-            const p = SPRITE_DATA.paddles[this.activeStationIdx];
+            const p = SPRITE_DATA.paddles[this.activePaddleIdx];
             const img = assets.paddles;
+            const stationIdx = p.owner === 'judge' ? 1 : 2;
+            const worldX = WORLD.w * CONFIG.Stations[stationIdx];
             if (img) {
-                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
-                const fW = img.width; const fH = img.height / 4; 
-                const dW = fW * p.s; const dH = fH * p.s;
-                ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, fW + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
+                const fH = img.height / 4; 
+                const dW = img.width * p.s; const dH = fH * p.s;
+                ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, img.width + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
+            }
+            if (this.showGhostDrink) {
+                const ghostType = p.owner === 'judge' ? 'mix_from_1' : 'full';
+                const g = new BeerGlass(stationIdx, worldX);
+                ctx.globalAlpha = 0.5;
+                g.draw(ghostType);
+                ctx.globalAlpha = 1.0;
             }
         }
 
         ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(10, 10, 650, 260);
+        ctx.fillRect(10, 10, 650, 280);
         ctx.fillStyle = "#0f0";
         ctx.font = "16px monospace";
         ctx.fillText(`🛠 LAB MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-        ctx.fillText(`6: Spill | 7: Paddle | 8: Customer | TAB: Station | V: Cycle Paddle Row`, 20, 70);
+        ctx.fillText(`6: Spill | 7: Paddle | 8: Customer | TAB: Toggle Item`, 20, 70);
         
-        let cur = this.labMode === 'customer' ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : SPRITE_DATA.paddles[this.activeStationIdx]);
+        let cur = null;
+        if (this.labMode === 'customer') {
+            cur = pData;
+            ctx.fillText(`CHAR: ${cData.name} (Pose ${this.activePoseIdx+1})`, 20, 100);
+        } else if (this.labMode === 'spill') {
+            cur = SPRITE_DATA.spills[this.activeStationIdx];
+            ctx.fillText(`SPILL: Tap ${this.activeStationIdx}`, 20, 100);
+        } else {
+            cur = SPRITE_DATA.paddles[this.activePaddleIdx];
+            ctx.fillText(`PADDLE: ${cur.owner.toUpperCase()} | [V] Row: ${cur.sizeIdx+1} | [G] Ghost`, 20, 100);
+        }
+
         if (cur) {
-            ctx.fillText(`ID: ${this.labMode === 'customer' ? cData.name : 'Stn ' + this.activeStationIdx} | SIZE/ROW: ${cur.sizeIdx !== undefined ? cur.sizeIdx : 'N/A'}`, 20, 100);
             ctx.fillText(`POS: x:${cur.x} y:${cur.y} scale:${cur.s.toFixed(2)}`, 20, 130);
             ctx.fillText(`CLIP: L:${cur.clip.sx} R:${cur.clip.sw} T:${cur.clip.sy} B:${cur.clip.sh}`, 20, 160);
         }
@@ -214,6 +243,33 @@ class TapStation {
         ctx.save(); ctx.translate(worldX + this.cal.closed.x, CONFIG.TapY + this.cal.closed.y);
         ctx.drawImage(assets.taps, (this.index * fWt) + this.cal.crop.sx, this.cal.crop.sy, fWt + this.cal.crop.sw, fHt + this.cal.crop.sh, -dWt / 2, -dHt, dWt, dHt);
         ctx.restore();
+    }
+}
+
+class BeerGlass {
+    constructor(station, worldX) {
+        this.station = station; this.baseX = worldX;
+    }
+    draw(stage) {
+        const data = SPRITE_DATA.glasses[this.station][stage];
+        if (!data) return; 
+        const def = SPRITE_DATA.glassDefaults;
+        const renderX = this.baseX + data.x;
+        const renderY = CONFIG.TapY + data.y;
+        let img, cols, frameIdx;
+        switch(stage) {
+            case 'empty': img = assets.empty; cols = 4; frameIdx = 0; break;
+            case 'half': img = assets.half; cols = 3; frameIdx = this.station; break;
+            case 'mix_from_2': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
+            case 'mix_from_1': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 1 : (this.station === 1 ? 2 : -1); break;
+            case 'full': img = assets.full; cols = 4; frameIdx = this.station + 1; break;
+        }
+        if (img && frameIdx !== -1) {
+            const fW = img.width / cols;
+            const drawW = def.w * def.scale * data.s;
+            const drawH = drawW * (img.height / fW);
+            ctx.drawImage(img, (frameIdx * fW) + def.clip.sx, 0, fW + def.clip.sw, img.height, renderX - drawW/2, renderY - drawH, drawW, drawH);
+        }
     }
 }
 
