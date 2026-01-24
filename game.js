@@ -40,34 +40,63 @@ class Game {
         this.score = 1250;
         this.lives = 3;
 
+        // Physics for Game Over drop
+        this.gameOverAnim = {
+            currentY: -600, 
+            speed: 0,
+            friction: 0.8,
+            tension: 0.05
+        };
+
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
     }
 
-    // Hand-drawn beer mug
+    // High-detail vertical beer mug drawing
     drawBeerLife(x, y, scale, isDead) {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scale, scale);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = isDead ? "#444" : "#4a2c0a";
-        ctx.fillStyle = isDead ? "rgba(40,40,40,0.4)" : "#f5c400";
         
-        ctx.beginPath();
-        ctx.moveTo(-20, 25); ctx.lineTo(20, 25); ctx.lineTo(16, -25); ctx.lineTo(-16, -25);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
+        const clr = {
+            glass: isDead ? "#444" : "#4a2c0a",
+            liquid: isDead ? "rgba(60,60,60,0.3)" : "#f5c400",
+            shine: "rgba(255,255,255,0.2)"
+        };
 
+        // Handle
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = clr.glass;
+        ctx.beginPath();
+        ctx.arc(18, 0, 12, -Math.PI/1.5, Math.PI/1.5);
+        ctx.stroke();
+
+        // Main Mug Body
+        ctx.fillStyle = clr.liquid;
+        ctx.fillRect(-18, -25, 36, 50);
+        
+        // Outlines and Texture
+        ctx.strokeRect(-18, -25, 36, 50);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-6, -25); ctx.lineTo(-6, 25);
+        ctx.moveTo(6, -25); ctx.lineTo(6, 25);
+        ctx.stroke();
+
+        // Shine
+        ctx.fillStyle = clr.shine;
+        ctx.fillRect(-14, -20, 4, 40);
+
+        // Foam
         if (!isDead) {
             ctx.fillStyle = "white";
             ctx.beginPath();
-            ctx.arc(-12, -28, 10, 0, Math.PI * 2);
+            ctx.arc(-14, -28, 10, 0, Math.PI * 2);
             ctx.arc(0, -32, 12, 0, Math.PI * 2);
-            ctx.arc(12, -28, 10, 0, Math.PI * 2);
+            ctx.arc(14, -28, 10, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.beginPath(); ctx.arc(20, 0, 10, -Math.PI/2, Math.PI/2); ctx.stroke();
         ctx.restore();
     }
 
@@ -83,6 +112,7 @@ class Game {
         screenScale = Math.min(scaleX, scaleY);
         screenOffset.x = (window.innerWidth - WORLD.w * screenScale) / 2;
         screenOffset.y = (window.innerHeight - WORLD.h * screenScale) / 2;
+        ctx.imageSmoothingEnabled = false;
     }
 
     initInput() {
@@ -119,7 +149,7 @@ class Game {
                 if (e.key === 'w') this.editTarget = 'lives';
                 if (e.key === 'e') {
                     this.editTarget = 'gameOver';
-                    SPRITE_DATA.hud_elements.gameOver.visible = true;
+                    SPRITE_DATA.hud_elements.gameOver.visible = !SPRITE_DATA.hud_elements.gameOver.visible;
                 }
                 if (e.key === 'ArrowUp') SPRITE_DATA.hud_elements[this.editTarget].s += 0.05;
                 if (e.key === 'ArrowDown') SPRITE_DATA.hud_elements[this.editTarget].s -= 0.05;
@@ -127,9 +157,26 @@ class Game {
         });
     }
 
+    update() {
+        const h = SPRITE_DATA.hud_elements;
+        // Game Over physics update
+        if (h.gameOver.visible) {
+            const targetY = h.gameOver.y;
+            const dist = targetY - this.gameOverAnim.currentY;
+            this.gameOverAnim.speed += dist * this.gameOverAnim.tension;
+            this.gameOverAnim.speed *= this.gameOverAnim.friction;
+            this.gameOverAnim.currentY += this.gameOverAnim.speed;
+        } else {
+            this.gameOverAnim.currentY = -600;
+            this.gameOverAnim.speed = 0;
+        }
+    }
+
     draw() {
+        this.update();
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         if (!this.started) {
             ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "40px monospace";
             ctx.fillText("TAP TO START", window.innerWidth/2, window.innerHeight/2);
@@ -142,37 +189,37 @@ class Game {
 
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
 
-        // --- DRAW HUD ---
         const h = SPRITE_DATA.hud_elements;
 
-        // 1. Score
+        // 1. Draw Score
         ctx.save();
-        ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "MedievalSharp"`;
+        ctx.textAlign = "right";
+        ctx.font = `bold ${Math.round(70 * h.score.s)}px "MedievalSharp"`;
         ctx.shadowColor = "black"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00";
         ctx.fillText(`GOLD: ${this.score}`, h.score.x, h.score.y);
         ctx.restore();
 
-        // 2. Lives
+        // 2. Draw Lives
         for (let i = 0; i < 3; i++) {
             this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, i >= this.lives);
         }
 
-        // 3. Game Over
+        // 3. Draw Game Over with Animation
         if (h.gameOver.visible && assets.hud_sheet) {
             const sh = assets.hud_sheet.height / 2;
             const dw = assets.hud_sheet.width * h.gameOver.s;
             const dh = sh * h.gameOver.s;
-            ctx.drawImage(assets.hud_sheet, 0, sh, assets.hud_sheet.width, sh, h.gameOver.x - dw/2, h.gameOver.y - dh/2, dw, dh);
+            ctx.drawImage(assets.hud_sheet, 0, sh, assets.hud_sheet.width, sh, h.gameOver.x - dw/2, this.gameOverAnim.currentY - dh/2, dw, dh);
         }
 
-        // --- LAB OVERLAY ---
+        // 4. Lab Overlay
         if (this.labMode === 'hud_main') {
             const el = SPRITE_DATA.hud_elements[this.editTarget];
             ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 500, 180);
             ctx.fillStyle = "#0f0"; ctx.font = "20px monospace"; ctx.textAlign = "left";
             ctx.fillText(`HUD LAB | EDIT: ${this.editTarget.toUpperCase()}`, 30, 40);
             ctx.fillStyle = "#fff";
-            ctx.fillText(`Q:Score W:Lives E:GameOver`, 30, 80);
+            ctx.fillText(`Q:Score W:Lives E:GameOver Toggle`, 30, 80);
             ctx.fillText(`COPY: x:${el.x}, y:${el.y}, s:${el.s.toFixed(2)}`, 30, 130);
         }
         ctx.restore();
