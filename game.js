@@ -8,20 +8,20 @@ let SPRITE_DATA = {
     glasses: [
         { // Station 0 (Stout Tap)
             empty: { x: -5, y: 510, s: 1.0 },
-            half:  { x: 10, y: 490, s: 1.0 },
-            mix_from_2: { x: -5, y: 478, s: 1.0 }, 
-            mix_from_1: { x: 7, y: 473, s: 1.0 }, 
+            half:  { x: 10, y: 490, s: 1.11 },
+            mix_from_2: { x: -5, y: 478, s: 1.11 }, 
+            mix_from_1: { x: 7, y: 473, s: 1.11 }, 
             full:  { x: 6, y: 510, s: 1.0 }
         },
         { // Station 1 (IPA Tap)
             empty: { x: -42, y: 511, s: 1.0 },
-            half:  { x: -33, y: 484, s: 1.0 },
-            mix_from_1: { x: -62, y: 514, s: 1.0 }, // CORRECTED: Moved from Stn 2
+            half:  { x: -28, y: 488, s: 1.11 },
+            mix_from_1: { x: -16, y: 478, s: 1.11 }, // CORRECTED: Moved from Stn 2
             full:  { x: -25, y: 514, s: 1.0 }
         },
         { // Station 2 (Lager Tap)
             empty: { x: -78, y: 508, s: 1.0 },
-            half:  { x: -67, y: 482, s: 1.0 },
+            half:  { x: -67, y: 482, s: 1.11 },
             full:  { x: -52, y: 513, s: 1.0 }
         }
     ],
