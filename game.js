@@ -1,10 +1,12 @@
 // ==========================================
 // 1. SETUP & UTILS
 // ==========================================
+// Inject CSS for mobile stability (Monolithic approach)
 const style = document.createElement('style');
 style.textContent = `
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    canvas { display: block; touch-action: none; -webkit-user-select: none; }
+    /* THE FIX: Forced width/height here ensures it fills the screen immediately */
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; margin: 0 auto; }
 `;
 document.head.appendChild(style);
 
