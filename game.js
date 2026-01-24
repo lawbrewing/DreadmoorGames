@@ -1,6 +1,11 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- 1. RESOLUTION LOCK ---
+const WORLD = { w: 1920, h: 1080 }; // The "Virtual" size we calibrate for
+let screenScale = 1;
+let screenOffset = { x: 0, y: 0 };
+
 const CONFIG = { BarHeight: 719, TapY: 376, Stations: [0.2, 0.5, 0.8] };
 
 let SPRITE_DATA = {
@@ -16,7 +21,7 @@ let SPRITE_DATA = {
         { // Station 1 (IPA Tap)
             empty: { x: -42, y: 511, s: 1.0 },
             half:  { x: -28, y: 488, s: 1.11 },
-            mix_from_1: { x: -16, y: 478, s: 1.11 }, // CORRECTED: Moved from Stn 2
+            mix_from_1: { x: -16, y: 478, s: 1.11 }, 
             full:  { x: -25, y: 514, s: 1.0 }
         },
         { // Station 2 (Lager Tap)
@@ -51,13 +56,35 @@ class Game {
         CONFIG.Stations.forEach((xRatio, i) => {
             this.taps.push(new TapStation(i, xRatio, SPRITE_DATA.taps[i]));
         });
+        
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
         this.initInput();
+    }
+
+    resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const scaleX = canvas.width / WORLD.w;
+        const scaleY = canvas.height / WORLD.h;
+        screenScale = Math.min(scaleX, scaleY); // Maintain Aspect Ratio
+
+        screenOffset.x = (canvas.width - WORLD.w * screenScale) / 2;
+        screenOffset.y = (canvas.height - WORLD.h * screenScale) / 2;
     }
 
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
-            return { x: (e.clientX || e.touches[0].clientX) - rect.left, y: (e.clientY || e.touches[0].clientY) - rect.top };
+            const rawX = (e.clientX || e.touches?.[0].clientX) - rect.left;
+            const rawY = (e.clientY || e.touches?.[0].clientY) - rect.top;
+            
+            // Convert screen click back to World Coordinates
+            return { 
+                x: (rawX - screenOffset.x) / screenScale, 
+                y: (rawY - screenOffset.y) / screenScale 
+            };
         };
 
         canvas.addEventListener('mousedown', (e) => {
@@ -70,10 +97,11 @@ class Game {
                 }
             }
             this.taps.forEach((tap, i) => {
-                if (Math.abs(pos.x - tap.x) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
+                const worldX = WORLD.w * tap.xRatio;
+                if (Math.abs(pos.x - worldX) < 60 && Math.abs(pos.y - CONFIG.TapY) < 150) {
                     this.activeStationIdx = i;
                     if (!this.activeGlasses.find(g => g.station === i)) {
-                        this.activeGlasses.push(new BeerGlass(i, tap.x));
+                        this.activeGlasses.push(new BeerGlass(i, worldX));
                     }
                 }
             });
@@ -105,56 +133,58 @@ class Game {
     }
 
     draw() {
-        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000"; // Background for letterboxing
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(screenOffset.x, screenOffset.y);
+        ctx.scale(screenScale, screenScale);
+
+        // --- ALL DRAWING HAPPENS IN 1920x1080 WORLD ---
+        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
         this.taps.forEach(t => t.draw());
         this.activeGlasses.forEach(glass => glass.draw(this.labStage));
 
+        // HUD (also scaled)
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(10, 10, 580, 220);
         ctx.fillStyle = "#0f0";
         ctx.font = "14px monospace";
-        ctx.fillText(`🛠 MIXOLOGIST LAB | STATION: ${this.activeStationIdx} | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
-        
+        ctx.fillText(`🛠 MIXOLOGIST LAB (SCALED) | STAGE: ${this.labStage.toUpperCase()}`, 20, 35);
         const d = SPRITE_DATA.glasses[this.activeStationIdx][this.labStage];
-        if (d) {
-            ctx.fillText(`POS: x: ${d.x}, y: ${d.y} | SCALE: ${d.s.toFixed(2)}`, 20, 65);
-        } else {
-            ctx.fillStyle = "#f33";
-            ctx.fillText(`INVALID STAGE FOR THIS STATION`, 20, 65);
-        }
+        if (d) ctx.fillText(`POS: x: ${d.x}, y: ${d.y} | SCALE: ${d.s.toFixed(2)}`, 20, 65);
         
-        ctx.fillStyle = "#aaa";
-        ctx.fillText("KEYS: [1]Empty [2]Half [3]Mix(from 2) [4]Mix(from 1) [5]Full", 20, 100);
-        ctx.fillText("DRAG glass to position | UP/DOWN to scale", 20, 125);
+        ctx.restore();
     }
 }
 
 class TapStation {
     constructor(index, xRatio, calibration) {
         this.index = index;
-        this.x = window.innerWidth * xRatio;
+        this.xRatio = xRatio; // Store ratio instead of fixed pixel
         this.cal = calibration;
     }
     draw() {
+        const worldX = WORLD.w * this.xRatio;
         const fW = assets.tower.width / 3;
         const dW = SPRITE_DATA.tower.h * (fW / assets.tower.height);
-        ctx.drawImage(assets.tower, this.index * fW, 0, fW, assets.tower.height, this.x - (dW/2), CONFIG.TapY, dW, SPRITE_DATA.tower.h);
+        ctx.drawImage(assets.tower, this.index * fW, 0, fW, assets.tower.height, worldX - (dW/2), CONFIG.TapY, dW, SPRITE_DATA.tower.h);
         
         const fWt = assets.taps.width / 3;
         const fHt = assets.taps.height / 2;
         const dWt = this.cal.h * (fWt / fHt);
         const dHt = this.cal.h;
         ctx.save();
-        ctx.translate(this.x + this.cal.closed.x, CONFIG.TapY + this.cal.closed.y);
+        ctx.translate(worldX + this.cal.closed.x, CONFIG.TapY + this.cal.closed.y);
         ctx.drawImage(assets.taps, (this.index * fWt) + this.cal.crop.sx, this.cal.crop.sy, fWt + this.cal.crop.sw, fHt + this.cal.crop.sh, -dWt / 2, -dHt, dWt, dHt);
         ctx.restore();
     }
 }
 
 class BeerGlass {
-    constructor(station, x) {
+    constructor(station, worldX) {
         this.station = station;
-        this.baseX = x;
+        this.baseX = worldX;
         this.renderX = 0;
         this.renderY = 0;
     }
@@ -162,27 +192,17 @@ class BeerGlass {
     draw(stage) {
         const data = SPRITE_DATA.glasses[this.station][stage];
         if (!data) return; 
-
         const def = SPRITE_DATA.glassDefaults;
         this.renderX = this.baseX + data.x;
         this.renderY = CONFIG.TapY + data.y;
 
         let img, cols, frameIdx;
-
         switch(stage) {
-            case 'empty': 
-                img = assets.empty; cols = 4; frameIdx = 0; break;
-            case 'half': 
-                img = assets.half; cols = 3; frameIdx = this.station; break;
-            case 'mix_from_2': 
-                img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
-            case 'mix_from_1': 
-                // CORRECTED LOGIC: Stn 0 uses Frame 1, Stn 1 uses Frame 2
-                img = assets.mix; cols = 3; 
-                frameIdx = (this.station === 0) ? 1 : (this.station === 1 ? 2 : -1); 
-                break;
-            case 'full': 
-                img = assets.full; cols = 4; frameIdx = this.station + 1; break;
+            case 'empty': img = assets.empty; cols = 4; frameIdx = 0; break;
+            case 'half': img = assets.half; cols = 3; frameIdx = this.station; break;
+            case 'mix_from_2': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
+            case 'mix_from_1': img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 1 : (this.station === 1 ? 2 : -1); break;
+            case 'full': img = assets.full; cols = 4; frameIdx = this.station + 1; break;
         }
 
         if (img && frameIdx !== -1) {
@@ -200,7 +220,6 @@ function loadImages() {
     keys.forEach(key => {
         const img = new Image(); img.src = ASSETS_PATHS[key];
         img.onload = () => { assets[key] = img; if (++loaded === keys.length) {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             window.game = new Game();
             (function loop() { ctx.clearRect(0,0,canvas.width, canvas.height); window.game.draw(); requestAnimationFrame(loop); })();
         }};
