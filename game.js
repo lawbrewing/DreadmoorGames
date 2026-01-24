@@ -33,10 +33,10 @@ let SPRITE_DATA = {
     hud: {
         activeFrame: 0,
         notifications: [
-            { x: 960, y: 150, s: 0.8, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-            { x: 960, y: 150, s: 0.8, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-            { x: 960, y: 150, s: 0.8, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-            { x: 960, y: 150, s: 0.8, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+            { x: 892, y: 280, s: 0..37, textX: 0, textY: 0, clip: { sx: -99, sy: 19, sw: 51, sh: 0 } },
+            { x: 959, y: 210, s: 0.48, textX: 0, textY: 0, clip: { sx: -64, sy: 0, sw: -4, sh: 3 } },
+            { x: 914, y: 183, s: 0.5, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 62, sh: 0 } },
+            { x: 939, y: 220, s: 0.53, textX: 0, textY: 0, clip: { sx: 0, sy: 0, sw: 11, sh: 0 } }
         ]
     },
     customers: [
