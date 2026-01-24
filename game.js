@@ -38,6 +38,13 @@ let SPRITE_DATA = {
             [ {x:-106, y:-14, s:.5}, {x:-33, y:-12, s:.5}, {x:46, y:-11, s:.5} ]
         ]
     ],
+    menu: {
+        x: 960,
+        targetY: 200,
+        s: 0.6,
+        textX: 0,
+        textY: 0
+    },
     hud: {
         activeFrame: 0,
         notifications: [
@@ -69,30 +76,29 @@ class Game {
     constructor() {
         this.started = false;
         this.taps = [];
-        this.labMode = 'customer';
+        this.labMode = 'none';
+        this.editTarget = 'bar';
+        this.selectedObject = null;
         this.activeNotifications = [];
-        this.activeCharIdx = 0;
 
-        // --- MENU BOARD STATE ---
-        this.menu = {
+        // Physics State
+        this.menuPhysics = {
             active: false,
             y: -600,
-            targetY: 200,
-            s: 0.6,
-            text: "",
             burnProgress: 0,
+            text: "",
             smoke: []
         };
 
-        window.addEventListener('resize', () => this.resize());
         this.initInput();
         this.resize();
+        window.addEventListener('resize', () => this.resize());
     }
 
     triggerOrder(msg) {
-        this.menu.text = msg.toUpperCase();
-        this.menu.burnProgress = 0;
-        this.menu.active = true;
+        this.menuPhysics.text = msg.toUpperCase();
+        this.menuPhysics.burnProgress = 0;
+        this.menuPhysics.active = true;
     }
 
     resize() {
@@ -112,46 +118,90 @@ class Game {
     }
 
     initInput() {
-        const handleStart = () => {
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return { 
+                x: (clientX - rect.left - screenOffset.x) / screenScale, 
+                y: (clientY - rect.top - screenOffset.y) / screenScale 
+            };
+        };
+
+        const handleStart = (e) => {
             if (!this.started) {
                 if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
                 this.started = true;
+                return;
+            }
+            const pos = getPos(e);
+            if (pos.y < 150 && pos.x < 450 && this.labMode !== 'none') {
+                this.editTarget = (this.editTarget === 'bar') ? 'text' : 'bar';
+                return;
+            }
+
+            if (this.labMode === 'menu') {
+                this.selectedObject = SPRITE_DATA.menu;
             }
         };
+
         canvas.addEventListener('mousedown', handleStart);
         canvas.addEventListener('touchstart', handleStart);
 
+        window.addEventListener('mousemove', (e) => {
+            if (!this.selectedObject) return;
+            const pos = getPos(e);
+            if (this.labMode === 'menu') {
+                if (this.editTarget === 'text') {
+                    this.selectedObject.textX = Math.round(pos.x - this.selectedObject.x);
+                    this.selectedObject.textY = Math.round(pos.y - this.selectedObject.targetY);
+                } else {
+                    this.selectedObject.x = Math.round(pos.x);
+                    this.selectedObject.targetY = Math.round(pos.y);
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => { this.selectedObject = null; });
+        window.addEventListener('touchend', () => { this.selectedObject = null; });
+
         window.addEventListener('keydown', (e) => {
+            if (e.key === '5') { this.labMode = 'menu'; this.menuPhysics.active = true; this.editTarget = 'bar'; }
+            if (e.key === '9') this.labMode = 'hud';
             if (e.key.toLowerCase() === 'o') this.triggerOrder("2x Stout");
-            if (e.key.toLowerCase() === 'u') this.menu.active = !this.menu.active;
-            if (e.key === '9') this.labMode = (this.labMode === 'hud' ? 'none' : 'hud');
+            if (e.key.toLowerCase() === 'u') this.menuPhysics.active = !this.menuPhysics.active;
+            
+            if (this.selectedObject) {
+                if (e.key === 'ArrowUp') this.selectedObject.s += 0.01;
+                if (e.key === 'ArrowDown') this.selectedObject.s -= 0.01;
+            }
         });
     }
 
     update() {
-        // Menu Board Physics
+        const mP = this.menuPhysics;
+        const mD = SPRITE_DATA.menu;
         const speed = 0.12;
-        if (this.menu.active) {
-            this.menu.y += (this.menu.targetY - this.menu.y) * speed;
-            if (this.menu.y > this.menu.targetY - 20) {
-                this.menu.burnProgress = Math.min(1, this.menu.burnProgress + 0.006);
+
+        if (mP.active) {
+            mP.y += (mD.targetY - mP.y) * speed;
+            if (mP.y > mD.targetY - 20) {
+                mP.burnProgress = Math.min(1, mP.burnProgress + 0.006);
             }
         } else {
-            this.menu.y += (-600 - this.menu.y) * speed;
-            this.menu.burnProgress = 0;
+            mP.y += (-600 - mP.y) * speed;
+            mP.burnProgress = 0;
         }
 
-        // Smoke Logic
-        if (this.menu.active && this.menu.burnProgress < 1 && this.menu.burnProgress > 0.05) {
-            this.menu.smoke.push({
-                x: (this.menu.burnProgress - 0.5) * 450,
-                y: 0, life: 1.0,
-                vx: (Math.random() - 0.5) * 2,
-                vy: -Math.random() * 4
+        if (mP.active && mP.burnProgress < 1 && mP.burnProgress > 0.05) {
+            mP.smoke.push({
+                x: mD.textX + (mP.burnProgress - 0.5) * 450,
+                y: mD.textY, life: 1.0,
+                vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 4
             });
         }
-        this.menu.smoke.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
-        this.menu.smoke = this.menu.smoke.filter(p => p.life > 0);
+        mP.smoke.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
+        mP.smoke = mP.smoke.filter(p => p.life > 0);
     }
 
     draw() {
@@ -173,43 +223,49 @@ class Game {
 
         // Draw Menu Board
         if (assets.menu) {
-            const m = this.menu;
-            const mw = assets.menu.width * m.s;
-            const mh = assets.menu.height * m.s;
+            const mP = this.menuPhysics;
+            const mD = SPRITE_DATA.menu;
+            const mw = assets.menu.width * mD.s;
+            const mh = assets.menu.height * mD.s;
+
             ctx.save();
-            ctx.translate(WORLD.w/2, m.y);
+            ctx.translate(mD.x, mP.y);
             
-            // Draw Particles
             ctx.fillStyle = "rgba(150,150,150,0.5)";
-            m.smoke.forEach(p => {
+            mP.smoke.forEach(p => {
                 ctx.beginPath(); ctx.arc(p.x, p.y, 8 * p.life, 0, Math.PI*2); ctx.fill();
             });
 
             ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
 
-            // Burn Text
-            if (m.text) {
-                ctx.font = `bold ${Math.round(70 * m.s)}px "MedievalSharp"`;
+            if (mP.text) {
+                ctx.font = `bold ${Math.round(70 * mD.s)}px "MedievalSharp"`;
                 ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                const charCount = Math.floor(mP.text.length * mP.burnProgress);
+                const visible = mP.text.substring(0, charCount);
                 
-                const charCount = Math.floor(m.text.length * m.burnProgress);
-                const visible = m.text.substring(0, charCount);
-                
-                // Burnt Charcoal Text
                 ctx.fillStyle = "rgba(30, 15, 0, 0.9)";
-                ctx.fillText(visible, 0, 0);
+                ctx.fillText(visible, mD.textX, mD.textY);
 
-                // Ember Glow
-                if (m.burnProgress < 1 && m.burnProgress > 0) {
-                    const nextChar = m.text.charAt(charCount);
+                if (mP.burnProgress < 1 && mP.burnProgress > 0) {
+                    const nextChar = mP.text.charAt(charCount);
                     const offset = ctx.measureText(visible).width / 2;
-                    ctx.shadowColor = "#ff4400";
-                    ctx.shadowBlur = 15 + Math.sin(Date.now()/50)*10;
+                    ctx.shadowColor = "#ff4400"; ctx.shadowBlur = 15;
                     ctx.fillStyle = "#ffaa00";
-                    ctx.fillText(nextChar, offset + 15, 0);
+                    ctx.fillText(nextChar, mD.textX + offset + 15, mD.textY);
                 }
             }
             ctx.restore();
+        }
+
+        // Lab Overlay
+        if (this.labMode !== 'none') {
+            ctx.fillStyle = "rgba(0,0,0,0.8)";
+            ctx.fillRect(10, 10, 400, 150);
+            ctx.fillStyle = "#0f0"; ctx.font = "20px monospace"; ctx.textAlign = "left";
+            ctx.fillText(`MODE: ${this.labMode.toUpperCase()}`, 20, 40);
+            ctx.fillText(`EDITING: ${this.editTarget.toUpperCase()}`, 20, 70);
+            ctx.fillText(`O: Test Order | U: Toggle Board`, 20, 100);
         }
 
         ctx.restore();
