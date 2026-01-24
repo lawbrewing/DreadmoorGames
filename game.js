@@ -13,20 +13,19 @@ const WORLD = { w: 1920, h: 1080 };
 let screenScale = 1;
 let screenOffset = { x: 0, y: 0 };
 
-let CONFIG = { BarHeight: 850, TapY: 500, Stations: [0.2, 0.5, 0.8] };
-
 let SPRITE_DATA = {
-    tower: { h: 433 },
     // --- HUD CALIBRATION ---
     hud_elements: {
         score: { x: 1650, y: 50, s: 1.0 },
-        lives: { x: 50, y: 50, s: 0.7, spacing: 85 },
-        clock: { x: 0, y: -280, r: 50, width: 10 }
+        life1: { x: 50, y: 50, s: 0.7, dead: false },
+        life2: { x: 130, y: 50, s: 0.7, dead: false },
+        life3: { x: 210, y: 50, s: 0.7, dead: false },
+        clock: { x: 0, y: -280, r: 50, width: 10 },
+        gameOver: { x: 960, y: 540, s: 1.0, visible: false }
     },
     menu: { x: 218, targetY: 295, s: 0.60, textX: 0, textY: 0 },
     customers: [
-        { id: 'viking', poses: [{x:167, y:966, s:.48}] },
-        { id: 'judge', poses: [{x:703, y:911, s:.39}] }
+        { id: 'viking', poses: [{x:400, y:900, s:.48}] }
     ]
 };
 
@@ -46,20 +45,17 @@ class Game {
         this.started = false;
         this.labMode = 'none';
         this.editTarget = 'score';
-        this.score = 500;
-        this.lives = 3;
+        this.selectedObject = null;
         
-        // Active test customer
-        this.activeCustomers = [{ id: 'viking', x: 400, y: 900, timer: 1.0 }];
-
-        this.menuPhysics = { active: false, y: -600, burnProgress: 0, text: "" };
+        this.score = 1250;
+        this.menuPhysics = { active: false, y: -600, burnProgress: 0, text: "", smoke: [] };
+        this.activeCustomers = [{ id: 'viking', x: 400, y: 900, timer: 0.8 }];
 
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
     }
 
-    // SLICE LOGIC: Slices the top half of numbers.png into 10 frames
     drawScore(num, x, y, scale) {
         if (!assets.numbers) return;
         const s = num.toString();
@@ -96,22 +92,44 @@ class Game {
     }
 
     initInput() {
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return { 
+                x: (clientX - rect.left - screenOffset.x) / screenScale, 
+                y: (clientY - rect.top - screenOffset.y) / screenScale 
+            };
+        };
+
         canvas.addEventListener('mousedown', (e) => {
             if (!this.started) { this.started = true; return; }
-            const rect = canvas.getBoundingClientRect();
-            const pos = { 
-                x: (e.clientX - rect.left - screenOffset.x) / screenScale, 
-                y: (e.clientY - rect.top - screenOffset.y) / screenScale 
-            };
+            const pos = getPos(e);
             if (this.labMode === 'hud_main') this.selectedObject = SPRITE_DATA.hud_elements[this.editTarget];
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!this.selectedObject) return;
+            const pos = getPos(e);
+            this.selectedObject.x = Math.round(pos.x);
+            this.selectedObject.y = Math.round(pos.y);
         });
 
         window.addEventListener('keydown', (e) => {
             if (e.key === '4') { this.labMode = 'hud_main'; this.editTarget = 'score'; }
             if (this.labMode === 'hud_main') {
                 if (e.key === 'q') this.editTarget = 'score';
-                if (e.key === 'w') this.editTarget = 'lives';
-                if (e.key === 'e') this.editTarget = 'clock';
+                if (e.key === 'w') this.editTarget = 'life1';
+                if (e.key === 'e') this.editTarget = 'life2';
+                if (e.key === 'r') this.editTarget = 'life3';
+                if (e.key === 't') this.editTarget = 'clock';
+                if (e.key === 'y') {
+                    this.editTarget = 'gameOver';
+                    SPRITE_DATA.hud_elements.gameOver.visible = !SPRITE_DATA.hud_elements.gameOver.visible;
+                }
+                if (e.key === 'd' && this.editTarget.includes('life')) {
+                    SPRITE_DATA.hud_elements[this.editTarget].dead = !SPRITE_DATA.hud_elements[this.editTarget].dead;
+                }
                 if (e.key === 'ArrowUp') SPRITE_DATA.hud_elements[this.editTarget].s += 0.02;
                 if (e.key === 'ArrowDown') SPRITE_DATA.hud_elements[this.editTarget].s -= 0.02;
             }
@@ -121,32 +139,45 @@ class Game {
 
     draw() {
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        if (!this.started) return;
+        if (!this.started) {
+            ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "40px monospace";
+            ctx.fillText("TAP TO START", window.innerWidth/2, window.innerHeight/2);
+            return;
+        }
 
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
 
-        // Draw Lives (Top half of hud_sheet vs dead_life)
-        const lCfg = SPRITE_DATA.hud_elements.lives;
-        for (let i = 0; i < 3; i++) {
-            const isDead = i >= this.lives;
-            const img = isDead ? assets.dead_life : assets.hud_sheet;
-            if (img) {
-                const sy = isDead ? 0 : 0; // If live is top half of hud_sheet
-                const sh = isDead ? img.height : img.height / 2;
-                ctx.drawImage(img, 0, sy, img.width, sh, lCfg.x + (i * lCfg.spacing), lCfg.y, img.width * lCfg.s, sh * lCfg.s);
+        // --- DRAW LIVES ---
+        ['life1', 'life2', 'life3'].forEach(key => {
+            const cfg = SPRITE_DATA.hud_elements[key];
+            if (cfg.dead && assets.dead_life) {
+                ctx.drawImage(assets.dead_life, cfg.x, cfg.y, assets.dead_life.width * cfg.s, assets.dead_life.height * cfg.s);
+            } else if (assets.hud_sheet) {
+                const sh = assets.hud_sheet.height / 2;
+                ctx.drawImage(assets.hud_sheet, 0, 0, assets.hud_sheet.width, sh, cfg.x, cfg.y, assets.hud_sheet.width * cfg.s, sh * cfg.s);
             }
+        });
+
+        // --- DRAW GAME OVER ---
+        const go = SPRITE_DATA.hud_elements.gameOver;
+        if (go.visible && assets.hud_sheet) {
+            const sh = assets.hud_sheet.height / 2;
+            ctx.drawImage(assets.hud_sheet, 0, sh, assets.hud_sheet.width, sh, go.x - (assets.hud_sheet.width * go.s / 2), go.y, assets.hud_sheet.width * go.s, sh * go.s);
         }
 
         this.drawScore(this.score, SPRITE_DATA.hud_elements.score.x, SPRITE_DATA.hud_elements.score.y, SPRITE_DATA.hud_elements.score.s);
-        
-        // Timer Test
         this.activeCustomers.forEach(c => this.drawClock(c.x, c.y, c.timer));
 
         if (this.labMode === 'hud_main') {
-            ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(10,10,500,150);
-            ctx.fillStyle = "#0f0"; ctx.fillText(`HUD LAB: ${this.editTarget}`, 30, 50);
-            ctx.fillText(`X:${SPRITE_DATA.hud_elements[this.editTarget].x} Y:${SPRITE_DATA.hud_elements[this.editTarget].y}`, 30, 90);
+            const el = SPRITE_DATA.hud_elements[this.editTarget];
+            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 580, 220);
+            ctx.fillStyle = "#0f0"; ctx.font = "18px monospace"; ctx.textAlign="left";
+            ctx.fillText(`HUD LAB | EDITING: ${this.editTarget.toUpperCase()}`, 30, 40);
+            ctx.fillStyle = "#fff";
+            ctx.fillText(`Q:Score W:L1 E:L2 R:L3 T:Clock Y:GameOver`, 30, 80);
+            ctx.fillText(`D: Toggle Dead State | Arrows: Scale`, 30, 110);
+            ctx.fillText(`COPY: x:${el.x}, y:${el.y}, s:${el.s.toFixed(2)}`, 30, 150);
         }
         ctx.restore();
     }
