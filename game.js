@@ -1,4 +1,4 @@
-// Inject CSS to fix mobile scrolling and "bounce"
+// 1. Inject CSS for mobile stability
 const style = document.createElement('style');
 style.textContent = `
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
@@ -48,283 +48,188 @@ let SPRITE_DATA = {
         ]
     },
     customers: [
-        { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}}, {x:214, y:967, s:.47, clip:{sx:-67, sy:0, sw:0, sh:0}}, {x:271, y:978, s:.51, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'hipster', name: "Hipster", poses: [ {x:674, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:709, y:1050, s:.45, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:679, y:1056, s:.46, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'regular', name: "Regular", poses: [ {x:1122,y:1015, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1163,y:1013, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1168,y:1014, s:.42, clip:{sx:27, sy:0, sw:0, sh:0}} ] },
-        { id: 'judge',   name: "Judge",   poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:739, y:913, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:738, y:908, s:.37, clip:{sx:14, sy:-2, sw:0, sh:0}} ] },
-        { id: 'karen',   name: "Karen",   poses: [ {x:585, y:1053, s:.42, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:583, y:1049, s:.41, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:628, y:1043, s:.40, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'vip',     name: "VIP",     poses: [ {x:1151, y:913, s:.35, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1173, y:887, s:.33, clip:{sx:0, sy:0, sw:0, sh:0}}, {x:1220, y:865, s:.35, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
-    ],
-    glasses: [
-        { empty: { x: -5, y: 510, s: 1.0 }, half: { x: 10, y: 490, s: 1.11 }, mix_from_2: { x: -5, y: 478, s: 1.11 }, mix_from_1: { x: 7, y: 473, s: 1.11 }, full: { x: 6, y: 510, s: 1.0 } },
-        { empty: { x: -42, y: 511, s: 1.0 }, half: { x: -28, y: 488, s: 1.11 }, mix_from_1: { x: -16, y: 478, s: 1.11 }, full: { x: -25, y: 514, s: 1.0 } },
-        { empty: { x: -78, y: 508, s: 1.0 }, half: { x: -67, y: 482, s: 1.11 }, full: { x: -52, y: 513, s: 1.0 } }
-    ],
-    glassDefaults: { w: 64, scale: 2.2, clip: { sx: 2, sw: -4 } },
-    taps: [
-        { h: 150, closed: { x: -1, y: 133 }, open: { x: -66, y: 54, rot: Math.PI / 2 }, crop: { sx: 2, sy: 41, sw: -4, sh: -2 } },
-        { h: 150, closed: { x: -32, y: 140 }, open: { x: -32, y: 13, rot: Math.PI }, crop: { sx: 2, sy: 42, sw: -2, sh: -4 } },
-        { h: 150, closed: { x: -54, y: 137 }, open: { x: 8, y: 54, rot: -Math.PI / 2 }, crop: { sx: 4, sy: 43, sw: -6, sh: -2 } }
+        { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}} ] },
+        { id: 'judge',   name: "Judge",   poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
     ]
 };
 
 const ASSETS_PATHS = {
     bg: 'assets/background.png', tower: 'assets/tower.png', taps: 'assets/taps.png',
     empty: 'assets/fullpints.png', half: 'assets/halfpour.png', mix: 'assets/mixpour.png', full: 'assets/fullpints.png',
-    hipster: 'assets/hipster.png', judge: 'assets/judge.png', karen: 'assets/karen.png',
-    regular: 'assets/regular.png', viking: 'assets/viking.png', vip: 'assets/vip.png',
+    viking: 'assets/viking.png', judge: 'assets/judge.png',
     spill: 'assets/spill.png', paddles: 'assets/paddles.png',
     notification: 'https://lawbrewing.github.io/DreadmoorGames/assets/notification.png', 
-    numbers: 'https://lawbrewing.github.io/DreadmoorGames/assets/numbers.png'
+    numbers: 'https://lawbrewing.github.io/DreadmoorGames/assets/numbers.png',
+    menu: 'https://lawbrewing.github.io/DreadmoorGames/assets/menu.png'
 };
 
 const assets = {}; 
-
-class TapStation {
-    constructor(index, xRatio, calibration) {
-        this.index = index; this.xRatio = xRatio; this.cal = calibration;
-    }
-    draw() {
-        if(!assets.tower || !assets.taps) return;
-        const worldX = WORLD.w * this.xRatio;
-        const fW = assets.tower.width / 3;
-        const dW = SPRITE_DATA.tower.h * (fW / assets.tower.height);
-        ctx.drawImage(assets.tower, this.index * fW, 0, fW, assets.tower.height, worldX - (dW/2), CONFIG.TapY, dW, SPRITE_DATA.tower.h);
-        const fWt = assets.taps.width / 3; const fHt = assets.taps.height / 2;
-        const dWt = this.cal.h * (fWt / fHt); const dHt = this.cal.h;
-        ctx.save(); ctx.translate(worldX + this.cal.closed.x, CONFIG.TapY + this.cal.closed.y);
-        ctx.drawImage(assets.taps, (this.index * fWt) + this.cal.crop.sx, this.cal.crop.sy, fWt + this.cal.crop.sw, fHt + this.cal.crop.sh, -dWt / 2, -dHt, dWt, dHt);
-        ctx.restore();
-    }
-}
 
 class Game {
     constructor() {
         this.started = false;
         this.taps = [];
-        this.activeCharIdx = 0; this.activePoseIdx = 0; this.activeStationIdx = 0;
-        this.activePaddleIdx = 0; this.activeSlotIdx = 0;
-        this.labMode = 'customer'; this.editTarget = 'paddle'; this.selectedObject = null;
+        this.labMode = 'customer';
         this.activeNotifications = [];
-        this.streak = 0;
+        this.activeCharIdx = 0;
 
-        CONFIG.Stations.forEach((xRatio, i) => {
-            this.taps.push(new TapStation(i, xRatio, SPRITE_DATA.taps[i]));
-        });
-        
+        // --- MENU BOARD STATE ---
+        this.menu = {
+            active: false,
+            y: -600,
+            targetY: 200,
+            s: 0.6,
+            text: "",
+            burnProgress: 0,
+            smoke: []
+        };
+
         window.addEventListener('resize', () => this.resize());
-        this.resize();
         this.initInput();
+        this.resize();
     }
 
-    toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(e => console.log(e));
-        }
-        this.started = true;
+    triggerOrder(msg) {
+        this.menu.text = msg.toUpperCase();
+        this.menu.burnProgress = 0;
+        this.menu.active = true;
     }
 
     resize() {
-    // Get the device pixel ratio (default to 1 if not found)
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Set the display size (CSS pixels)
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.scale(dpr, dpr);
 
-    // Set the actual rendering resolution (Physical pixels)
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-
-    // Scale the context so our drawing coordinates (0 to 1920) still work
-    ctx.scale(dpr, dpr);
-
-    const scaleX = window.innerWidth / WORLD.w;
-    const scaleY = window.innerHeight / WORLD.h;
-    
-    screenScale = Math.min(scaleX, scaleY);
-    
-    screenOffset.x = (window.innerWidth - WORLD.w * screenScale) / 2;
-    screenOffset.y = (window.innerHeight - WORLD.h * screenScale) / 2;
-
-    // Re-disable smoothing after a resize, as it often resets
-    ctx.imageSmoothingEnabled = false;
-}
-
-    triggerNotification(frameIdx, message) {
-        this.activeNotifications.push({ 
-            frameIdx, message, timestamp: Date.now(), duration: 2500 
-        });
+        const scaleX = window.innerWidth / WORLD.w;
+        const scaleY = window.innerHeight / WORLD.h;
+        screenScale = Math.min(scaleX, scaleY);
+        screenOffset.x = (window.innerWidth - WORLD.w * screenScale) / 2;
+        screenOffset.y = (window.innerHeight - WORLD.h * screenScale) / 2;
+        ctx.imageSmoothingEnabled = false;
     }
 
     initInput() {
-        const getPos = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const rawX = clientX - rect.left;
-            const rawY = clientY - rect.top;
-            return { x: (rawX - screenOffset.x) / screenScale, y: (rawY - screenOffset.y) / screenScale };
-        };
-
-        const handleStart = (e) => {
-            if(!this.started) {
-                this.toggleFullscreen();
-                return;
-            }
-            const pos = getPos(e);
-            if (pos.y < 150 && pos.x < 450) {
-                 if(this.labMode === 'paddle') this.editTarget = (this.editTarget === 'paddle') ? 'drink' : 'paddle';
-                 if(this.labMode === 'hud') this.editTarget = (this.editTarget === 'bar') ? 'text' : 'bar';
-                 return;
-            }
-            if (this.labMode === 'customer') {
-                const p = SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx];
-                if (Math.abs(pos.x - p.x) < 150 && Math.abs(pos.y - p.y + 200) < 400) this.selectedObject = p;
-            } else if (this.labMode === 'spill') {
-                this.selectedObject = SPRITE_DATA.spills[this.activeStationIdx];
-            } else if (this.labMode === 'paddle') {
-                const p = SPRITE_DATA.paddles[this.activePaddleIdx];
-                this.selectedObject = (this.editTarget === 'paddle') ? p : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][p.sizeIdx][this.activeSlotIdx];
-            } else if (this.labMode === 'hud') {
-                this.selectedObject = SPRITE_DATA.hud.notifications[SPRITE_DATA.hud.activeFrame];
+        const handleStart = () => {
+            if (!this.started) {
+                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                this.started = true;
             }
         };
-
         canvas.addEventListener('mousedown', handleStart);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
-
-        const handleMove = (e) => {
-            if (!this.selectedObject) return;
-            const pos = getPos(e);
-            if (this.labMode === 'customer') {
-                this.selectedObject.x = Math.round(pos.x); this.selectedObject.y = Math.round(pos.y);
-            } else if (this.labMode === 'hud') {
-                if (this.editTarget === 'text') {
-                    this.selectedObject.textX = Math.round(pos.x - this.selectedObject.x);
-                    this.selectedObject.textY = Math.round(pos.y - this.selectedObject.y);
-                } else {
-                    this.selectedObject.x = Math.round(pos.x); this.selectedObject.y = Math.round(pos.y);
-                }
-            } else if (this.labMode === 'paddle') {
-                const p = SPRITE_DATA.paddles[this.activePaddleIdx];
-                const worldX = WORLD.w * CONFIG.Stations[p.owner === 'judge' ? 1 : 2];
-                if (this.editTarget === 'drink') {
-                    this.selectedObject.x = Math.round(pos.x - (worldX + p.x));
-                    this.selectedObject.y = Math.round(pos.y - (CONFIG.TapY + p.y));
-                } else {
-                    this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
-                }
-            } else if (this.labMode === 'spill') {
-                const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
-                this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
-            }
-        };
-
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('touchmove', (e) => { handleMove(e); }, { passive: false });
-
-        window.addEventListener('mouseup', () => { this.selectedObject = null; });
-        window.addEventListener('touchend', () => { this.selectedObject = null; });
+        canvas.addEventListener('touchstart', handleStart);
 
         window.addEventListener('keydown', (e) => {
-            if (e.key === '6') this.labMode = 'spill';
-            if (e.key === '7') this.labMode = 'paddle';
-            if (e.key === '8') this.labMode = 'customer';
-            if (e.key === '9') { this.labMode = 'hud'; this.editTarget = 'bar'; }
-
-            if (e.key.toLowerCase() === 'j') this.triggerNotification(0, "THE JUDGE IS ARRIVING!");
-            if (e.key.toLowerCase() === 'k') this.triggerNotification(1, "PERFECT POUR!");
-            if (e.key.toLowerCase() === 'l') this.triggerNotification(2, "WRONG POUR / SPILL!");
-            if (e.key.toLowerCase() === 'p') { this.streak++; this.triggerNotification(3, `${this.streak} STREAK!`); }
-            
-            if (this.labMode === 'hud' && e.key === 'v') {
-                SPRITE_DATA.hud.activeFrame = (SPRITE_DATA.hud.activeFrame + 1) % 4;
-            }
-
-            const curP = SPRITE_DATA.paddles[this.activePaddleIdx];
-            let target = this.labMode === 'customer' ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : 
-                      (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : 
-                      (this.labMode === 'paddle' ? (this.editTarget === 'paddle' ? curP : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][curP.sizeIdx][this.activeSlotIdx]) :
-                      SPRITE_DATA.hud.notifications[SPRITE_DATA.hud.activeFrame]));
-
-            if (target) {
-                if (e.key === 'ArrowUp') target.s += 0.01;
-                if (e.key === 'ArrowDown') target.s -= 0.01;
-                if (target.clip && (this.labMode !== 'paddle' || this.editTarget === 'paddle')) {
-                    if (e.key === 'q') target.clip.sx++; if (e.key === 'a') target.clip.sx--;
-                    if (e.key === 'w') target.clip.sw--; if (e.key === 's') target.clip.sw++;
-                    if (e.key === 'e') target.clip.sy++; if (e.key === 'd') target.clip.sy--;
-                    if (e.key === 'r') target.clip.sh--; if (e.key === 'f') target.clip.sh++;
-                }
-            }
-
-            if (e.key === 'Tab') { 
-                e.preventDefault(); 
-                if (this.labMode === 'customer' || this.labMode === 'hud') this.activeCharIdx = (this.activeCharIdx + 1) % SPRITE_DATA.customers.length;
-                else if (this.labMode === 'spill') this.activeStationIdx = (this.activeStationIdx + 1) % 3;
-                else this.activePaddleIdx = (this.activePaddleIdx + 1) % 2;
-            }
+            if (e.key.toLowerCase() === 'o') this.triggerOrder("2x Stout");
+            if (e.key.toLowerCase() === 'u') this.menu.active = !this.menu.active;
+            if (e.key === '9') this.labMode = (this.labMode === 'hud' ? 'none' : 'hud');
         });
     }
 
+    update() {
+        // Menu Board Physics
+        const speed = 0.12;
+        if (this.menu.active) {
+            this.menu.y += (this.menu.targetY - this.menu.y) * speed;
+            if (this.menu.y > this.menu.targetY - 20) {
+                this.menu.burnProgress = Math.min(1, this.menu.burnProgress + 0.006);
+            }
+        } else {
+            this.menu.y += (-600 - this.menu.y) * speed;
+            this.menu.burnProgress = 0;
+        }
+
+        // Smoke Logic
+        if (this.menu.active && this.menu.burnProgress < 1 && this.menu.burnProgress > 0.05) {
+            this.menu.smoke.push({
+                x: (this.menu.burnProgress - 0.5) * 450,
+                y: 0, life: 1.0,
+                vx: (Math.random() - 0.5) * 2,
+                vy: -Math.random() * 4
+            });
+        }
+        this.menu.smoke.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
+        this.menu.smoke = this.menu.smoke.filter(p => p.life > 0);
+    }
+
     draw() {
-        ctx.imageSmoothingEnabled = false;
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        if(!this.started) {
-            ctx.fillStyle = "#fff";
-            ctx.font = "40px monospace";
-            ctx.textAlign = "center";
-            ctx.fillText("TAP TO START FULLSCREEN", canvas.width/2, canvas.height/2);
+        this.update();
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (!this.started) {
+            ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "40px monospace";
+            ctx.fillText("TAP TO START", window.innerWidth/2, window.innerHeight/2);
             return;
         }
 
-        ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
+        ctx.save();
+        ctx.translate(screenOffset.x, screenOffset.y);
+        ctx.scale(screenScale, screenScale);
+
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
-        
-        const cData = SPRITE_DATA.customers[this.activeCharIdx];
-        const pData = cData.poses[0]; 
-        if (assets[cData.id]) {
-            const img = assets[cData.id]; const fW = img.width / 3; const dW = fW * pData.s; const dH = img.height * pData.s;
-            ctx.drawImage(img, pData.clip.sx, pData.clip.sy, fW + pData.clip.sw, img.height + pData.clip.sh, pData.x - dW/2, pData.y - dH, dW, dH);
-        }
 
-        this.taps.forEach(t => t.draw());
-
-        // Notifications
-        const now = Date.now();
-        this.activeNotifications = this.activeNotifications.filter(n => now - n.timestamp < n.duration);
-        this.activeNotifications.forEach((n, i) => {
-            const config = SPRITE_DATA.hud.notifications[n.frameIdx];
-            const fw = assets.notification.width / 2; const fh = assets.notification.height / 2;
-            const sx = (n.frameIdx % 2) * fw; const sy = Math.floor(n.frameIdx / 2) * fh;
-            const dw = fw * config.s; const dh = fh * config.s;
+        // Draw Menu Board
+        if (assets.menu) {
+            const m = this.menu;
+            const mw = assets.menu.width * m.s;
+            const mh = assets.menu.height * m.s;
             ctx.save();
-            ctx.translate(config.x, config.y - (i * 70));
-            ctx.drawImage(assets.notification, sx + config.clip.sx, sy + config.clip.sy, fw + config.clip.sw, fh + config.clip.sh, -dw/2, -dh/2, dw, dh);
-            ctx.fillStyle = "#fff"; ctx.font = `bold ${Math.round(24 * config.s)}px monospace`; ctx.textAlign = "center";
-            ctx.fillText(n.message, config.textX, config.textY + 10);
-            ctx.restore();
-        });
+            ctx.translate(WORLD.w/2, m.y);
+            
+            // Draw Particles
+            ctx.fillStyle = "rgba(150,150,150,0.5)";
+            m.smoke.forEach(p => {
+                ctx.beginPath(); ctx.arc(p.x, p.y, 8 * p.life, 0, Math.PI*2); ctx.fill();
+            });
 
-        if (this.labMode !== 'none') {
-            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 650, 240);
-            ctx.fillStyle = "#0f0"; ctx.font = "16px monospace"; ctx.textAlign = "left";
-            ctx.fillText(`🛠 MODE: ${this.labMode.toUpperCase()}`, 20, 40);
+            ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
+
+            // Burn Text
+            if (m.text) {
+                ctx.font = `bold ${Math.round(70 * m.s)}px "MedievalSharp"`;
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                
+                const charCount = Math.floor(m.text.length * m.burnProgress);
+                const visible = m.text.substring(0, charCount);
+                
+                // Burnt Charcoal Text
+                ctx.fillStyle = "rgba(30, 15, 0, 0.9)";
+                ctx.fillText(visible, 0, 0);
+
+                // Ember Glow
+                if (m.burnProgress < 1 && m.burnProgress > 0) {
+                    const nextChar = m.text.charAt(charCount);
+                    const offset = ctx.measureText(visible).width / 2;
+                    ctx.shadowColor = "#ff4400";
+                    ctx.shadowBlur = 15 + Math.sin(Date.now()/50)*10;
+                    ctx.fillStyle = "#ffaa00";
+                    ctx.fillText(nextChar, offset + 15, 0);
+                }
+            }
+            ctx.restore();
         }
+
         ctx.restore();
     }
 }
 
 function loadImages() {
-    let loaded = 0; const keys = Object.keys(ASSETS_PATHS);
+    let loaded = 0;
+    const keys = Object.keys(ASSETS_PATHS);
     keys.forEach(key => {
-        const img = new Image(); img.src = ASSETS_PATHS[key];
-        img.onload = () => { assets[key] = img; if (++loaded === keys.length) {
-            window.game = new Game();
-            (function loop() { ctx.clearRect(0,0,canvas.width, canvas.height); if(window.game) window.game.draw(); requestAnimationFrame(loop); })();
-        }};
+        const img = new Image();
+        img.src = ASSETS_PATHS[key];
+        img.onload = () => {
+            assets[key] = img;
+            if (++loaded === keys.length) {
+                window.game = new Game();
+                function loop() { window.game.draw(); requestAnimationFrame(loop); }
+                loop();
+            }
+        };
     });
 }
 loadImages();
