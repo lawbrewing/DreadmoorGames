@@ -5,24 +5,23 @@ const CONFIG = { BarHeight: 719, TapY: 376, Stations: [0.2, 0.5, 0.8] };
 
 let SPRITE_DATA = {
     tower: { h: 433 },
-    // Individual calibration for EVERY possible visual state
     glasses: [
         { // Station 0 (Stout Tap)
             empty: { x: -5, y: 510, s: 1.0 },
             half:  { x: 10, y: 490, s: 1.0 },
-            mix_from_2: { x: -5, y: 478, s: 1.0 }, // mixpour index 0
-            mix_from_1: { x: 7, y: 473, s: 1.0 }, // mixpour index 1
+            mix_from_2: { x: -5, y: 478, s: 1.0 }, 
+            mix_from_1: { x: 7, y: 473, s: 1.0 }, 
             full:  { x: 6, y: 510, s: 1.0 }
         },
         { // Station 1 (IPA Tap)
             empty: { x: -42, y: 511, s: 1.0 },
             half:  { x: -33, y: 484, s: 1.0 },
+            mix_from_1: { x: -62, y: 514, s: 1.0 }, // CORRECTED: Moved from Stn 2
             full:  { x: -25, y: 514, s: 1.0 }
         },
         { // Station 2 (Lager Tap)
             empty: { x: -78, y: 508, s: 1.0 },
             half:  { x: -67, y: 482, s: 1.0 },
-            mix_from_1: { x: -62, y: 514, s: 1.0 }, // mixpour index 2
             full:  { x: -52, y: 513, s: 1.0 }
         }
     ],
@@ -97,7 +96,6 @@ class Game {
                 if (e.key === 'ArrowUp') data.s += 0.01;
                 if (e.key === 'ArrowDown') data.s -= 0.01;
             }
-            // LAB CONTROLS
             if (e.key === '1') this.labStage = 'empty';
             if (e.key === '2') this.labStage = 'half';
             if (e.key === '3') this.labStage = 'mix_from_2';
@@ -128,7 +126,6 @@ class Game {
         ctx.fillStyle = "#aaa";
         ctx.fillText("KEYS: [1]Empty [2]Half [3]Mix(from 2) [4]Mix(from 1) [5]Full", 20, 100);
         ctx.fillText("DRAG glass to position | UP/DOWN to scale", 20, 125);
-        ctx.fillText("NOTE: Mix Stage 3 & 4 only apply to Taps 0 and 2.", 20, 150);
     }
 }
 
@@ -164,7 +161,7 @@ class BeerGlass {
 
     draw(stage) {
         const data = SPRITE_DATA.glasses[this.station][stage];
-        if (!data) return; // Skip if this station doesn't have this stage
+        if (!data) return; 
 
         const def = SPRITE_DATA.glassDefaults;
         this.renderX = this.baseX + data.x;
@@ -180,7 +177,10 @@ class BeerGlass {
             case 'mix_from_2': 
                 img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 0 : -1; break;
             case 'mix_from_1': 
-                img = assets.mix; cols = 3; frameIdx = (this.station === 0) ? 1 : (this.station === 2 ? 2 : -1); break;
+                // CORRECTED LOGIC: Stn 0 uses Frame 1, Stn 1 uses Frame 2
+                img = assets.mix; cols = 3; 
+                frameIdx = (this.station === 0) ? 1 : (this.station === 1 ? 2 : -1); 
+                break;
             case 'full': 
                 img = assets.full; cols = 4; frameIdx = this.station + 1; break;
         }
