@@ -5,7 +5,7 @@ body, html {
     background-color: #000;
     overflow: hidden;
     touch-action: none;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'MedievalSharp', cursive; /* Updated to your font */
 }
 
 #game-container {
@@ -15,13 +15,26 @@ body, html {
     aspect-ratio: 16/9;
     width: 100vw; max-height: 100vh;
     background: #111;
+    overflow: hidden;
 }
 
 #bar-background {
+    position: absolute;
+    top: 0; left: 0;
     width: 100%; height: 100%;
     background-image: url('../assets/background.png');
     background-size: cover;
     background-position: center;
+    z-index: 1;
+}
+
+/* CANVAS (Customers & HUD) */
+canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 5; /* Above background, below taps */
+    pointer-events: none; /* Let clicks pass through to hitboxes */
 }
 
 /* --- TAP STATION --- */
@@ -29,15 +42,16 @@ body, html {
     position: absolute;
     height: 350px; 
     width: 150px;
-    top: 35%;
+    bottom: 50px; /* Aligned to bar top */
     transform: translateX(-50%);
+    z-index: 10; /* Foreground */
 }
 
 /* 1. TOWER */
 .tower {
     width: 120px; height: 300px;
     background-image: url('../assets/tower.png');
-    background-size: 300% 100%;
+    background-size: 300% 100%; /* Slices the 3-tower sheet */
     position: absolute;
     left: 15px; 
     bottom: 0; 
@@ -47,53 +61,27 @@ body, html {
 #tap-1 .tower { background-position: 50% 0; }
 #tap-2 .tower { background-position: 100% 0; }
 
-/* 2. HANDLE (Tight Crop & Higher Position) */
+/* 2. HANDLE */
 .handle {
-    /* FIX 1: TIGHTER CROP */
-    /* Reduced to 60px to stop "bleeding" from neighbors */
     width: 60px; height: 60px;
-    
     background-image: url('../assets/taps.png');
-    background-size: 300% 200%;
+    background-size: 300% 100%; /* Slices the 3-handle sheet */
     position: absolute;
-    
-    /* FIX 2: MOVED UP (Baseline Adjustment) */
-    /* Increased from 190px to 200px */
     bottom: 200px; 
-    
-    /* FIX 3: RE-CENTERED */
-    /* Moved from 40px to 45px to account for smaller width */
     left: 45px; 
-    
     pointer-events: none;
-    z-index: 10;
+    z-index: 11;
     transform-origin: center center; 
+    transition: transform 0.1s ease;
 }
-
-/* Default Closed State */
 #tap-0 .handle { background-position: 0% 0; }
 #tap-1 .handle { background-position: 50% 0; }
 #tap-2 .handle { background-position: 100% 0; }
 
-/* --- OPEN STATE FIXES --- */
-
-/* TAP 1 (Barrel): Rotate 90deg (Metal to bottom) */
-#tap-0.pouring .handle {
-    background-position-y: 100%; 
-    transform: rotate(90deg) translate(0px, 0px); 
-}
-
-/* TAP 2 (Hops): Rotate 180deg (Metal to bottom) */
-#tap-1.pouring .handle {
-    background-position-y: 100%;
-    transform: rotate(180deg) translate(0px, -5px);
-}
-
-/* TAP 3 (Wheat): Rotate -90deg (Metal to bottom) */
-#tap-2.pouring .handle {
-    background-position-y: 100%;
-    transform: rotate(-90deg) translate(0px, 0px);
-}
+/* POURING ANIMATIONS */
+#tap-0.pouring .handle { transform: rotate(45deg); }
+#tap-1.pouring .handle { transform: rotate(45deg); }
+#tap-2.pouring .handle { transform: rotate(45deg); }
 
 /* 3. GLASS & LIQUID */
 .glass-container {
@@ -104,27 +92,25 @@ body, html {
 }
 .empty-glass {
     width: 100%; height: 100%;
-    background-image: url('../assets/fullpints.png');
-    background-size: 400% 100%;
-    background-position: 0% 0;
+    /* Use a simple placeholder or asset if you have one, transparent for now */
+    border: 2px solid rgba(255,255,255,0.3); 
+    border-radius: 5px;
 }
 .liquid-mask {
     position: absolute;
     bottom: 0; left: 0;
-    width: 100%; height: 0%;
+    width: 100%; height: 0%; /* JS changes this */
     overflow: hidden; 
     transition: height 0.1s linear;
+    background: #ffc107; /* Beer Color Fallback */
 }
-.full-glass-sprite {
-    position: absolute;
-    bottom: 0; left: 0; 
+/* If you have the sprite for full pints, uncomment below */
+/* .full-glass-sprite {
     width: 80px; height: 120px; 
     background-image: url('../assets/fullpints.png');
     background-size: 400% 100%;
 }
-#tap-0 .full-glass-sprite { background-position: 33.33% 0; }
-#tap-1 .full-glass-sprite { background-position: 66.66% 0; }
-#tap-2 .full-glass-sprite { background-position: 100% 0; }
+*/
 
 /* 4. HITBOX */
 .hitbox {
@@ -134,4 +120,23 @@ body, html {
     cursor: pointer;
     z-index: 20;
 }
-#loading-screen { display: none; }
+
+/* ORIENTATION WARNING */
+#rotate-screen {
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%;
+    background: #000; 
+    z-index: 999; 
+    color: #f4d03f;
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    text-align: center;
+}
+
+@media screen and (orientation: portrait) {
+    #rotate-screen { display: flex; }
+    #game-container { display: none; }
+}
