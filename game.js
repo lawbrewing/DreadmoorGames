@@ -19,13 +19,13 @@ let SPRITE_DATA = {
         { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 }, sizeIdx: 0 }
     ],
     paddleDrinks: [
-        [ // Judge
+        [ // Judge (Owner 0)
             [ {x:-103, y:0, s:.63}, {x:-4, y:-13, s:.63} ], 
             [ {x:-111, y:-6, s:.63}, {x:-19, y:-21, s:.63}, {x:61, y:-6, s:.63} ], 
             [ {x:-109, y:-11, s:.55}, {x:-29, y:-23, s:.55}, {x:40, y:-14, s:.55}, {x:100, y:-23, s:.55} ], 
             [ {x:-111, y:-18, s:.5}, {x:-39, y:-23, s:.5}, {x:28, y:-13, s:.5}, {x:90, y:-23, s:.5}, {x:157, y:-12, s:.5} ]
         ],
-        [ // VIP
+        [ // VIP (Owner 1)
             [ {x:-104, y:-8, s:.55}, {x:-13, y:-8, s:.55} ], 
             [ {x:-106, y:-14, s:.5}, {x:-33, y:-12, s:.5}, {x:46, y:-11, s:.5} ]
         ]
@@ -61,7 +61,9 @@ const ASSETS_PATHS = {
     hipster: 'assets/hipster.png', judge: 'assets/judge.png', karen: 'assets/karen.png',
     regular: 'assets/regular.png', viking: 'assets/viking.png', vip: 'assets/vip.png',
     spill: 'assets/spill.png', paddles: 'assets/paddles.png',
-    bubbles: 'assets/bubbles.png', notification: 'assets/notification.png', numbers: 'assets/numbers.png'
+    bubbles: 'https://lawbrewing.github.io/DreadmoorGames/assets/bubbles.png', 
+    notification: 'https://lawbrewing.github.io/DreadmoorGames/assets/notification.png', 
+    numbers: 'https://lawbrewing.github.io/DreadmoorGames/assets/numbers.png'
 };
 
 const assets = {}; 
@@ -147,11 +149,11 @@ class Game {
         canvas.addEventListener('mousedown', (e) => {
             const pos = getPos(e);
             if (pos.y < 150 && pos.x < 450) {
-                 if(this.labMode === 'paddle') this.editTarget = this.editTarget === 'paddle' ? 'drink' : 'paddle';
-                 if(this.labMode === 'hud') this.editTarget = this.editTarget === 'bubble' ? 'icon' : 'bubble';
+                 if(this.labMode === 'paddle') this.editTarget = (this.editTarget === 'paddle') ? 'drink' : 'paddle';
+                 if(this.labMode === 'hud') this.editTarget = (this.editTarget === 'bubble') ? 'icon' : 'bubble';
+                 if (this.editTarget === 'drink') this.showGhostDrink = true;
                  return;
             }
-
             if (this.labMode === 'customer') {
                 const p = SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx];
                 if (Math.abs(pos.x - p.x) < 150 && Math.abs(pos.y - p.y + 200) < 400) this.selectedObject = p;
@@ -181,19 +183,16 @@ class Game {
                 }
             } else if (this.labMode === 'paddle') {
                 const p = SPRITE_DATA.paddles[this.activePaddleIdx];
-                const stationIdx = p.owner === 'judge' ? 1 : 2;
-                const worldX = WORLD.w * CONFIG.Stations[stationIdx];
+                const worldX = WORLD.w * CONFIG.Stations[p.owner === 'judge' ? 1 : 2];
                 if (this.editTarget === 'drink') {
                     this.selectedObject.x = Math.round(pos.x - (worldX + p.x));
                     this.selectedObject.y = Math.round(pos.y - (CONFIG.TapY + p.y));
                 } else {
-                    this.selectedObject.x = Math.round(pos.x - worldX);
-                    this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
+                    this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
                 }
             } else {
                 const worldX = WORLD.w * CONFIG.Stations[this.activeStationIdx];
-                this.selectedObject.x = Math.round(pos.x - worldX);
-                this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
+                this.selectedObject.x = Math.round(pos.x - worldX); this.selectedObject.y = Math.round(pos.y - CONFIG.TapY);
             }
         });
 
@@ -236,6 +235,7 @@ class Game {
     }
 
     draw() {
+        ctx.imageSmoothingEnabled = false;
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
         if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
@@ -252,8 +252,7 @@ class Game {
         if (this.labMode === 'hud') {
             const charPos = cData.poses[0];
             if (this.activeHudIdx === 0 && assets.bubbles) {
-                const b = SPRITE_DATA.hud.bubble;
-                const frameW = assets.bubbles.width / 3;
+                const b = SPRITE_DATA.hud.bubble; const frameW = assets.bubbles.width / 3;
                 const dW = frameW * b.s; const dH = assets.bubbles.height * b.s;
                 const bX = charPos.x + b.x; const bY = charPos.y + b.y;
                 ctx.drawImage(assets.bubbles, b.typeIdx * frameW, 0, frameW, assets.bubbles.height, bX - dW/2, bY - dH, dW, dH);
@@ -262,20 +261,41 @@ class Game {
                     ctx.drawImage(assets.numbers, 10 * (assets.numbers.width/11), 0, assets.numbers.width/11, assets.numbers.height, bX + b.iconX - iW/2, bY + b.iconY - iH, iW, iH);
                 }
             } else if (this.activeHudIdx === 1 && assets.notification) {
-                const n = SPRITE_DATA.hud.notification;
-                const dW = assets.notification.width * n.s; const dH = assets.notification.height * n.s;
+                const n = SPRITE_DATA.hud.notification; const dW = assets.notification.width * n.s; const dH = assets.notification.height * n.s;
                 ctx.drawImage(assets.notification, charPos.x + n.x - dW/2, charPos.y + n.y - dH, dW, dH);
+            }
+        }
+
+        if (this.labMode === 'paddle') {
+            const p = SPRITE_DATA.paddles[this.activePaddleIdx];
+            const stationIdx = p.owner === 'judge' ? 1 : 2;
+            const worldX = WORLD.w * CONFIG.Stations[stationIdx];
+            if (assets.paddles) {
+                const img = assets.paddles; const fH = img.height / 4; 
+                const dW = img.width * p.s; const dH = fH * p.s;
+                ctx.drawImage(img, p.clip.sx, (p.sizeIdx * fH) + p.clip.sy, img.width + p.clip.sw, fH + p.clip.sh, (worldX + p.x) - dW/2, (CONFIG.TapY + p.y) - dH, dW, dH);
+            }
+            if (this.showGhostDrink || this.editTarget === 'drink') {
+                const currentSlots = SPRITE_DATA.paddleDrinks[this.activePaddleIdx][p.sizeIdx];
+                currentSlots.forEach((d, i) => {
+                    ctx.globalAlpha = (this.editTarget === 'drink' && i === this.activeSlotIdx) ? 1.0 : 0.4;
+                    const stage = (p.owner === 'vip') ? 'full' : (i % 2 === 0 ? 'full' : 'mix_from_1');
+                    const g = new BeerGlass(i % 3, worldX); 
+                    g.draw(stage, worldX + p.x + d.x, CONFIG.TapY + p.y + d.y, d.s);
+                });
+                ctx.globalAlpha = 1.0;
             }
         }
 
         ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(10, 10, 650, 240);
         ctx.fillStyle = "#0f0"; ctx.font = "16px monospace";
         ctx.fillText(`🛠 MODE: ${this.labMode.toUpperCase()}`, 20, 40);
-        if (this.labMode === 'hud') {
-            ctx.fillStyle = "#ff0"; ctx.fillText(`EDIT: ${this.editTarget.toUpperCase()} | V: Cycle Bubble/Notif | B: Cycle Bubble Size`, 20, 70);
-            const cur = (this.activeHudIdx === 0) ? SPRITE_DATA.hud.bubble : SPRITE_DATA.hud.notification;
-            ctx.fillStyle = "#0f0"; ctx.fillText(`X:${cur.x} Y:${cur.y} S:${cur.s.toFixed(2)}`, 20, 100);
-            if (this.activeHudIdx === 0) ctx.fillText(`ICON OFFSET X:${cur.iconX} Y:${cur.iconY} S:${cur.iconS.toFixed(2)}`, 20, 130);
+        let cur = (this.labMode === 'customer') ? SPRITE_DATA.customers[this.activeCharIdx].poses[this.activePoseIdx] : 
+                  (this.labMode === 'spill' ? SPRITE_DATA.spills[this.activeStationIdx] : 
+                  (this.labMode === 'paddle' ? (this.editTarget === 'paddle' ? SPRITE_DATA.paddles[this.activePaddleIdx] : SPRITE_DATA.paddleDrinks[this.activePaddleIdx][SPRITE_DATA.paddles[this.activePaddleIdx].sizeIdx][this.activeSlotIdx]) :
+                  (this.activeHudIdx === 0 ? SPRITE_DATA.hud.bubble : SPRITE_DATA.hud.notification)));
+        if (cur) {
+            ctx.fillText(`X:${cur.x} Y:${cur.y} S:${cur.s.toFixed(2)}`, 20, 130);
         }
         ctx.restore();
     }
