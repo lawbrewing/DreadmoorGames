@@ -48,7 +48,7 @@
             height: 100%;
         }
 
-        /* FIX: Target only the game canvas, not UI canvases */
+        /* FIX: Apply absolute positioning ONLY to the main game canvas */
         #gameCanvas {
             position: absolute;
             top: 0;
@@ -57,9 +57,10 @@
             display: block;
         }
         
-        /* Ensure UI canvases sit in the flow */
+        /* UI Canvases should behave normally */
         .life-canvas, #flight-hud {
             position: relative;
+            display: block;
         }
 
         /* --- UI Overlays --- */
@@ -124,6 +125,7 @@
 
         #lives-container {
             display: flex;
+            flex-direction: row; /* Ensure horizontal layout */
             /* Gap set via JS */
         }
         
@@ -465,7 +467,6 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD Container -->
     <div id="hud" class="hud hidden">
         <!-- 1. LEVEL -->
         <div id="level-display" class="hud-element">LEVEL: <span id="level">1</span></div>
@@ -510,7 +511,9 @@
         <h1>LAW BREWING</h1>
         <h2>Quality Control</h2>
         
+        <!-- REDESIGNED TUTORIAL GRID -->
         <div class="tutorial-grid">
+            <!-- 1. The Basics -->
             <div class="tutorial-section">
                 <div class="section-title">The Basics</div>
                 <div class="icon-container">
@@ -529,10 +532,12 @@
                 </div>
             </div>
 
+            <!-- 2. The Flight -->
             <div class="tutorial-section">
                 <div class="section-title">The Flight</div>
                 <div class="icon-container">
                      <div class="icon-box">
+                         <!-- Drawn Paddle Demo -->
                         <canvas id="demo-paddle" width="100" height="40" class="tutorial-canvas"></canvas>
                         <span class="icon-desc" style="margin-top: 5px;">
                             Collect 3 unique brews to<br>
@@ -542,6 +547,7 @@
                 </div>
             </div>
 
+            <!-- 3. Hazards -->
             <div class="tutorial-section">
                 <div class="section-title">Hazards</div>
                 <div class="icon-container">
@@ -556,6 +562,7 @@
                 </div>
             </div>
 
+            <!-- 4. Powerups -->
             <div class="tutorial-section">
                 <div class="section-title">Specials</div>
                 <div class="icon-container">
@@ -654,8 +661,8 @@
     const HUD_CONFIG = {
         level: { x: 20, y: 20 },
         lives: { x: 16, y: 60, gap: 0, scale: 0.18, yOffset: 2 },
-        score: { x: 480, y: 5, size: 3 },
-        paddle: { x: 480, y: 68 },
+        score: { x: '50%', y: 5, size: 3 }, // Center
+        paddle: { x: '50%', y: 68 },        // Center
         paddleBeers: { startX: 55, spacing: 37, y: -18, size: 30 }
     };
 
@@ -685,20 +692,22 @@
         const elScore = document.getElementById('score');
         const elPaddle = document.getElementById('streak-wrapper');
 
-        // Apply positions
-        elLevel.style.left = HUD_CONFIG.level.x + 'px';
-        elLevel.style.top = HUD_CONFIG.level.y + 'px';
+        // Helper to handle percentages vs pixels
+        const formatVal = (v) => typeof v === 'number' ? v + 'px' : v;
 
-        elLives.style.left = HUD_CONFIG.lives.x + 'px';
-        elLives.style.top = HUD_CONFIG.lives.y + 'px';
-        elLives.style.gap = HUD_CONFIG.lives.gap + 'px';
+        elLevel.style.left = formatVal(HUD_CONFIG.level.x);
+        elLevel.style.top = formatVal(HUD_CONFIG.level.y);
 
-        elScore.style.left = HUD_CONFIG.score.x + 'px';
-        elScore.style.top = HUD_CONFIG.score.y + 'px';
+        elLives.style.left = formatVal(HUD_CONFIG.lives.x);
+        elLives.style.top = formatVal(HUD_CONFIG.lives.y);
+        elLives.style.gap = formatVal(HUD_CONFIG.lives.gap);
+
+        elScore.style.left = formatVal(HUD_CONFIG.score.x);
+        elScore.style.top = formatVal(HUD_CONFIG.score.y);
         elScore.style.fontSize = HUD_CONFIG.score.size + 'rem';
 
-        elPaddle.style.left = HUD_CONFIG.paddle.x + 'px';
-        elPaddle.style.top = HUD_CONFIG.paddle.y + 'px';
+        elPaddle.style.left = formatVal(HUD_CONFIG.paddle.x);
+        elPaddle.style.top = formatVal(HUD_CONFIG.paddle.y);
     }
 
     setTimeout(() => {
@@ -1172,6 +1181,7 @@
 
                     const sx = i * frameW;
                     
+                    // Move beer UP by 15px to simulate sitting ON the paddle
                     ctx.drawImage(assets.beers, 
                         sx, sy, frameW, sHeight,
                         centerX - size/2, centerY - dh/2, size, dh
@@ -1187,6 +1197,7 @@
         ctx.translate(x, y); 
         ctx.scale(scale, scale);
         
+        // VISUAL TWEAK: Lower the drawing by 10px to center it in the canvas box better
         ctx.translate(0, HUD_CONFIG.lives.yOffset); 
 
         const glassColor = "#2d2419";
