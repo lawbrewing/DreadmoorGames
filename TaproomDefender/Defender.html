@@ -176,7 +176,7 @@
         }
 
         #score {
-            font-variant-numeric: tabular-nums; /* Prevents jittering when numbers change */
+            font-variant-numeric: tabular-nums; 
         }
 
         .btn {
@@ -504,12 +504,17 @@
     <div id="hud" class="hud hidden">
         <div>
             <div>LEVEL: <span id="level">1</span></div>
-            <div id="lives-container">
-                </div>
+            <div id="lives-container"></div>
         </div>
         
         <div id="streak-wrapper" class="streak-container">
             <div id="score">0</div>
+            <!-- FLIGHT TRACKER -->
+            <div style="display:flex; justify-content:center; gap:5px; margin-top:5px;">
+                <div id="flight-slot-0" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
+                <div id="flight-slot-1" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
+                <div id="flight-slot-2" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
+            </div>
             <div id="streak-display" style="font-size: 1rem; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
         </div>
     </div>
@@ -640,17 +645,24 @@
         food: ASSET_BASE_URL + "food.png",     // NEW: Replaces Pretzel/Curd
         oldtimer: ASSET_BASE_URL + "oldtimer.png",
         vip: ASSET_BASE_URL + "vip.png",
-        boss: ASSET_BASE_URL + "bosstimer.png"
+        boss: ASSET_BASE_URL + "bosstimer.png",
+        spill: ASSET_BASE_URL + "spill.png"  // NEW ASSET
+    };
+
+    /* --- SPRITE SHEET CONFIG --- */
+    const SPRITE_CONFIG = {
+        row1: { top: 50, bottom: -50 },
+        row2: { offset: 44, top: 0, bottom: 50 }
     };
 
     /* --- SCALING CONFIGURATION --- */
-    // Adjust these numbers to scale assets up (>1.0) or down (<1.0)
     const ASSET_SCALES = {
-        BEER: 0.1,      // Scale for Beers
-        FOOD: 0.15,      // Scale for Pretzels/Curds
-        VIP: 1.2,       // Scale for the VIP Table
-        OLDTIMER: 2.0,  // Scale for the Thief
-        BOSS: 1.0       // Scale for the Boss Timer
+        BEER: 0.1,
+        FOOD: 0.15,
+        VIP: 1.2,
+        OLDTIMER: 2.0,
+        BOSS: 1.0,
+        SPILL: 0.1  // NEW SCALE
     };
 
     const assets = {};
@@ -912,6 +924,9 @@
     let currentLevel = 1;
     let lastTime = 0;
     
+    // NEW: Flight Collection
+    let flightCollected = [false, false, false]; // Tracks Frame 0, 1, 2
+
     // Guaranteed Drops State
     let hasSpawnedPretzelLevel3 = false;
     let hasSpawnedCurdLevel3 = false;
@@ -932,6 +947,7 @@
 
     // Player/VIP State
     let playerGuestX = window.innerWidth / 2;
+    let targetGuestX = window.innerWidth / 2; // NEW: For lerping movement
     let vipInstance;  
     let isMovingGuest = false;
 
@@ -952,12 +968,14 @@
     let thieves = []; 
     let pretzels = [];
     let curds = [];
+    let puddles = []; // NEW: Array for spills
 
     /* --- Resize Handling --- */
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         playerGuestX = canvas.width / 2;
+        targetGuestX = canvas.width / 2;
         if (vipInstance) {
             vipInstance.y = canvas.height - 100;
         }
@@ -971,10 +989,10 @@
         shakeIntensity = intensity;
     }
 
-    /* --- SAFE SPAWN LOGIC (Enhanced for Overlap Prevention) --- */
+    /* --- SAFE SPAWN LOGIC --- */
     function getSafeSpawnX() {
-        const padding = 50; // Increased padding from edge
-        const minDistance = 100; // Minimum horizontal distance between ANY falling item
+        const padding = 50; 
+        const minDistance = 100; 
         let attempts = 0;
         let valid = false;
         let x = 0;
@@ -982,35 +1000,17 @@
         while (!valid && attempts < 20) {
             x = Math.random() * (canvas.width - padding * 2) + padding;
             valid = true;
-
-            // Check against BEERS
             for (let b of beers) {
-                if (Math.abs(b.x - x) < minDistance) {
-                    valid = false;
-                    break;
-                }
+                if (Math.abs(b.x - x) < minDistance) { valid = false; break; }
             }
-            // Check against PRETZELS
             if (valid) {
-                for (let p of pretzels) {
-                    if (Math.abs(p.x - x) < minDistance) {
-                        valid = false;
-                        break;
-                    }
-                }
+                for (let p of pretzels) { if (Math.abs(p.x - x) < minDistance) { valid = false; break; } }
             }
-            // Check against CURDS
              if (valid) {
-                for (let c of curds) {
-                    if (Math.abs(c.x - x) < minDistance) {
-                        valid = false;
-                        break;
-                    }
-                }
+                for (let c of curds) { if (Math.abs(c.x - x) < minDistance) { valid = false; break; } }
             }
             attempts++;
         }
-
         return valid ? x : null;
     }
 
@@ -1018,10 +1018,7 @@
     const handleShootInput = (x, y) => {
         if (!isPlaying || isTransitioning || isPaused) return;
 
-        // If the tap/click is in the VIP control zone (bottom 1/3), don't shoot!
-        if (y > canvas.height * 0.7) { 
-            return;
-        }
+        if (y > canvas.height * 0.7) return;
 
         playSound('shoot'); 
         clickEffects.push({x, y, age: 0});
@@ -1029,25 +1026,19 @@
         // 1. Thieves
         for (let i = thieves.length - 1; i >= 0; i--) {
             const t = thieves[i];
-            const dist = Math.hypot(t.x - x, t.y - y);
-            
-            if (dist < t.size / 2) { 
+            if (Math.hypot(t.x - x, t.y - y) < t.size / 2) { 
                 t.isHit = true;
-                if (!isDoubleBubble) { // Invincible during Double Bubble
-                      loseLife();
-                }
+                if (!isDoubleBubble) loseLife();
                 playSound('explosion'); 
                 triggerShake(10, 5); 
                 createFloatingText(t.x, t.y, "DEAD TIMER", "red");
                 createExplosion(t.x, t.y, '#fdbd9c', 'circle');
-                streak = 0; 
-                updateStreakDisplay();
-                checkGameOver();
+                streak = 0; updateStreakDisplay(); checkGameOver();
                 return;
             }
         }
 
-        // 2. Pretzels & Curds (Destroy if shot)
+        // 2. Pretzels & Curds
         for (let i = pretzels.length - 1; i >= 0; i--) {
             const p = pretzels[i];
             if (Math.hypot(p.x - x, p.y - y) < 30) {
@@ -1073,9 +1064,8 @@
             
             if (dist < 40) {
                 hitBeer = true;
-                // Green swill logic removed - all BAD beers are targets
                 if (b.type === 'BAD') {
-                    // CORRECT ACTION: Shoot the Swill
+                    // CORRECT ACTION
                     let shardCols = ['#9ca3af', '#4b5563', '#ef4444'];
                     createExplosion(b.x, b.y, shardCols, 'square'); 
                     beers.splice(i, 1);
@@ -1099,31 +1089,21 @@
                     }
 
                     score += points;
-                    // Score rendering happens in gameLoop now
                     updateStreakDisplay();
                     playSound(soundType); 
-                    // 1. Floating Score Text -> spawn at Beer Location (b.x, b.y)
-                    createFloatingText(b.x, b.y, text, "#ffff00"); // Yellow text
+                    createFloatingText(b.x, b.y, text, "#ffff00");
                     checkLevelUp();
                 } else {
-                    // INCORRECT ACTION: Shot the Law Brew
-                    if (b.isSpecial) {
-                        createFloatingText(b.x, b.y, "WASTED GOLD!", "red");
-                    } else {
-                        createFloatingText(b.x, b.y, "WASTED BREW!", "red");
-                    }
+                    // INCORRECT ACTION
+                    if (b.isSpecial) createFloatingText(b.x, b.y, "WASTED GOLD!", "red");
+                    else createFloatingText(b.x, b.y, "WASTED BREW!", "red");
 
                     playSound('error'); 
                     triggerShake(15, 8); 
                     createExplosion(b.x, b.y, '#d97706', 'circle');
                     beers.splice(i, 1);
-                    
-                    // Penalty applies even in Double Bubble (player fault)
                     loseLife(); 
-                    
-                    streak = 0; 
-                    updateStreakDisplay();
-                    checkGameOver();
+                    streak = 0; updateStreakDisplay(); checkGameOver();
                 }
                 return; 
             }
@@ -1137,18 +1117,21 @@
 
     function updateStreakDisplay() {
         streakVal.innerText = streak;
-        
-        // 3. Hot Streak Visuals
-        if (streak >= 5) {
-            streakWrapper.classList.add('hot-streak');
-        } else {
-            streakWrapper.classList.remove('hot-streak');
-        }
+        if (streak >= 5) streakWrapper.classList.add('hot-streak');
+        else streakWrapper.classList.remove('hot-streak');
+        streakDisplay.style.opacity = (streak > 1) ? 1 : 0;
+    }
 
-        if (streak > 1) {
-            streakDisplay.style.opacity = 1;
-        } else {
-            streakDisplay.style.opacity = 0;
+    function updateFlightDisplay() {
+        for(let i=0; i<3; i++) {
+            const slot = document.getElementById(`flight-slot-${i}`);
+            if (flightCollected[i]) {
+                slot.style.backgroundColor = "gold";
+                slot.style.boxShadow = "0 0 10px gold";
+            } else {
+                slot.style.backgroundColor = "transparent";
+                slot.style.boxShadow = "none";
+            }
         }
     }
 
@@ -1164,7 +1147,8 @@
         if (isMovingGuest && isPlaying && !isTransitioning && !isPaused) {
             const minX = 60;
             const maxX = canvas.width - 60;
-            playerGuestX = Math.min(Math.max(x, minX), maxX);
+            // Update TARGET, not direct X, to allow physics (puddles)
+            targetGuestX = Math.min(Math.max(x, minX), maxX);
         }
     };
 
@@ -1174,12 +1158,9 @@
 
     // MOUSE EVENTS
     canvas.addEventListener('mousedown', (e) => {
-        initAudio(); // Safe to call here
-        if (e.clientY > canvas.height * 0.7) {
-             handleGuestMoveStart(e.clientX, e.clientY);
-        } else {
-            handleShootInput(e.clientX, e.clientY);
-        }
+        initAudio(); 
+        if (e.clientY > canvas.height * 0.7) handleGuestMoveStart(e.clientX, e.clientY);
+        else handleShootInput(e.clientX, e.clientY);
     });
 
     canvas.addEventListener('mousemove', (e) => {
@@ -1192,15 +1173,11 @@
     // TOUCH EVENTS
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        initAudio(); // Safe to call here
+        initAudio(); 
         const x = e.touches[0].clientX;
         const y = e.touches[0].clientY;
-        
-        if (y > canvas.height * 0.7) {
-            handleGuestMoveStart(x, y); 
-        } else {
-            handleShootInput(x, y);
-        }
+        if (y > canvas.height * 0.7) handleGuestMoveStart(x, y); 
+        else handleShootInput(x, y);
     }, {passive: false});
 
     canvas.addEventListener('touchmove', (e) => {
@@ -1212,9 +1189,7 @@
 
     // KEYBOARD EVENTS
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'p' || e.key === 'P') {
-            togglePause();
-        }
+        if (e.key === 'p' || e.key === 'P') togglePause();
     });
 
     /* --- Classes --- */
@@ -1232,13 +1207,10 @@
             this.x += this.vx;
             if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
             
-            // Spawn Swill FAST (every 600ms)
             this.spawnTimer += dt;
             if (this.spawnTimer > 600) { 
-                 // Cap at 5 items on screen during Boss Wave
                  if (beers.length < 5) {
                      const b = new Beer(5, this.x);
-                     // Boss items fall 1.2x faster
                      b.speed *= 1.2;
                      b.type = 'BAD'; 
                      beers.push(b);
@@ -1254,6 +1226,29 @@
         }
     }
 
+    class Puddle {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.timer = 600; // 10 seconds @ 60fps roughly
+            this.opacity = 1.0;
+        }
+        update() {
+            this.timer--;
+            if (this.timer < 60) this.opacity = this.timer / 60;
+        }
+        draw(ctx) {
+            if (!assets.spill) return;
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            // Use natural image ratio
+            const w = assets.spill.width * ASSET_SCALES.SPILL;
+            const h = assets.spill.height * ASSET_SCALES.SPILL;
+            ctx.drawImage(assets.spill, this.x - w/2, this.y - h/2, w, h);
+            ctx.restore();
+        }
+    }
+
     class CheeseCurd {
         constructor(x) {
             this.x = x;
@@ -1261,29 +1256,16 @@
             const baseSpeed = canvas.height / 500;
             this.speed = (baseSpeed * speedMultiplier) * 1.0;
         }
-        update() {
-            this.y += this.speed;
-        }
+        update() { this.y += this.speed; }
         draw(ctx) {
             if (!assets.food) return;
             ctx.save();
             ctx.translate(this.x, this.y);
-
-            // Frame 1 = Cheese Curd
             const frameWidth = assets.food.width / 2;
             const frameHeight = assets.food.height;
-            
-            // Scaling
             const drawW = frameWidth * ASSET_SCALES.FOOD;
             const drawH = frameHeight * ASSET_SCALES.FOOD;
-
-            // Draw right half of food.png
-            ctx.drawImage(
-                assets.food,
-                frameWidth, 0, frameWidth, frameHeight, // Source (Right half)
-                -drawW/2, -drawH/2, drawW, drawH
-            );
-
+            ctx.drawImage(assets.food, frameWidth, 0, frameWidth, frameHeight, -drawW/2, -drawH/2, drawW, drawH);
             ctx.restore();
         }
     }
@@ -1292,7 +1274,6 @@
         constructor(x) {
             this.x = x;
             this.y = -50;
-            this.radius = 25;
             const baseSpeed = canvas.height / 500; 
             this.speed = (baseSpeed * speedMultiplier) * 1.2; 
             this.rotation = 0;
@@ -1307,22 +1288,11 @@
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.rotation);
-            
-            // Frame 0 = Pretzel
             const frameWidth = assets.food.width / 2;
             const frameHeight = assets.food.height;
-            
-            // Scaling
             const drawW = frameWidth * ASSET_SCALES.FOOD;
             const drawH = frameHeight * ASSET_SCALES.FOOD;
-
-            // Draw left half of food.png
-            ctx.drawImage(
-                assets.food,
-                0, 0, frameWidth, frameHeight, // Source (Left half)
-                -drawW/2, -drawH/2, drawW, drawH
-            );
-
+            ctx.drawImage(assets.food, 0, 0, frameWidth, frameHeight, -drawW/2, -drawH/2, drawW, drawH);
             ctx.restore();
         }
     }
@@ -1331,8 +1301,6 @@
         constructor(level, x, isSpecial = false) {
             this.radius = 30;
             this.isSpecial = isSpecial;
-            
-            // RANDOM FRAME SELECTION (NO CYCLING)
             this.frame = Math.floor(Math.random() * 3); 
 
             if (this.isSpecial) {
@@ -1355,6 +1323,19 @@
             const baseSpeed = canvas.height / 500; 
             let s = (baseSpeed * speedMultiplier) * (1 + Math.random() * 0.4);
             
+            // BEHAVIORS
+            if (this.type === 'BAD') {
+                if (this.frame === 1) { // Zig-Zag Swill
+                    // Keeps standard speed
+                } else if (this.frame === 2) { // Splasher Swill
+                    s *= 0.6; // Falls slower
+                }
+            } else if (this.type === 'GOOD') {
+                if (this.frame === 1) { // Bottle
+                    s *= 1.2; // Falls faster
+                }
+            }
+
             this.speed = s;
             this.rotation = 0;
             this.rotSpeed = (Math.random() - 0.5) * 0.1;
@@ -1363,14 +1344,15 @@
         update(dt) {
             this.y += this.speed;
             
-            // Standard Spirals
-            if (this.isSpecial) {
-                this.x = this.initialX + Math.sin(this.y * 0.05) * 30;
-                 if (this.isSpecial && Math.random() > 0.8) {
-                    particles.push(new Particle(this.x, this.y, '#ffd700', 'circle'));
-                }
+            // Special Movement Logic
+            if (this.type === 'BAD' && this.frame === 1) {
+                // Zig-Zagger
+                this.x = this.initialX + Math.sin(this.y * 0.05) * 40;
             } 
-            // DOUBLE BUBBLE: Drunken Movement for EVERYTHING
+            else if (this.isSpecial) {
+                this.x = this.initialX + Math.sin(this.y * 0.05) * 30;
+                 if (Math.random() > 0.8) particles.push(new Particle(this.x, this.y, '#ffd700', 'circle'));
+            } 
             else if (isDoubleBubble) {
                  this.x = this.initialX + Math.sin(this.y * 0.05) * 20;
             }
@@ -1379,13 +1361,12 @@
         }
 
         draw(ctx) {
-            if (!assets.beers) return; // Asset safety
+            if (!assets.beers) return; 
 
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.rotation);
 
-            // Sprite Sheet Logic
             const frameWidth = assets.beers.width / 3;
             const frameHeight = assets.beers.height / 2;
             
@@ -1393,19 +1374,29 @@
             let col = this.frame;
 
             if (this.isSpecial) {
-                 // Gold glow under texture
                  ctx.shadowColor = "gold";
                  ctx.shadowBlur = 15;
             }
             
-            // Scaling
-            const drawW = frameWidth * ASSET_SCALES.BEER;
-            const drawH = frameHeight * ASSET_SCALES.BEER;
+            // Calculate Source Rect based on Config
+            let sx = col * frameWidth;
+            let sy, sHeight;
 
-            // Added +1 / -2 buffer to fix clipping
+            if (row === 0) { // Law Brew
+                sy = 0 + SPRITE_CONFIG.row1.top;
+                sHeight = frameHeight - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
+            } else { // Swill
+                sy = frameHeight + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
+                sHeight = frameHeight - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
+            }
+
+            // Calculate Dest Rect (Scaling based on the new clipped height)
+            const drawW = frameWidth * ASSET_SCALES.BEER;
+            const drawH = sHeight * ASSET_SCALES.BEER;
+
             ctx.drawImage(
                 assets.beers,
-                col * frameWidth + 1, row * frameHeight + 1, frameWidth - 2, frameHeight - 2,
+                sx, sy, frameWidth, sHeight,
                 -drawW/2, -drawH/2, drawW, drawH
             );
 
@@ -1446,10 +1437,8 @@
             ctx.translate(this.x, this.y);
             ctx.globalAlpha = this.life / 100;
             
-            // Scale Image
             const drawSize = 70 * ASSET_SCALES.OLDTIMER;
 
-            // Double Bubble Shield
             if (isDoubleBubble) {
                 ctx.strokeStyle = '#fcd34d';
                 ctx.lineWidth = 3;
@@ -1458,16 +1447,11 @@
                 ctx.stroke();
             }
 
-            // Removed Glow (Shadow)
-
-            // Flip Logic: Image faces RIGHT
-            // If moving LEFT (vx < 0), Flip it.
             if (this.vx < 0) {
                 ctx.scale(-1, 1);
             }
 
             ctx.drawImage(assets.oldtimer, -drawSize/2, -drawSize/2, drawSize, drawSize);
-            
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1.0;
             ctx.restore();
@@ -1480,7 +1464,23 @@
             this.y = initialY; 
             this.isVipActive = false; 
         }
-        update() { this.x = playerGuestX; }
+        
+        update() { 
+            // Physics Movement with Puddle Drag
+            let speedFactor = 0.15; // Normal responsivness
+            
+            // Check Puddle Collision
+            for (let p of puddles) {
+                if (Math.abs(this.x - p.x) < 50) {
+                    speedFactor = 0.02; // Sticky!
+                    break;
+                }
+            }
+            
+            // Lerp towards target
+            this.x += (targetGuestX - this.x) * speedFactor;
+            playerGuestX = this.x; // Sync back global
+        }
 
         draw(ctx) {
             if (!assets.vip) return;
@@ -1489,18 +1489,12 @@
             
             const vipSize = 120 * ASSET_SCALES.VIP;
 
-            // Double Bubble Shield
+            // DRAW DINING DOME (Replaces Bubble)
             if (isDoubleBubble) {
-                ctx.strokeStyle = '#fcd34d';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(0, 0, vipSize/2, 0, Math.PI * 2);
-                ctx.stroke();
+                drawDiningDome(ctx, 0, vipSize/4, vipSize * 0.7); // Relative coords
             }
 
-            // Removed Glow (Shadow)
             ctx.drawImage(assets.vip, -vipSize/2, -vipSize/2, vipSize, vipSize);
-            ctx.shadowBlur = 0;
             ctx.restore();
         }
     }
@@ -1541,7 +1535,6 @@
         }
     }
 
-    // 2. Floating Score Text Logic
     class FloatingText {
         constructor(x, y, text, color) {
             this.x = x; 
@@ -1549,7 +1542,7 @@
             this.text = text; 
             this.color = color;
             this.life = 1.0; 
-            this.vy = -3; // Float up speed
+            this.vy = -3; 
         }
         update() { 
             this.y += this.vy; 
@@ -1599,24 +1592,14 @@
             const wrapper = document.createElement('div');
             wrapper.innerHTML = heartSVG;
             const svg = wrapper.firstChild;
-            
-            // 4. Pulsing Low-Health Warning
-            if (lives === 1 && i === 0) {
-                 svg.classList.add('heart-danger');
-            }
-
+            if (lives === 1 && i === 0) svg.classList.add('heart-danger');
             if (i >= lives) {
                 svg.classList.add('heart-lost');
-                svg.classList.remove('heart-danger'); // Remove Danger if it becomes lost
+                svg.classList.remove('heart-danger'); 
             }
             livesContainer.appendChild(svg);
         }
-
-        if (lives === 1) {
-            lastCallVignette.style.opacity = 1;
-        } else {
-            lastCallVignette.style.opacity = 0;
-        }
+        lastCallVignette.style.opacity = (lives === 1) ? 1 : 0;
     }
 
     function loseLife() {
@@ -1641,13 +1624,8 @@
          eventNotify.classList.add('show-transition');
          eventNotify.classList.add('happy-pulse');
          playSound('megaBonus');
-         
-         // Spawn Special Beer
          let safeX = getSafeSpawnX();
-         if (safeX !== null) {
-            beers.push(new Beer(currentLevel, safeX, true)); 
-         }
-
+         if (safeX !== null) beers.push(new Beer(currentLevel, safeX, true)); 
          setTimeout(() => {
             eventNotify.classList.remove('show-transition');
             eventNotify.classList.remove('happy-pulse');
@@ -1656,21 +1634,110 @@
 
     function startDoubleBubble() {
          isDoubleBubble = true;
-         doubleBubbleTimer = 5000; // 5 seconds
-         
-         eventNotify.innerText = "DOUBLE BUBBLE!";
+         doubleBubbleTimer = 5000; 
+         eventNotify.innerText = "DINING DOME!";
          eventNotify.classList.add('show-transition');
          eventNotify.classList.add('happy-pulse');
          playSound('megaBonus'); 
-
          setTimeout(() => {
             eventNotify.classList.remove('show-transition');
             eventNotify.classList.remove('happy-pulse');
          }, 1500);
     }
 
+    // --- DINING DOME DRAWING LOGIC ---
+    function drawDiningDome(ctx, cx, cy, r) {
+        ctx.save();
+        // Shift center slightly for perspective
+        cy = cy - r * 0.3; 
+
+        // 1. Back Structure
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r, r * 0.2, 0, Math.PI, 0); 
+        ctx.stroke();
+
+        // 2. Glass Fill
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, Math.PI, 0); 
+        ctx.bezierCurveTo(cx + r, cy + r*0.2, cx - r, cy + r*0.2, cx - r, cy);
+        
+        const gradient = ctx.createLinearGradient(cx - r, cy - r, cx + r/2, cy + r/2);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 0.25)"); 
+        gradient.addColorStop(0.5, "rgba(200, 220, 255, 0.1)"); 
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0.15)");
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Specular
+        ctx.beginPath();
+        ctx.ellipse(cx - r*0.5, cy - r*0.5, r*0.3, r*0.15, -Math.PI/4, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fill();
+
+        // 3. Front Structure
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "white";
+        // Base Front
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r, r * 0.2, 0, 0, Math.PI);
+        ctx.stroke();
+        
+        // Ribs
+        drawArch(ctx, cx, cy, r, r, 0);
+        drawArch(ctx, cx, cy, r*0.7, r, 0);
+        drawArch(ctx, cx, cy, r*0.3, r, 0);
+
+        // Lights
+        const ringR = Math.sqrt(r*r - (r*0.5)*(r*0.5));
+        drawLightsOnRing(ctx, cx, cy - r*0.5, ringR, ringR * 0.2);
+        drawLightsOnArch(ctx, cx, cy, r, r);
+
+        ctx.restore();
+    }
+
+    function drawArch(ctx, cx, cy, rx, ry, rotation) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, rotation, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+    }
+
+    function drawLight(ctx, x, y) {
+        const glow = Math.random() > 0.5;
+        ctx.save();
+        ctx.fillStyle = '#fef3c7'; 
+        if(glow) {
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 5;
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawLightsOnRing(ctx, cx, cy, rx, ry) {
+        for(let i=0; i<5; i++) {
+            const angle = (Math.PI * i / 4); 
+            const lx = cx + rx * Math.cos(angle);
+            const ly = cy + ry * Math.sin(angle);
+            drawLight(ctx, lx, ly);
+        }
+    }
+
+    function drawLightsOnArch(ctx, cx, cy, rx, ry) {
+        for(let i=0; i<8; i++) {
+            const angle = Math.PI + (Math.PI * i / 7); 
+            const lx = cx + rx * Math.cos(angle);
+            const ly = cy + ry * Math.sin(angle);
+            drawLight(ctx, lx, ly);
+        }
+    }
+
+    /* --- GAME LOOP & LOGIC --- */
+
     function checkLevelUp() {
-        // Normal level progression check for levels 1-3
         if (currentLevel < 4 && !isBossMode) {
             const currentLevelIndex = currentLevel - 1;
             const requiredScore = levelsConfig[currentLevelIndex].scoreToClear;
@@ -1683,28 +1750,25 @@
 
     function transitionToLevel(newLevel) {
         isTransitioning = true;
-        beers = []; thieves = []; pretzels = []; curds = [];
+        beers = []; thieves = []; pretzels = []; curds = []; puddles = [];
         spawnTimer = 0; thiefSpawnTimer = 0; 
         streak = 0;
         updateStreakDisplay();
         
         let titleText, subText;
 
-        // BOSS LEVEL CHECK (Level 4)
         if (newLevel === 4) {
             titleText = "BOSS WAVE";
             subText = "SURVIVE FOR 15 SECONDS!";
             levelEl.textContent = "BOSS";
             isBossMode = true;
-            bossCountdown = 15; // 15 seconds
+            bossCountdown = 15; 
             bossInstance = new Boss();
             bossTimerDisplay.style.display = 'block';
             bossTimerDisplay.innerText = bossCountdown;
-            // Warmup State Start
             bossWarmup = true;
         }
         else if (newLevel <= levelsConfig.length) {
-            // Standard Levels 1-3
             const cfg = levelsConfig[newLevel - 1];
             titleText = `LEVEL ${newLevel}`;
             if (cfg.vipActive) {
@@ -1723,7 +1787,6 @@
             levelEl.textContent = newLevel;
             isBossMode = false;
         } else {
-            // Level 5+ is Expert Mode
             titleText = `EXPERT MODE`;
             subText = "SURVIVE";
             spawnInterval = 500;
@@ -1738,29 +1801,21 @@
         levelSubtextEl.textContent = subText;
         levelTransitionEl.classList.add('show-transition');
 
-        // Text Transition Logic
         setTimeout(() => {
             levelTransitionEl.classList.remove('show-transition');
-            
-            // If it is Boss Level, we move to "Warmup" instead of playing immediately
             if (newLevel === 4) {
                 levelTitleEl.textContent = "GET READY!";
                 levelSubtextEl.textContent = "MOVE VIP NOW!";
                 levelTransitionEl.classList.add('show-transition');
-                
-                // Switch music IMMEDIATELY on notification
                 switchMusic('boss');
-                
-                // Keep transitioning logic true so normal spawns don't start, but allow movement
                 isTransitioning = false; 
-                
                 setTimeout(() => {
                     levelTransitionEl.classList.remove('show-transition');
-                    bossWarmup = false; // FIGHT STARTS
+                    bossWarmup = false; 
                     createFloatingText(canvas.width/2, canvas.height/2, "SURVIVE!", "red");
-                }, 3000); // 3s warmup
+                }, 3000); 
             } else if (newLevel === 5) {
-                switchMusic('main'); // Back to main loop
+                switchMusic('main'); 
                 isTransitioning = false;
             } else {
                 isTransitioning = false;
@@ -1793,12 +1848,11 @@
         hud.classList.add('hidden');
         pauseOverlay.classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
-        
         lastCallVignette.style.opacity = 0;
         
         musicMain.pause(); musicMain.currentTime = 0;
         musicBoss.pause(); musicBoss.currentTime = 0;
-        currentTrack = musicMain; // Reset to default
+        currentTrack = musicMain; 
 
         playSound('gameover'); 
         inputFinalScoreEl.innerText = score;
@@ -1814,9 +1868,13 @@
 
     function startGame() {
         score = 0; 
-        displayScore = 0; // Reset rolling score
+        displayScore = 0; 
         lives = 3; currentLevel = 1;
         streak = 0;
+        // Reset Flight
+        flightCollected = [false, false, false];
+        updateFlightDisplay();
+
         updateStreakDisplay();
         updateLivesDisplay();
         
@@ -1827,7 +1885,7 @@
         scoreEl.innerText = score;
         levelEl.innerText = currentLevel;
         
-        beers = []; particles = []; clickEffects = []; thieves = []; pretzels = []; curds = [];
+        beers = []; particles = []; clickEffects = []; thieves = []; pretzels = []; curds = []; puddles = [];
         spawnTimer = 0; thiefSpawnTimer = 0;
         isTransitioning = false;
         isPaused = false;
@@ -1839,24 +1897,19 @@
         bossWarmup = false;
         bossTimerDisplay.style.display = 'none';
         
-        // Reset Guaranteed Drops
         hasSpawnedPretzelLevel3 = false;
         hasSpawnedCurdLevel3 = false;
 
-        if (!vipInstance) {
-            vipInstance = new TableGuest(canvas.height - 100);
-        }
+        if (!vipInstance) vipInstance = new TableGuest(canvas.height - 100);
         vipInstance.isVipActive = false; 
         
         isPlaying = true;
         startScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
-        
         hud.classList.remove('hidden');
         pauseOverlay.classList.remove('hidden');
         
-        // Play Music
         currentTrack = musicMain;
         musicMain.currentTime = 0;
         musicMain.play().catch(e => console.log("Audio play failed", e));
@@ -1925,60 +1978,20 @@
     startBtn.addEventListener('click', startGame);
 
     function renderTutorialIcons() { 
-        // 1. Swill
         const swillCanvas = document.getElementById('demo-swill');
-        if (swillCanvas && assets.beers) { 
-            const ctx = swillCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'BAD'; 
-            b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; 
-            b.draw(ctx); 
-        }
-        // 2. Law
+        if (swillCanvas && assets.beers) { const ctx = swillCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'BAD'; b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; b.draw(ctx); }
         const lawCanvas = document.getElementById('demo-law');
-        if (lawCanvas && assets.beers) { 
-            const ctx = lawCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'GOOD'; 
-            b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; 
-            b.draw(ctx); 
-        }
-        // 3. Green (Now just "Bad")
+        if (lawCanvas && assets.beers) { const ctx = lawCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'GOOD'; b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; b.draw(ctx); }
         const greenCanvas = document.getElementById('demo-green');
-        if (greenCanvas && assets.beers) { 
-            const ctx = greenCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'BAD'; 
-            b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; 
-            b.draw(ctx); 
-        }
-        // 4. Special (Using Pretzels - Frame 0 of Food)
+        if (greenCanvas && assets.beers) { const ctx = greenCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'BAD'; b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; b.draw(ctx); }
         const pretzelCanvas = document.getElementById('demo-pretzel');
-        if (pretzelCanvas && assets.food) { 
-            const ctx = pretzelCanvas.getContext('2d'); 
-            const p = new Pretzel(20); p.x = 25; p.y = 25; p.draw(ctx); 
-        }
+        if (pretzelCanvas && assets.food) { const ctx = pretzelCanvas.getContext('2d'); const p = new Pretzel(20); p.x = 25; p.y = 25; p.draw(ctx); }
         const curdCanvas = document.getElementById('demo-curd');
-        if (curdCanvas && assets.food) { 
-            const ctx = curdCanvas.getContext('2d'); 
-            const c = new CheeseCurd(20); c.x = 25; c.y = 25; c.draw(ctx); 
-        }
-        
-        // 5. Old Timer
+        if (curdCanvas && assets.food) { const ctx = curdCanvas.getContext('2d'); const c = new CheeseCurd(20); c.x = 25; c.y = 25; c.draw(ctx); }
         const otCanvas = document.getElementById('demo-oldtimer');
-        if (otCanvas && assets.oldtimer) { 
-            const ctx = otCanvas.getContext('2d'); 
-            ctx.shadowColor="white"; ctx.shadowBlur=10; 
-            const drawSize = 60 * ASSET_SCALES.OLDTIMER * 1.5; // Slight tweak for icon visibility
-            ctx.drawImage(assets.oldtimer, (otCanvas.width-drawSize)/2, (otCanvas.height-drawSize)/2, drawSize, drawSize); 
-            ctx.shadowBlur=0; 
-        }
-        // 6. VIP
+        if (otCanvas && assets.oldtimer) { const ctx = otCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; const drawSize = 60 * ASSET_SCALES.OLDTIMER * 1.5; ctx.drawImage(assets.oldtimer, (otCanvas.width-drawSize)/2, (otCanvas.height-drawSize)/2, drawSize, drawSize); ctx.shadowBlur=0; }
         const vipCanvas = document.getElementById('demo-vip');
-        if (vipCanvas && assets.vip) { 
-            const ctx = vipCanvas.getContext('2d'); 
-            ctx.shadowColor="white"; ctx.shadowBlur=10; 
-            const drawSize = 85 * ASSET_SCALES.VIP * 1.5;
-            ctx.drawImage(assets.vip, (vipCanvas.width-drawSize)/2, (vipCanvas.height-drawSize)/2, drawSize, drawSize); 
-            ctx.shadowBlur=0; 
-        }
+        if (vipCanvas && assets.vip) { const ctx = vipCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; const drawSize = 85 * ASSET_SCALES.VIP * 1.5; ctx.drawImage(assets.vip, (vipCanvas.width-drawSize)/2, (vipCanvas.height-drawSize)/2, drawSize, drawSize); ctx.shadowBlur=0; }
     }
 
     function gameLoop(timestamp) {
@@ -1997,15 +2010,12 @@
             shakeDuration--;
         }
 
-        // --- 1. ROLLING SCORE LOGIC ---
         if (displayScore < score) {
             let diff = score - displayScore;
-            // Add a chunk based on distance (easing), minimum 1 to ensure it finishes
             let step = Math.ceil(diff * 0.1); 
             displayScore += step;
             scoreEl.innerText = displayScore.toLocaleString();
         } else if (displayScore > score) {
-            // If score went down (penalty), update immediately or roll down faster
             displayScore = score;
             scoreEl.innerText = displayScore.toLocaleString();
         }
@@ -2013,13 +2023,11 @@
         // --- DOUBLE BUBBLE LOGIC ---
         if (isDoubleBubble) {
             doubleBubbleTimer -= dt;
-            ctx.fillStyle = 'rgba(252, 211, 77, 0.1)'; // Golden tint
+            ctx.fillStyle = 'rgba(252, 211, 77, 0.1)'; 
             ctx.fillRect(0,0,canvas.width, canvas.height);
             
             if (doubleBubbleTimer <= 0) {
                 isDoubleBubble = false;
-                
-                // EXPLODE EVERYTHING
                 beers.forEach(b => {
                     let color = (b.type === 'BAD') ? '#9ca3af' : '#d97706';
                     createExplosion(b.x, b.y, color, 'square');
@@ -2027,142 +2035,95 @@
                 thieves.forEach(t => createExplosion(t.x, t.y, '#fdbd9c', 'circle'));
                 pretzels.forEach(p => createExplosion(p.x, p.y, '#8b4513', 'square'));
                 curds.forEach(c => createExplosion(c.x, c.y, '#fcd34d', 'circle'));
-
-                // Audio & Visual feedback
                 playSound('explosion'); 
                 triggerShake(15, 10); 
-
-                // Clear arrays
-                beers = [];
-                pretzels = [];
-                curds = [];
-                thieves = [];
+                beers = []; pretzels = []; curds = []; thieves = [];
             }
         }
 
         // --- BOSS MODE LOGIC ---
         if (isBossMode) {
-            
-            // Draw Boss Always (Idle or Active)
             if (bossInstance && assets.boss) {
-                // Only update position if NOT warmup
                 if (!bossWarmup) bossInstance.update(dt);
                 bossInstance.draw(ctx);
             }
-
-            // Only run timer if NOT warmup
             if (!bossWarmup) {
                 if (bossCountdown > 0) {
                        bossCountdown -= dt / 1000;
                        if (bossCountdown < 0) bossCountdown = 0;
                        bossTimerDisplay.innerText = Math.ceil(bossCountdown);
                 }
-
                 if (bossCountdown <= 0) {
-                    // BOSS DEFEATED
                     isBossMode = false;
                     bossTimerDisplay.style.display = 'none';
                     createFloatingText(canvas.width/2, canvas.height/2, "BOSS DEFEATED!", "gold");
                     playSound('megaBonus');
-                    // Transition to Level 5 (Expert)
                     currentLevel++; 
                     transitionToLevel(currentLevel);
                 }
             }
         }
 
-        // Spawning (Only if NOT transitioning)
-        // If we are in Boss Warmup, we skip spawning entirely
-        if (!isTransitioning && !bossWarmup) {
-            // Boss spawns handle themselves in bossInstance.update()
-            
-            // Standard Spawning (Only if NOT Boss Mode)
-            if (!isBossMode) {
-                spawnTimer += dt;
-                let spawnCap = isDoubleBubble ? 999 : 3; 
-                let currentInterval = isDoubleBubble ? 300 : spawnInterval;
+        // Spawning
+        if (!isTransitioning && !bossWarmup && !isBossMode) {
+            spawnTimer += dt;
+            let spawnCap = isDoubleBubble ? 999 : 3; 
+            let currentInterval = isDoubleBubble ? 300 : spawnInterval;
 
-                // --- DYNAMIC DIFFICULTY FOR LEVEL 3 ---
-                if (currentLevel === 3 && !isDoubleBubble) {
-                    const startScore = 300; 
-                    const endScore = 500; 
-                    // TEST MODE logic for Difficulty Scaling:
-                    const progress = Math.min(Math.max((score - 100) / (500 - 100), 0), 1); 
+            if (currentLevel === 3 && !isDoubleBubble) {
+                const progress = Math.min(Math.max((score - 100) / (500 - 100), 0), 1); 
+                currentInterval = 1000 - (progress * 400);
+                speedMultiplier = 1.6 + (progress * 0.9);
+                thiefSpawnInterval = 6000 - (progress * 3000);
+            }
 
-                    // Interpolate difficulty parameters
-                    // Spawn Interval: 1000 -> 600
-                    currentInterval = 1000 - (progress * 400);
-                    // Speed: 1.6 -> 2.5
-                    speedMultiplier = 1.6 + (progress * 0.9);
-                    // Thief Interval: 6000 -> 3000
-                    thiefSpawnInterval = 6000 - (progress * 3000);
-                }
-
-                if (spawnTimer > currentInterval) {
-                    // Try to spawn if we are under the cap
-                    if (beers.length < spawnCap) {
-                        let safeX = getSafeSpawnX();
-                        if (safeX !== null) {
-                             beers.push(new Beer(currentLevel, safeX));
-                        }
-                    }
-                    
-                    // --- POWER-UP SPAWNING (Level 3 Only) ---
-                    // Rates Increased for testing/visibility: Pretzel 4%, Curd 3%
-                    if (!isDoubleBubble && currentLevel === 3) {
-                        // Pretzel Logic
-                        if (Math.random() < 0.04) {
-                            let safeX = getSafeSpawnX();
-                            if (safeX !== null) { 
-                                pretzels.push(new Pretzel(safeX));
-                                hasSpawnedPretzelLevel3 = true;
-                            }
-                        }
-                        // Curd Logic
-                        if (Math.random() < 0.03) {
-                            let safeX = getSafeSpawnX();
-                            if (safeX !== null) {
-                                curds.push(new CheeseCurd(safeX));
-                                hasSpawnedCurdLevel3 = true;
-                            }
-                        }
-
-                        // --- GUARANTEED DROP LOGIC (Scaled for Test) ---
-                        // Pretzel at 350
-                        if (score > 350 && !hasSpawnedPretzelLevel3) {
-                             let safeX = getSafeSpawnX();
-                             if (safeX !== null) {
-                                 pretzels.push(new Pretzel(safeX));
-                                 hasSpawnedPretzelLevel3 = true;
-                                 console.log("Force spawned Pretzel (Bad Luck Protection)");
-                             }
-                        }
-                        // Curd at 450
-                        if (score > 450 && !hasSpawnedCurdLevel3) {
-                             let safeX = getSafeSpawnX();
-                             if (safeX !== null) {
-                                 curds.push(new CheeseCurd(safeX));
-                                 hasSpawnedCurdLevel3 = true;
-                                 console.log("Force spawned Curd (Bad Luck Protection)");
-                             }
-                        }
-                    }
-
-                    spawnTimer = 0;
+            if (spawnTimer > currentInterval) {
+                if (beers.length < spawnCap) {
+                    let safeX = getSafeSpawnX();
+                    if (safeX !== null) beers.push(new Beer(currentLevel, safeX));
                 }
                 
-                // Thieves (Level 2+)
-                if (!isDoubleBubble && currentLevel >= 2) {
-                    thiefSpawnTimer += dt;
-                    if (thiefSpawnTimer > thiefSpawnInterval) {
-                        thieves.push(new PatronRaider());
-                        thiefSpawnTimer = 0;
+                if (!isDoubleBubble && currentLevel === 3) {
+                    if (Math.random() < 0.04) {
+                        let safeX = getSafeSpawnX();
+                        if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
                     }
+                    if (Math.random() < 0.03) {
+                        let safeX = getSafeSpawnX();
+                        if (safeX !== null) { curds.push(new CheeseCurd(safeX)); hasSpawnedCurdLevel3 = true; }
+                    }
+                    // Safety Drops
+                    if (score > 350 && !hasSpawnedPretzelLevel3) {
+                         let safeX = getSafeSpawnX();
+                         if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
+                    }
+                    if (score > 450 && !hasSpawnedCurdLevel3) {
+                         let safeX = getSafeSpawnX();
+                         if (safeX !== null) { curds.push(new CheeseCurd(safeX)); hasSpawnedCurdLevel3 = true; }
+                    }
+                }
+                spawnTimer = 0;
+            }
+            
+            if (!isDoubleBubble && currentLevel >= 2) {
+                thiefSpawnTimer += dt;
+                if (thiefSpawnTimer > thiefSpawnInterval) {
+                    thieves.push(new PatronRaider());
+                    thiefSpawnTimer = 0;
                 }
             }
         }
 
-        // VIP Guest (Level 3+)
+        // Updates & Drawing
+        
+        // Puddles (Background layer)
+        for (let i = puddles.length - 1; i >= 0; i--) {
+            const p = puddles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.timer <= 0) puddles.splice(i, 1);
+        }
+
         if (vipInstance) {
             vipInstance.update();
             if (vipInstance.isVipActive && assets.vip) {
@@ -2186,6 +2147,24 @@
                             } else {
                                 playSound('vipCatch'); 
                                 createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
+                                // --- FLIGHT LOGIC ---
+                                if(!flightCollected[b.frame]) {
+                                    flightCollected[b.frame] = true;
+                                    updateFlightDisplay();
+                                    
+                                    // Check Full Flight
+                                    if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
+                                        playSound('megaBonus');
+                                        createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! ENEMIES CLEARED!", "gold");
+                                        gainLife();
+                                        // Clear Enemies
+                                        thieves = [];
+                                        puddles = []; // Clean floor
+                                        // Reset Flight
+                                        flightCollected = [false, false, false];
+                                        updateFlightDisplay();
+                                    }
+                                }
                             }
                             score += pts;
                             createSparkle(b.x, b.y);
@@ -2203,7 +2182,6 @@
                     }
                 }
                 
-                // VIP Collision PRETZEL -> Trigger Happy Hour
                 for (let j = pretzels.length - 1; j >= 0; j--) {
                     const p = pretzels[j];
                     if (p.x > vipInstance.x - 40 && p.x < vipInstance.x + 40 && p.y > vipInstance.y - 40 && p.y < vipInstance.y + 20) {
@@ -2212,7 +2190,6 @@
                     }
                 }
                 
-                // VIP Collision CURDS -> Trigger Double Bubble
                 for (let j = curds.length - 1; j >= 0; j--) {
                     const c = curds[j];
                     if (c.x > vipInstance.x - 40 && c.x < vipInstance.x + 40 && c.y > vipInstance.y - 40 && c.y < vipInstance.y + 20) {
@@ -2223,7 +2200,6 @@
             }
         }
 
-        // Entities Loop
         for (let i = beers.length - 1; i >= 0; i--) {
             const b = beers[i];
             b.update(dt);
@@ -2233,12 +2209,20 @@
                 if (b.isSpecial) continue; 
                 if (b.type === 'GOOD') {
                     let pts = 50; score += pts; 
-                    // Floating text for caught beer
                     createFloatingText(b.x, canvas.height - 50, "LAW BREW SERVED", "lime");
                     playSound('score'); 
+                    // Break Flight Streak on floor hit
+                    if(flightCollected.some(x=>x)) {
+                        flightCollected = [false, false, false];
+                        updateFlightDisplay();
+                        createFloatingText(canvas.width/2, canvas.height/2 + 50, "FLIGHT BROKEN", "red");
+                    }
                 } else {
-                    // Swill hit bottom
-                    // If Double Bubble: Penalty points but NO life lost
+                    if (b.type === 'BAD' && b.frame === 2) {
+                        // SPLASHER logic - Spawn Puddle
+                        puddles.push(new Puddle(b.x, canvas.height - 30));
+                    }
+
                     if (isDoubleBubble) {
                         score -= 100;
                         createFloatingText(b.x, canvas.height - 50, "-100", "orange");
