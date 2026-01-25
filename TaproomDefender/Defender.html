@@ -2289,9 +2289,9 @@
             let currentInterval = isDoubleBubble ? 300 : spawnInterval;
 
             if (currentLevel === 3 && !isDoubleBubble) {
-                const progress = Math.min(Math.max((score - 100) / (500 - 100), 0), 1); 
+                const progress = Math.min(Math.max((score - 100) / (15000 - 100), 0), 1); 
                 currentInterval = 1000 - (progress * 400);
-                speedMultiplier = 1.6 + (progress * 0.9);
+                speedMultiplier = 1.6 + (progress * 0.4);
                 thiefSpawnInterval = 6000 - (progress * 3000);
             }
 
@@ -2327,12 +2327,13 @@
             }
             
             if (!isDoubleBubble && currentLevel >= 2) {
-                thiefSpawnTimer += dt;
-                if (thiefSpawnTimer > thiefSpawnInterval) {
-                    thieves.push(new PatronRaider());
-                    thiefSpawnTimer = 0;
-                }
-            }
+        // UPDATE: Only spawn if there are fewer than 2 active
+        if (thieves.length < 2) {
+            thieves.push(new PatronRaider());
+        }
+        // Reset timer regardless so it doesn't spawn immediately after one leaves
+        thiefSpawnTimer = 0;
+    }
         }
 
         // Updates & Drawing
