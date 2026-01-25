@@ -2359,32 +2359,41 @@
                         if (b.type === 'GOOD') {
                             let pts = 500;
                             if (b.isSpecial) {
-                                pts = 1000;
-                                playSound('megaBonus');
-                                createFloatingText(vipInstance.x, vipInstance.y - 60, "GOLDEN BREW! +1 LIFE", "#ffd700");
-                                gainLife();
-                            } else {
-                                playSound('vipCatch'); 
-                                createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
-                                // --- FLIGHT LOGIC ---
-                                if(!flightCollected[b.frame]) {
-                                    flightCollected[b.frame] = true;
-                                    updateFlightDisplay();
-                                    
-                                    if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
-                                        playSound('megaBonus');
-                                        createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! ENEMIES CLEARED!", "gold");
-                                        gainLife();
-                                        thieves = [];
-                                        puddles = []; 
-                                        flightCollected = [false, false, false];
-                                        updateFlightDisplay();
-                                    }
-                                }
-                            }
-                            score += pts;
-                            createSparkle(b.x, b.y);
-                        } 
+        // --- 1. GOLDEN BREW LOGIC (Life Only) ---
+        // Does NOT trigger flight logic because it is in this block
+        playSound('healthUp'); 
+        createFloatingText(vipInstance.x, vipInstance.y - 60, "GOLDEN BREW! +1 LIFE", "#ffd700");
+        gainLife();
+    } else {
+        // --- 2. REGULAR BREW LOGIC (Flight Only) ---
+        // This only runs if the beer is NOT special
+        playSound('vipCatch'); 
+        createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
+
+        // FLIGHT LOGIC
+        if(!flightCollected[b.frame]) {
+            flightCollected[b.frame] = true;
+            updateFlightDisplay();
+            
+            // CHECK FOR FULL FLIGHT
+            if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
+                playSound('megaBonus');
+                
+                score += 1000; 
+                createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! +1000", "gold");
+                
+                gainLife(); 
+                thieves = [];
+                puddles = []; 
+                flightCollected = [false, false, false];
+                updateFlightDisplay();
+            }
+        }
+    }
+
+    score += pts;
+    createSparkle(b.x, b.y);
+}
                         else {
                             if (!isDoubleBubble) {
                                 loseLife();
