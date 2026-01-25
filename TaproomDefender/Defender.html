@@ -2086,87 +2086,129 @@
     pauseBtn.addEventListener('click', togglePause); resumeBtn.addEventListener('click', togglePause); quitBtn.addEventListener('click', endGame);
     startBtn.addEventListener('click', startGame);
 
-    function renderTutorialIcons() { 
-        // Populate tutorial canvases
+   function renderTutorialIcons() { 
+        // Helper to draw sprites manually for the tutorial without using Game Classes
+        // This ensures they fit in the small UI boxes
+        
+        // 1. Swill (Bad Beer)
         const swillCanvas = document.getElementById('demo-swill');
         if (swillCanvas && assets.beers) { 
-            const ctx = swillCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'BAD'; 
-            b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; 
-            b.draw(ctx); 
+            const ctx = swillCanvas.getContext('2d');
+            ctx.clearRect(0, 0, swillCanvas.width, swillCanvas.height);
+            
+            const fw = assets.beers.width / 3;
+            const fh = assets.beers.height / 2;
+            const sy = fh + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
+            const sh = fh - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
+            
+            // Draw scaled down
+            ctx.drawImage(assets.beers, 0, sy, fw, sh, 5, 5, 30, 40); 
         }
+
+        // 2. Law (Good Beer)
         const lawCanvas = document.getElementById('demo-law');
         if (lawCanvas && assets.beers) { 
             const ctx = lawCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'GOOD'; 
-            b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; 
-            b.draw(ctx); 
+            ctx.clearRect(0, 0, lawCanvas.width, lawCanvas.height);
+            
+            const fw = assets.beers.width / 3;
+            const fh = assets.beers.height / 2;
+            const sy = SPRITE_CONFIG.row1.top;
+            const sh = fh - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
+            
+            ctx.drawImage(assets.beers, 0, sy, fw, sh, 5, 5, 30, 40); 
         }
+
+        // 3. Green/Bad (Using another Swill frame)
         const greenCanvas = document.getElementById('demo-green');
         if (greenCanvas && assets.beers) { 
             const ctx = greenCanvas.getContext('2d'); 
-            const b = new Beer(1, 0); b.type = 'BAD'; 
-            b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; 
-            b.draw(ctx); 
+            ctx.clearRect(0, 0, greenCanvas.width, greenCanvas.height);
+            
+            const fw = assets.beers.width / 3;
+            const fh = assets.beers.height / 2;
+            const sy = fh + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
+            const sh = fh - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
+            
+            // Use 2nd column for variety
+            ctx.drawImage(assets.beers, fw, sy, fw, sh, 5, 5, 30, 40); 
         }
+
+        // 4. Pretzel
         const pretzelCanvas = document.getElementById('demo-pretzel');
         if (pretzelCanvas && assets.food) { 
             const ctx = pretzelCanvas.getContext('2d'); 
-            const p = new Pretzel(20); p.x = 15; p.y = 15; p.draw(ctx); 
+            ctx.clearRect(0, 0, pretzelCanvas.width, pretzelCanvas.height);
+            
+            const fw = assets.food.width / 2;
+            const fh = assets.food.height;
+            // Draw fit to canvas
+            ctx.drawImage(assets.food, 0, 0, fw, fh, 2, 2, 26, 26); 
         }
+
+        // 5. Curd
         const curdCanvas = document.getElementById('demo-curd');
         if (curdCanvas && assets.food) { 
             const ctx = curdCanvas.getContext('2d'); 
-            const c = new CheeseCurd(20); c.x = 15; c.y = 15; c.draw(ctx); 
+            ctx.clearRect(0, 0, curdCanvas.width, curdCanvas.height);
+            
+            const fw = assets.food.width / 2;
+            const fh = assets.food.height;
+            // Draw fit to canvas (2nd frame)
+            ctx.drawImage(assets.food, fw, 0, fw, fh, 2, 2, 26, 26); 
         }
+
+        // 6. Old Timer
         const otCanvas = document.getElementById('demo-oldtimer');
         if (otCanvas && assets.oldtimer) { 
             const ctx = otCanvas.getContext('2d'); 
-            ctx.shadowColor="white"; ctx.shadowBlur=10; 
-            const drawSize = 40 * 1.5; 
-            ctx.drawImage(assets.oldtimer, (otCanvas.width-drawSize)/2, (otCanvas.height-drawSize)/2, drawSize, drawSize); 
-            ctx.shadowBlur=0; 
+            ctx.clearRect(0, 0, otCanvas.width, otCanvas.height);
+            // No glow, fixed size
+            ctx.drawImage(assets.oldtimer, 2, 2, 36, 36); 
         }
+
+        // 7. VIP
         const vipCanvas = document.getElementById('demo-vip');
         if (vipCanvas && assets.vip) { 
             const ctx = vipCanvas.getContext('2d'); 
-            ctx.shadowColor="white"; ctx.shadowBlur=10; 
-            const drawSize = 45 * 1.5; 
-            ctx.drawImage(assets.vip, (vipCanvas.width-drawSize)/2, (vipCanvas.height-drawSize)/2, drawSize, drawSize); 
-            ctx.shadowBlur=0; 
+            ctx.clearRect(0, 0, vipCanvas.width, vipCanvas.height);
+            // No glow, fixed size
+            ctx.drawImage(assets.vip, 5, 2, 40, 40); 
         }
         
-        // NEW: Draw Paddle for Tutorial
+        // 8. Paddle
         const paddleCanvas = document.getElementById('demo-paddle');
         if (paddleCanvas && assets.paddle) {
              const ctx = paddleCanvas.getContext('2d');
-             const pW = paddleCanvas.width;
-             const pH = paddleCanvas.height;
-             ctx.drawImage(assets.paddle, 0, 0, pW, pH);
+             ctx.clearRect(0, 0, paddleCanvas.width, paddleCanvas.height);
+             
+             // Draw Paddle
+             ctx.drawImage(assets.paddle, 0, 10, 100, 30);
+             
              // Draw dummy beers on it
              if(assets.beers) {
                  const frameW = assets.beers.width / 3;
-                 const sHeight = assets.beers.height/2 - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
+                 const frameH = assets.beers.height / 2;
                  const sy = SPRITE_CONFIG.row1.top;
+                 const sh = frameH - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
                  
-                 // Standard paddle positions for HUD
-                 const positions = [pW * 0.30, pW * 0.55, pW * 0.80];
-
+                 // Small beers for icon
+                 const bW = 20;
+                 const bH = 25;
+                 
                  for(let i=0; i<3; i++) {
-                     const centerX = positions[i];
-                     const centerY = pH / 2;
-                     const sx = i * frameW;
-                     const dw = 35; 
-                     const dh = (sHeight / frameW) * dw;
-                     
-                     ctx.drawImage(assets.beers, sx, sy, frameW, sHeight, centerX - dw/2, centerY - dh/2 - 15, dw, dh);
+                     ctx.drawImage(assets.beers, i*frameW, sy, frameW, sh, 30 + (i * 28), 0, bW, bH);
                  }
              }
         }
+
+        // 9. Spill
         const spillCanvas = document.getElementById('demo-spill');
         if(spillCanvas && assets.spill) {
              const ctx = spillCanvas.getContext('2d');
-             ctx.drawImage(assets.spill, 0, 0, 60, 30);
+             ctx.clearRect(0, 0, spillCanvas.width, spillCanvas.height);
+             ctx.globalAlpha = 0.8;
+             ctx.drawImage(assets.spill, 5, 5, 50, 20);
         }
     }
 
