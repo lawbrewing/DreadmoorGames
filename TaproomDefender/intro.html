@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreadmoor Games - Launcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #000;
+            overflow: hidden; /* Prevent scrolling during intro */
+        }
+        
+        /* Smooth transition classes */
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+        
+        /* Ensure videos are centered and don't stretch weirdly */
+        video {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+
+        /* Iframe should take full available space */
+        iframe {
+            border: none;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-black text-white h-screen w-screen relative">
+
+    <!-- 1. START SCREEN (Required for Audio permissions) -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black cursor-pointer hover:bg-gray-900 transition-colors duration-500">
+        <div class="text-center space-y-4 animate-pulse">
+            <h1 class="text-3xl md:text-5xl font-bold tracking-[0.3em] uppercase text-gray-100">Taproom Defender</h1>
+            <p class="text-gray-400 text-sm tracking-widest uppercase mt-4">Click anywhere to Initialize</p>
+        </div>
+        <div class="mt-8">
+            <!-- Play Icon -->
+            <svg class="w-16 h-16 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- 2. MOVIE SEQUENCE CONTAINER -->
+    <div id="video-stage" class="absolute inset-0 z-40 bg-black hidden flex items-center justify-center">
+        
+        <!-- Skip Button (Good UX) -->
+        <button id="skip-btn" class="absolute bottom-8 right-8 z-50 px-4 py-2 border border-white/20 text-white/50 text-xs uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all rounded">
+            Skip Intro
+        </button>
+
+        <!-- Video 1: Law Brewing -->
+        <!-- object-contain ensures the logo isn't cut off -->
+        <video id="vid-production" class="absolute inset-0 w-full h-full object-contain bg-black" playsinline>
+            <source src="https://lawbrewing.github.io/DreadmoorGames/lawbrew.mp4" type="video/mp4">
+        </video>
+
+        <!-- Video 2: Dreadmoor -->
+        <!-- Preload auto ensures smooth transition -->
+        <video id="vid-studio" class="absolute inset-0 w-full h-full object-contain bg-black hidden" playsinline preload="auto">
+            <source src="https://lawbrewing.github.io/DreadmoorGames/dreadmoor.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <!-- 3. GAME CONTAINER -->
+    <div id="game-stage" class="absolute inset-0 z-30 bg-gray-900 hidden">
+        <!-- The Game -->
+        <iframe id="game-frame" src="" allowfullscreen></iframe>
+        
+        <!-- Fallback/Controls -->
+        <div class="absolute bottom-0 w-full p-2 text-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <a href="https://lawbrewing.github.io/DreadmoorGames/TaproomDefender/Defender.html" target="_blank" class="pointer-events-auto text-xs text-gray-500 hover:text-white underline">
+                Open in new tab
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const videoStage = document.getElementById('video-stage');
+        const vid1 = document.getElementById('vid-production');
+        const vid2 = document.getElementById('vid-studio');
+        const gameStage = document.getElementById('game-stage');
+        const gameFrame = document.getElementById('game-frame');
+        const skipBtn = document.getElementById('skip-btn');
+
+        // Config
+        const GAME_URL = "https://lawbrewing.github.io/DreadmoorGames/TaproomDefender/Defender.html";
+
+        // Logic to start the game
+        function launchGame() {
+            console.log("Launching Game...");
+            
+            // 1. Hide videos
+            videoStage.classList.add('hidden');
+            
+            // 2. Load Game URL into iframe (doing this late saves bandwidth and prevents music overlap)
+            gameFrame.src = GAME_URL;
+            
+            // 3. Show Game Stage
+            gameStage.classList.remove('hidden');
+
+            // 4. Focus the iframe so keyboard controls work immediately
+            gameFrame.onload = function() {
+                gameFrame.contentWindow.focus();
+            };
+        }
+
+        // Logic to play the sequence
+        function playSequence() {
+            // Hide start screen
+            startScreen.classList.add('fade-out');
+            setTimeout(() => startScreen.classList.add('hidden'), 500);
+
+            // Show video stage
+            videoStage.classList.remove('hidden');
+
+            // Play first video
+            vid1.play().catch(e => {
+                console.error("Autoplay failed", e);
+                // If autoplay fails, just go to game
+                launchGame();
+            });
+        }
+
+        // --- Event Listeners ---
+
+        // 1. User clicks start
+        startScreen.addEventListener('click', playSequence);
+
+        // 2. Video 1 Ends -> Play Video 2
+        vid1.onended = () => {
+            vid1.classList.add('hidden'); // Hide first video
+            vid2.classList.remove('hidden'); // Show second video
+            vid2.play();
+        };
+
+        // 3. Video 2 Ends -> Launch Game
+        vid2.onended = () => {
+            launchGame();
+        };
+
+        // 4. Skip Button Clicked
+        skipBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent bubbling issues
+            vid1.pause();
+            vid2.pause();
+            launchGame();
+        });
+
+    </script>
+</body>
+</html>
