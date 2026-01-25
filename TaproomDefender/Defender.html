@@ -48,7 +48,6 @@
             height: 100%;
         }
 
-        /* FIX: Apply absolute positioning ONLY to the main game canvas */
         #gameCanvas {
             position: absolute;
             top: 0;
@@ -468,16 +467,12 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="hud" class="hud hidden">
-        <!-- 1. LEVEL -->
         <div id="level-display" class="hud-element">LEVEL: <span id="level">1</span></div>
         
-        <!-- 2. LIVES -->
         <div id="lives-container" class="hud-element"></div>
         
-        <!-- 3. SCORE -->
         <div id="score" class="hud-element">0</div>
         
-        <!-- 4. PADDLE -->
         <div id="streak-wrapper" class="hud-element">
             <div style="display: flex; flex-direction: column; align-items: center;">
                  <canvas id="flight-hud" width="150" height="60"></canvas>
@@ -511,9 +506,7 @@
         <h1>LAW BREWING</h1>
         <h2>Quality Control</h2>
         
-        <!-- REDESIGNED TUTORIAL GRID -->
         <div class="tutorial-grid">
-            <!-- 1. The Basics -->
             <div class="tutorial-section">
                 <div class="section-title">The Basics</div>
                 <div class="icon-container">
@@ -525,29 +518,26 @@
                         <canvas id="demo-law" width="40" height="50" class="tutorial-canvas"></canvas>
                         <span class="icon-desc"><strong>DON'T SHOOT</strong><br>Law Brew</span>
                     </div>
-                     <div class="icon-box">
+                      <div class="icon-box">
                         <canvas id="demo-vip" width="50" height="40" class="tutorial-canvas"></canvas>
                         <span class="icon-desc"><strong>CATCH</strong><br>With VIP</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. The Flight -->
             <div class="tutorial-section">
                 <div class="section-title">The Flight</div>
                 <div class="icon-container">
-                     <div class="icon-box">
-                         <!-- Drawn Paddle Demo -->
-                        <canvas id="demo-paddle" width="100" height="40" class="tutorial-canvas"></canvas>
-                        <span class="icon-desc" style="margin-top: 5px;">
+                      <div class="icon-box">
+                          <canvas id="demo-paddle" width="100" height="40" class="tutorial-canvas"></canvas>
+                         <span class="icon-desc" style="margin-top: 5px;">
                             Collect 3 unique brews to<br>
                             <strong style="color: gold;">CLEAR ENEMIES & +1 LIFE</strong>
-                        </span>
+                         </span>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Hazards -->
             <div class="tutorial-section">
                 <div class="section-title">Hazards</div>
                 <div class="icon-container">
@@ -562,7 +552,6 @@
                 </div>
             </div>
 
-            <!-- 4. Powerups -->
             <div class="tutorial-section">
                 <div class="section-title">Specials</div>
                 <div class="icon-container">
@@ -1005,7 +994,7 @@
         playerGuestX = canvas.width / 2;
         targetGuestX = canvas.width / 2;
         if (vipInstance) {
-            vipInstance.y = canvas.height - 160;
+            vipInstance.y = canvas.height - 160; // FIX: VIP offset for mobile
         }
     }
     window.addEventListener('resize', resize);
@@ -1733,8 +1722,11 @@
          eventNotify.classList.add('show-transition');
          eventNotify.classList.add('happy-pulse');
          playSound('megaBonus');
+         
          let safeX = getSafeSpawnX();
+         // Spawn Special (Golden) Brew
          if (safeX !== null) beers.push(new Beer(currentLevel, safeX, true)); 
+
          setTimeout(() => {
             eventNotify.classList.remove('show-transition');
             eventNotify.classList.remove('happy-pulse');
@@ -1976,6 +1968,7 @@
     }
 
     function startGame() {
+        initAudio(); // Initialize audio context on first user interaction
         score = 0; 
         displayScore = 0; 
         lives = 3; currentLevel = 1;
@@ -2009,7 +2002,9 @@
         hasSpawnedPretzelLevel3 = false;
         hasSpawnedCurdLevel3 = false;
 
+        // FIX: Ensure VIP is positioned correctly for mobile on start
         if (!vipInstance) vipInstance = new TableGuest(canvas.height - 160);
+        vipInstance.y = canvas.height - 160; 
         vipInstance.isVipActive = false; 
         
         isPlaying = true;
@@ -2267,9 +2262,9 @@
             }
             if (!bossWarmup) {
                 if (bossCountdown > 0) {
-                       bossCountdown -= dt / 1000;
-                       if (bossCountdown < 0) bossCountdown = 0;
-                       bossTimerDisplay.innerText = Math.ceil(bossCountdown);
+                        bossCountdown -= dt / 1000;
+                        if (bossCountdown < 0) bossCountdown = 0;
+                        bossTimerDisplay.innerText = Math.ceil(bossCountdown);
                 }
                 if (bossCountdown <= 0) {
                     isBossMode = false;
@@ -2327,13 +2322,15 @@
             }
             
             if (!isDoubleBubble && currentLevel >= 2) {
-        // UPDATE: Only spawn if there are fewer than 2 active
-        if (thieves.length < 2) {
-            thieves.push(new PatronRaider());
-        }
-        // Reset timer regardless so it doesn't spawn immediately after one leaves
-        thiefSpawnTimer = 0;
-    }
+                thiefSpawnTimer += dt;
+                if (thiefSpawnTimer > thiefSpawnInterval) {
+                    // Update: Cap thieves at 2
+                    if (thieves.length < 2) {
+                        thieves.push(new PatronRaider());
+                    }
+                    thiefSpawnTimer = 0;
+                }
+            }
         }
 
         // Updates & Drawing
@@ -2357,43 +2354,41 @@
                         beers.splice(j, 1);
                         
                         if (b.type === 'GOOD') {
-                            let pts = 500;
+                            let pts = 500; 
+
                             if (b.isSpecial) {
-        // --- 1. GOLDEN BREW LOGIC (Life Only) ---
-        // Does NOT trigger flight logic because it is in this block
-        playSound('healthUp'); 
-        createFloatingText(vipInstance.x, vipInstance.y - 60, "GOLDEN BREW! +1 LIFE", "#ffd700");
-        gainLife();
-    } else {
-        // --- 2. REGULAR BREW LOGIC (Flight Only) ---
-        // This only runs if the beer is NOT special
-        playSound('vipCatch'); 
-        createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
+                                // 1. GOLDEN BREW LOGIC (Life Only)
+                                playSound('healthUp'); 
+                                createFloatingText(vipInstance.x, vipInstance.y - 60, "GOLDEN BREW! +1 LIFE", "#ffd700");
+                                gainLife();
+                            } else {
+                                playSound('vipCatch'); 
+                                createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP LAW BONUS!", "#d946ef");
 
-        // FLIGHT LOGIC
-        if(!flightCollected[b.frame]) {
-            flightCollected[b.frame] = true;
-            updateFlightDisplay();
-            
-            // CHECK FOR FULL FLIGHT
-            if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
-                playSound('megaBonus');
-                
-                score += 1000; 
-                createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! +1000", "gold");
-                
-                gainLife(); 
-                thieves = [];
-                puddles = []; 
-                flightCollected = [false, false, false];
-                updateFlightDisplay();
-            }
-        }
-    }
+                                // 2. FLIGHT LOGIC
+                                if(!flightCollected[b.frame]) {
+                                    flightCollected[b.frame] = true;
+                                    updateFlightDisplay();
+                                    
+                                    // CHECK FOR FULL FLIGHT
+                                    if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
+                                        playSound('megaBonus');
+                                        
+                                        score += 1000; 
+                                        createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! +1000", "gold");
+                                        
+                                        gainLife(); 
+                                        thieves = [];
+                                        puddles = []; 
+                                        flightCollected = [false, false, false];
+                                        updateFlightDisplay();
+                                    }
+                                }
+                            }
 
-    score += pts;
-    createSparkle(b.x, b.y);
-}
+                            score += pts;
+                            createSparkle(b.x, b.y);
+                        } 
                         else {
                             if (!isDoubleBubble) {
                                 loseLife();
