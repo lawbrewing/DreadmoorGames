@@ -1005,7 +1005,7 @@
         playerGuestX = canvas.width / 2;
         targetGuestX = canvas.width / 2;
         if (vipInstance) {
-            vipInstance.y = canvas.height - 100;
+            vipInstance.y = canvas.height - 160;
         }
     }
     window.addEventListener('resize', resize);
@@ -2009,7 +2009,7 @@
         hasSpawnedPretzelLevel3 = false;
         hasSpawnedCurdLevel3 = false;
 
-        if (!vipInstance) vipInstance = new TableGuest(canvas.height - 100);
+        if (!vipInstance) vipInstance = new TableGuest(canvas.height - 160);
         vipInstance.isVipActive = false; 
         
         isPlaying = true;
