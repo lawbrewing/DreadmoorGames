@@ -48,12 +48,18 @@
             height: 100%;
         }
 
-        canvas {
+        /* FIX: Target only the game canvas, not UI canvases */
+        #gameCanvas {
             position: absolute;
             top: 0;
             left: 0;
             z-index: 15; 
             display: block;
+        }
+        
+        /* Ensure UI canvases sit in the flow */
+        .life-canvas, #flight-hud {
+            position: relative;
         }
 
         /* --- UI Overlays --- */
@@ -95,90 +101,82 @@
             to { box-shadow: inset 0 0 120px 50px rgba(255, 0, 0, 0.7); }
         }
 
-        /* HUD - Lives and Score */
+        /* --- HUD ELEMENTS --- */
         .hud {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-size: 1.5rem;
-            text-shadow: 2px 2px 0 #000;
-            z-index: 10; 
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+        
+        .hud-element {
+            position: absolute; /* Allows independent positioning via JS */
             pointer-events: none;
         }
 
+        #level-display {
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #lives-container {
+            display: flex;
+            /* Gap set via JS */
+        }
+        
+        .life-canvas {
+            width: 40px; 
+            height: 40px;
+        }
+
+        #score {
+            font-family: 'Rye', serif;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            color: #ffeb3b;
+            text-shadow: 2px 2px 0 #000;
+            transform: translateX(-50%); /* Centers on the X coordinate */
+        }
+
+        #streak-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ffeb3b;
+            text-shadow: 2px 2px 0 #000;
+            transition: color 0.3s;
+            transform: translateX(-50%); /* Centers on the X coordinate */
+        }
+        
+        #flight-hud {
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+        }
+
+        /* Pause Button */
         #pause-overlay {
             position: absolute;
             top: 20px;
             right: 20px;
-            z-index: 20; 
+            z-index: 30; 
             pointer-events: auto;
         }
 
-        /* Lives container */
-        #lives-container {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-        .heart-icon {
-            width: 30px;
-            height: 30px;
-            fill: #ef4444;
-            transition: fill 0.3s, transform 0.2s;
-        }
-        .heart-lost {
-            fill: #555;
-            transform: scale(0.8);
-        }
-        
-        /* 4. Pulsing Low-Health Warning */
-        .heart-danger {
-            fill: #ff0000;
-            animation: heartbeat 0.8s infinite;
-            filter: drop-shadow(0 0 5px red);
-        }
-
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            15% { transform: scale(1.3); }
-            30% { transform: scale(1); }
-            45% { transform: scale(1.3); }
-            60% { transform: scale(1); }
-            100% { transform: scale(1); }
-        }
-
-        /* Center the score absolutely */
-        .streak-container {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            color: #ffeb3b;
-            top: 20px;
-            transition: color 0.3s, transform 0.1s;
-        }
-
-        /* 3. Hot Streak Visuals */
+        /* Hot Streak Visuals */
         .hot-streak {
-            color: #ff4500 !important; /* OrangeRed */
+            color: #ff4500 !important; 
             animation: pulse-hot 0.5s infinite alternate;
             text-shadow: 0 0 10px #ff0000, 0 0 20px orange;
         }
         
         @keyframes pulse-hot { 
             from { transform: translateX(-50%) scale(1); } 
-            to { transform: translateX(-50%) scale(1.2); } 
+            to { transform: translateX(-50%) scale(1.1); } 
         }
 
-        #score {
-            font-variant-numeric: tabular-nums; 
-        }
-
+        /* Button Styles */
         .btn {
             background: #fff;
             color: #000;
@@ -198,7 +196,7 @@
         .button-row {
             display: flex;
             gap: 15px;
-            margin-top: 25px;
+            margin-top: 20px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -256,61 +254,57 @@
             color: #ccc;
         }
 
-        /* Compact Headers for Start Screen */
-        #start-screen h1 {
-            font-size: 3rem;
-            margin-bottom: 5px;
-            color: gold;
-        }
-        #start-screen h2 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            color: #fff;
-        }
+        #start-screen h1 { font-size: 3rem; margin-bottom: 5px; color: gold; }
+        #start-screen h2 { font-size: 1.2rem; margin-bottom: 15px; color: #fff; }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
         
-        /* --- INSTRUCTION GRID --- */
+        /* Tutorial Grid */
         .tutorial-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
             border-radius: 10px;
             border: 1px solid #555;
-            max-width: 800px;
+            max-width: 700px;
             width: 95%;
+            margin-bottom: 5px;
         }
 
         .tutorial-section {
             display: flex;
             flex-direction: column;
             align-items: center;
-            border-right: 1px solid rgba(255,255,255,0.2);
-        }
-        .tutorial-section:last-child {
-            border-right: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 5px;
+            background: rgba(0,0,0,0.3);
         }
 
         .section-title {
             color: gold;
             font-family: 'Rye', serif;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
             text-transform: uppercase;
-            border-bottom: 1px solid gold;
-            padding-bottom: 5px;
-            width: 80%;
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+            width: 100%;
+            text-align: center;
+        }
+
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .icon-box {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 15px;
             text-align: center;
         }
         
@@ -318,16 +312,16 @@
             position: relative !important; 
             z-index: 1 !important;
             background: transparent;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .icon-desc {
-            font-size: 0.9rem;
-            color: #ddd;
-            line-height: 1.2;
+            font-size: 0.75rem;
+            color: #ccc;
+            line-height: 1.1;
         }
         
-        /* Level Transition Text Style */
+        /* Transition Text */
         #level-transition {
             position: absolute;
             top: 50%;
@@ -353,11 +347,8 @@
             margin-top: 10px;
         }
 
-        .show-transition {
-            opacity: 1 !important;
-        }
+        .show-transition { opacity: 1 !important; }
         
-        /* Event Notification */
         #event-notify {
             position: absolute;
             top: 20%;
@@ -373,15 +364,12 @@
             transition: opacity 0.3s, transform 0.3s;
             white-space: nowrap;
         }
-        .event-pulse {
-            animation: pulse-scale 0.5s infinite alternate;
-        }
+        .event-pulse { animation: pulse-scale 0.5s infinite alternate; }
         @keyframes pulse-scale {
             from { transform: translate(-50%, -50%) scale(1); }
             to { transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        /* BOSS TIMER HUD */
         #boss-timer-display {
             position: absolute;
             top: 15%;
@@ -398,14 +386,13 @@
 
         .title-img {
             max-width: 80%;
-            max-height: 45vh; 
-            border: 5px solid #fff;
+            max-height: 35vh; 
+            border: 4px solid #fff;
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             border-radius: 4px;
         }
         
-        /* Leaderboard / Input Styles */
         .modal-content {
             background: #333;
             padding: 20px; 
@@ -427,14 +414,8 @@
             padding: 5px;
             border-bottom: 1px solid #555;
         }
-        #leaderboard-table th {
-            font-family: 'Rye', serif;
-            color: gold;
-            background: #444;
-        }
-        #leaderboard-table td {
-            text-align: left;
-        }
+        #leaderboard-table th { font-family: 'Rye', serif; color: gold; background: #444; }
+        #leaderboard-table td { text-align: left; }
         #leaderboard-table tr:nth-child(1) td { color: gold; font-weight: bold; }
         #leaderboard-table tr:nth-child(2) td { color: silver; }
         #leaderboard-table tr:nth-child(3) td { color: #cd7f32; }
@@ -452,26 +433,9 @@
         }
 
         @media (max-width: 600px) {
-            .tutorial-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .tutorial-section {
-                border-right: none;
-                border-bottom: 1px solid rgba(255,255,255,0.2);
-                padding-bottom: 10px;
-                flex-direction: row;
-                justify-content: space-around;
-            }
-            .tutorial-section:last-child {
-                border-bottom: none;
-            }
-            .section-title {
-                display: none; 
-            }
-            .streak-container {
-                top: 60px; /* Move score down on mobile to avoid lives */
-            }
+            .tutorial-grid { grid-template-columns: 1fr; gap: 5px; }
+            .section-title { font-size: 0.8rem; }
+            #flight-hud { width: 120px; height: 48px; }
         }
     </style>
 </head>
@@ -501,21 +465,23 @@
 
     <canvas id="gameCanvas"></canvas>
 
+    <!-- HUD Container -->
     <div id="hud" class="hud hidden">
-        <div>
-            <div>LEVEL: <span id="level">1</span></div>
-            <div id="lives-container"></div>
-        </div>
+        <!-- 1. LEVEL -->
+        <div id="level-display" class="hud-element">LEVEL: <span id="level">1</span></div>
         
-        <div id="streak-wrapper" class="streak-container">
-            <div id="score">0</div>
-            <!-- FLIGHT TRACKER -->
-            <div style="display:flex; justify-content:center; gap:5px; margin-top:5px;">
-                <div id="flight-slot-0" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
-                <div id="flight-slot-1" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
-                <div id="flight-slot-2" style="width:20px; height:20px; border:2px solid gold; border-radius:50%; background:transparent;"></div>
+        <!-- 2. LIVES -->
+        <div id="lives-container" class="hud-element"></div>
+        
+        <!-- 3. SCORE -->
+        <div id="score" class="hud-element">0</div>
+        
+        <!-- 4. PADDLE -->
+        <div id="streak-wrapper" class="hud-element">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                 <canvas id="flight-hud" width="150" height="60"></canvas>
+                 <div id="streak-display" style="font-size: 0.8rem; margin-top: 2px; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
             </div>
-            <div id="streak-display" style="font-size: 1rem; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
         </div>
     </div>
 
@@ -547,42 +513,59 @@
         <div class="tutorial-grid">
             <div class="tutorial-section">
                 <div class="section-title">The Basics</div>
-                <div class="icon-box">
-                    <canvas id="demo-swill" width="60" height="70" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>TAP TO SHOOT</strong><br>Bad Beer (Swill)</span>
-                </div>
-                <div class="icon-box">
-                    <canvas id="demo-law" width="60" height="70" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>DON'T SHOOT</strong><br>Law Brew (Good)</span>
-                </div>
-            </div>
-
-            <div class="tutorial-section">
-                <div class="section-title">Threats</div>
-                <div class="icon-box">
-                    <canvas id="demo-oldtimer" width="70" height="60" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>OLD TIMER</strong><br>Tries to get swill!</span>
-                </div>
-                <div class="icon-box">
-                    <canvas id="demo-green" width="60" height="70" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>ALL SWILL</strong><br>Is Bad<br>(Shoot It!)</span>
-                </div>
-            </div>
-
-            <div class="tutorial-section">
-                <div class="section-title">Special</div>
-                <div class="icon-box">
-                    <canvas id="demo-vip" width="90" height="60" class="tutorial-canvas"></canvas>
-                    <span class="icon-desc"><strong>VIP TABLE</strong><br>Drag bottom to catch<br>Law Brews</span>
-                </div>
-                <div class="icon-box" style="flex-direction: row; gap: 10px; justify-content: center;">
-                    <div>
-                        <canvas id="demo-pretzel" width="50" height="50" class="tutorial-canvas"></canvas>
-                        <br><span style="font-size:0.7rem; color: #aaa;">+1 Life</span>
+                <div class="icon-container">
+                    <div class="icon-box">
+                        <canvas id="demo-swill" width="40" height="50" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc"><strong>SHOOT</strong><br>All Swill</span>
                     </div>
-                    <div>
-                        <canvas id="demo-curd" width="50" height="50" class="tutorial-canvas"></canvas>
-                        <br><span style="font-size:0.7rem; color: #00ffff;">2x Pts</span>
+                    <div class="icon-box">
+                        <canvas id="demo-law" width="40" height="50" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc"><strong>DON'T SHOOT</strong><br>Law Brew</span>
+                    </div>
+                     <div class="icon-box">
+                        <canvas id="demo-vip" width="50" height="40" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc"><strong>CATCH</strong><br>With VIP</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tutorial-section">
+                <div class="section-title">The Flight</div>
+                <div class="icon-container">
+                     <div class="icon-box">
+                        <canvas id="demo-paddle" width="100" height="40" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc" style="margin-top: 5px;">
+                            Collect 3 unique brews to<br>
+                            <strong style="color: gold;">CLEAR ENEMIES & +1 LIFE</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tutorial-section">
+                <div class="section-title">Hazards</div>
+                <div class="icon-container">
+                    <div class="icon-box">
+                        <canvas id="demo-oldtimer" width="40" height="40" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc">Steals<br>Beer</span>
+                    </div>
+                    <div class="icon-box">
+                         <canvas id="demo-spill" width="60" height="30" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc">Sticky<br>Spills</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tutorial-section">
+                <div class="section-title">Specials</div>
+                <div class="icon-container">
+                    <div class="icon-box">
+                        <canvas id="demo-pretzel" width="30" height="30" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc">+1 Life</span>
+                    </div>
+                    <div class="icon-box">
+                        <canvas id="demo-curd" width="30" height="30" class="tutorial-canvas"></canvas>
+                        <span class="icon-desc">Dome<br>Shield</span>
                     </div>
                 </div>
             </div>
@@ -646,7 +629,8 @@
         oldtimer: ASSET_BASE_URL + "oldtimer.png",
         vip: ASSET_BASE_URL + "vip.png",
         boss: ASSET_BASE_URL + "bosstimer.png",
-        spill: ASSET_BASE_URL + "spill.png"
+        spill: ASSET_BASE_URL + "spill.png",
+        paddle: ASSET_BASE_URL + "paddle.png" 
     };
 
     /* --- SPRITE SHEET CONFIG --- */
@@ -662,7 +646,17 @@
         VIP: 1.2,
         OLDTIMER: 2.0,
         BOSS: 1.0,
-        SPILL: 0.1  // Adjusted for gameplay balance
+        SPILL: 0.1,
+        PADDLE: 0.1 
+    };
+
+    /* --- HUD CONFIGURATION --- */
+    const HUD_CONFIG = {
+        level: { x: 20, y: 20 },
+        lives: { x: 16, y: 60, gap: 0, scale: 0.18, yOffset: 2 },
+        score: { x: 480, y: 5, size: 3 },
+        paddle: { x: 480, y: 68 },
+        paddleBeers: { startX: 55, spacing: 37, y: -18, size: 30 }
     };
 
     const assets = {};
@@ -681,6 +675,30 @@
     function enableGame() {
         enterBtn.disabled = false;
         enterBtn.innerText = "ENTER TAPROOM";
+        initHUDLayout();
+    }
+
+    function initHUDLayout() {
+        // Apply Config to DOM Elements
+        const elLevel = document.getElementById('level-display');
+        const elLives = document.getElementById('lives-container');
+        const elScore = document.getElementById('score');
+        const elPaddle = document.getElementById('streak-wrapper');
+
+        // Apply positions
+        elLevel.style.left = HUD_CONFIG.level.x + 'px';
+        elLevel.style.top = HUD_CONFIG.level.y + 'px';
+
+        elLives.style.left = HUD_CONFIG.lives.x + 'px';
+        elLives.style.top = HUD_CONFIG.lives.y + 'px';
+        elLives.style.gap = HUD_CONFIG.lives.gap + 'px';
+
+        elScore.style.left = HUD_CONFIG.score.x + 'px';
+        elScore.style.top = HUD_CONFIG.score.y + 'px';
+        elScore.style.fontSize = HUD_CONFIG.score.size + 'rem';
+
+        elPaddle.style.left = HUD_CONFIG.paddle.x + 'px';
+        elPaddle.style.top = HUD_CONFIG.paddle.y + 'px';
     }
 
     setTimeout(() => {
@@ -874,6 +892,7 @@
     const lastCallVignette = document.getElementById('last-call-vignette');
     const eventNotify = document.getElementById('event-notify');
     const bossTimerDisplay = document.getElementById('boss-timer-display');
+    const flightHud = document.getElementById('flight-hud');
     
     const scoreEl = document.getElementById('score');
     const levelEl = document.getElementById('level'); 
@@ -1123,16 +1142,90 @@
     }
 
     function updateFlightDisplay() {
-        for(let i=0; i<3; i++) {
-            const slot = document.getElementById(`flight-slot-${i}`);
-            if (flightCollected[i]) {
-                slot.style.backgroundColor = "gold";
-                slot.style.boxShadow = "0 0 10px gold";
-            } else {
-                slot.style.backgroundColor = "transparent";
-                slot.style.boxShadow = "none";
+        const ctx = flightHud.getContext('2d');
+        ctx.clearRect(0,0, flightHud.width, flightHud.height);
+
+        if (!assets.paddle) return;
+
+        // Draw Paddle Background
+        const pW = flightHud.width;
+        const pH = flightHud.height;
+        ctx.drawImage(assets.paddle, 0, 0, pW, pH);
+
+        // Draw Collected Beers
+        if(assets.beers) {
+            const frameW = assets.beers.width / 3;
+            const frameH = assets.beers.height / 2;
+            const sy = SPRITE_CONFIG.row1.top;
+            const sHeight = frameH - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
+
+            const startX = HUD_CONFIG.paddleBeers.startX;
+            const spacing = HUD_CONFIG.paddleBeers.spacing;
+            const yOffset = HUD_CONFIG.paddleBeers.y;
+            const size = HUD_CONFIG.paddleBeers.size;
+            const dh = (sHeight / frameW) * size;
+
+            for(let i=0; i<3; i++) {
+                if(flightCollected[i]) {
+                    const centerX = startX + (i * spacing);
+                    const centerY = pH / 2 + yOffset;
+
+                    const sx = i * frameW;
+                    
+                    ctx.drawImage(assets.beers, 
+                        sx, sy, frameW, sHeight,
+                        centerX - size/2, centerY - dh/2, size, dh
+                    );
+                }
             }
         }
+    }
+
+    /* --- Beer Life Drawing Logic --- */
+    function drawBeerLife(ctx, x, y, scale, isDead) {
+        ctx.save(); 
+        ctx.translate(x, y); 
+        ctx.scale(scale, scale);
+        
+        ctx.translate(0, HUD_CONFIG.lives.yOffset); 
+
+        const glassColor = "#2d2419";
+        const beerGrad = ctx.createLinearGradient(0, -50, 0, 50);
+        beerGrad.addColorStop(0, "#FFD700"); 
+        beerGrad.addColorStop(1, "#FF8C00");
+
+        ctx.lineWidth = 12; ctx.strokeStyle = glassColor; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI/1.5, Math.PI/1.5); ctx.stroke(); 
+
+        ctx.lineWidth = 8; ctx.fillStyle = isDead ? "rgba(255,255,255,0.1)" : "#f9fafb";
+        ctx.beginPath(); ctx.moveTo(-50, -75); ctx.lineTo(50, -75); ctx.lineTo(45, 75); 
+        ctx.quadraticCurveTo(45, 90, 30, 90); ctx.lineTo(-30, 90); ctx.quadraticCurveTo(-45, 90, -45, 75);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        if (!isDead) {
+            ctx.save(); ctx.beginPath();
+            ctx.moveTo(-45, -70); ctx.lineTo(45, -70); ctx.lineTo(40, 75); ctx.lineTo(-40, 75);
+            ctx.closePath(); ctx.clip();
+            ctx.fillStyle = beerGrad; ctx.fillRect(-50, -70, 100, 150);
+            
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            const bTime = (Date.now() % 3000) / 3000;
+            [-25, 0, 25, -15, 15].forEach((bx, i) => {
+                const by = 80 - ((bTime + (i * 0.2)) % 1) * 140;
+                ctx.beginPath(); ctx.arc(bx, by, 4, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.restore();
+
+            ctx.fillStyle = "white"; 
+            ctx.beginPath(); ctx.arc(-35, -80, 35, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -95, 45, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(35, -80, 35, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(-45, -85, 90, 30);
+        } else {
+            ctx.lineWidth = 8; ctx.strokeStyle = glassColor;
+            ctx.beginPath(); ctx.moveTo(-48, -75); ctx.lineTo(48, -75); ctx.stroke();
+        }
+        ctx.restore();
     }
 
     /* --- Input Handlers for VIP Movement --- */
@@ -1585,20 +1678,25 @@
     }
 
     function updateLivesDisplay() {
-        livesContainer.innerHTML = '';
-        const heartSVG = `<svg class="heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+        const container = document.getElementById('lives-container');
+        container.innerHTML = '';
         
         for (let i = 0; i < 3; i++) {
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = heartSVG;
-            const svg = wrapper.firstChild;
-            if (lives === 1 && i === 0) svg.classList.add('heart-danger');
-            if (i >= lives) {
-                svg.classList.add('heart-lost');
-                svg.classList.remove('heart-danger'); 
-            }
-            livesContainer.appendChild(svg);
+            const canvasEl = document.createElement('canvas');
+            canvasEl.width = 50;
+            canvasEl.height = 50;
+            canvasEl.className = 'life-canvas';
+            
+            const isDead = (i >= lives);
+            
+            // Draw the beer life on the canvas
+            const ctx = canvasEl.getContext('2d');
+            // Scale roughly 0.25 to fit 50x50 box, center at 25,25
+            drawBeerLife(ctx, 25, 25, HUD_CONFIG.lives.scale, isDead);
+            
+            container.appendChild(canvasEl);
         }
+
         lastCallVignette.style.opacity = (lives === 1) ? 1 : 0;
     }
 
@@ -1978,20 +2076,87 @@
     startBtn.addEventListener('click', startGame);
 
     function renderTutorialIcons() { 
+        // Populate tutorial canvases
         const swillCanvas = document.getElementById('demo-swill');
-        if (swillCanvas && assets.beers) { const ctx = swillCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'BAD'; b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; b.draw(ctx); }
+        if (swillCanvas && assets.beers) { 
+            const ctx = swillCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'BAD'; 
+            b.x = swillCanvas.width/2; b.y = swillCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
         const lawCanvas = document.getElementById('demo-law');
-        if (lawCanvas && assets.beers) { const ctx = lawCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'GOOD'; b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; b.draw(ctx); }
+        if (lawCanvas && assets.beers) { 
+            const ctx = lawCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'GOOD'; 
+            b.x = lawCanvas.width/2; b.y = lawCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
         const greenCanvas = document.getElementById('demo-green');
-        if (greenCanvas && assets.beers) { const ctx = greenCanvas.getContext('2d'); const b = new Beer(1, 0); b.type = 'BAD'; b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; b.draw(ctx); }
+        if (greenCanvas && assets.beers) { 
+            const ctx = greenCanvas.getContext('2d'); 
+            const b = new Beer(1, 0); b.type = 'BAD'; 
+            b.x = greenCanvas.width/2; b.y = greenCanvas.height/2+10; 
+            b.draw(ctx); 
+        }
         const pretzelCanvas = document.getElementById('demo-pretzel');
-        if (pretzelCanvas && assets.food) { const ctx = pretzelCanvas.getContext('2d'); const p = new Pretzel(20); p.x = 25; p.y = 25; p.draw(ctx); }
+        if (pretzelCanvas && assets.food) { 
+            const ctx = pretzelCanvas.getContext('2d'); 
+            const p = new Pretzel(20); p.x = 15; p.y = 15; p.draw(ctx); 
+        }
         const curdCanvas = document.getElementById('demo-curd');
-        if (curdCanvas && assets.food) { const ctx = curdCanvas.getContext('2d'); const c = new CheeseCurd(20); c.x = 25; c.y = 25; c.draw(ctx); }
+        if (curdCanvas && assets.food) { 
+            const ctx = curdCanvas.getContext('2d'); 
+            const c = new CheeseCurd(20); c.x = 15; c.y = 15; c.draw(ctx); 
+        }
         const otCanvas = document.getElementById('demo-oldtimer');
-        if (otCanvas && assets.oldtimer) { const ctx = otCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; const drawSize = 60 * ASSET_SCALES.OLDTIMER * 1.5; ctx.drawImage(assets.oldtimer, (otCanvas.width-drawSize)/2, (otCanvas.height-drawSize)/2, drawSize, drawSize); ctx.shadowBlur=0; }
+        if (otCanvas && assets.oldtimer) { 
+            const ctx = otCanvas.getContext('2d'); 
+            ctx.shadowColor="white"; ctx.shadowBlur=10; 
+            const drawSize = 40 * 1.5; 
+            ctx.drawImage(assets.oldtimer, (otCanvas.width-drawSize)/2, (otCanvas.height-drawSize)/2, drawSize, drawSize); 
+            ctx.shadowBlur=0; 
+        }
         const vipCanvas = document.getElementById('demo-vip');
-        if (vipCanvas && assets.vip) { const ctx = vipCanvas.getContext('2d'); ctx.shadowColor="white"; ctx.shadowBlur=10; const drawSize = 85 * ASSET_SCALES.VIP * 1.5; ctx.drawImage(assets.vip, (vipCanvas.width-drawSize)/2, (vipCanvas.height-drawSize)/2, drawSize, drawSize); ctx.shadowBlur=0; }
+        if (vipCanvas && assets.vip) { 
+            const ctx = vipCanvas.getContext('2d'); 
+            ctx.shadowColor="white"; ctx.shadowBlur=10; 
+            const drawSize = 45 * 1.5; 
+            ctx.drawImage(assets.vip, (vipCanvas.width-drawSize)/2, (vipCanvas.height-drawSize)/2, drawSize, drawSize); 
+            ctx.shadowBlur=0; 
+        }
+        
+        // NEW: Draw Paddle for Tutorial
+        const paddleCanvas = document.getElementById('demo-paddle');
+        if (paddleCanvas && assets.paddle) {
+             const ctx = paddleCanvas.getContext('2d');
+             const pW = paddleCanvas.width;
+             const pH = paddleCanvas.height;
+             ctx.drawImage(assets.paddle, 0, 0, pW, pH);
+             // Draw dummy beers on it
+             if(assets.beers) {
+                 const frameW = assets.beers.width / 3;
+                 const sHeight = assets.beers.height/2 - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
+                 const sy = SPRITE_CONFIG.row1.top;
+                 
+                 // Standard paddle positions for HUD
+                 const positions = [pW * 0.30, pW * 0.55, pW * 0.80];
+
+                 for(let i=0; i<3; i++) {
+                     const centerX = positions[i];
+                     const centerY = pH / 2;
+                     const sx = i * frameW;
+                     const dw = 35; 
+                     const dh = (sHeight / frameW) * dw;
+                     
+                     ctx.drawImage(assets.beers, sx, sy, frameW, sHeight, centerX - dw/2, centerY - dh/2 - 15, dw, dh);
+                 }
+             }
+        }
+        const spillCanvas = document.getElementById('demo-spill');
+        if(spillCanvas && assets.spill) {
+             const ctx = spillCanvas.getContext('2d');
+             ctx.drawImage(assets.spill, 0, 0, 60, 30);
+        }
     }
 
     function gameLoop(timestamp) {
@@ -2078,7 +2243,6 @@
             }
 
             if (spawnTimer > currentInterval) {
-                // Count all catchable items for the cap
                 const totalItems = beers.length + pretzels.length + curds.length;
                 
                 if (totalItems < spawnCap) {
@@ -2087,7 +2251,6 @@
                 }
                 
                 if (!isDoubleBubble && currentLevel === 3) {
-                    // Only spawn food if we still have room under the cap
                     if (beers.length + pretzels.length + curds.length < spawnCap) {
                         if (Math.random() < 0.04) {
                             let safeX = getSafeSpawnX();
@@ -2097,7 +2260,6 @@
                             let safeX = getSafeSpawnX();
                             if (safeX !== null) { curds.push(new CheeseCurd(safeX)); hasSpawnedCurdLevel3 = true; }
                         }
-                        // Safety Drops
                         if (score > 350 && !hasSpawnedPretzelLevel3) {
                              let safeX = getSafeSpawnX();
                              if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
@@ -2121,8 +2283,6 @@
         }
 
         // Updates & Drawing
-        
-        // Puddles (Background layer)
         for (let i = puddles.length - 1; i >= 0; i--) {
             const p = puddles[i];
             p.update();
@@ -2135,7 +2295,6 @@
             if (vipInstance.isVipActive && assets.vip) {
                 vipInstance.draw(ctx);
                 
-                // VIP Collision BEER
                 for (let j = beers.length - 1; j >= 0; j--) {
                     const b = beers[j];
                     if (b.x > vipInstance.x - 40 && b.x < vipInstance.x + 40 && 
@@ -2158,15 +2317,12 @@
                                     flightCollected[b.frame] = true;
                                     updateFlightDisplay();
                                     
-                                    // Check Full Flight
                                     if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
                                         playSound('megaBonus');
                                         createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! ENEMIES CLEARED!", "gold");
                                         gainLife();
-                                        // Clear Enemies
                                         thieves = [];
-                                        puddles = []; // Clean floor
-                                        // Reset Flight
+                                        puddles = []; 
                                         flightCollected = [false, false, false];
                                         updateFlightDisplay();
                                     }
@@ -2176,7 +2332,6 @@
                             createSparkle(b.x, b.y);
                         } 
                         else {
-                            // BAD BEER HIT
                             if (!isDoubleBubble) {
                                 loseLife();
                                 createFloatingText(vipInstance.x, vipInstance.y - 60, "VIP SWILL HIT!", "red");
@@ -2186,7 +2341,6 @@
                                 updateStreakDisplay();
                                 checkGameOver();
                             } else {
-                                // Full Protection in Dome
                                 createFloatingText(vipInstance.x, vipInstance.y - 60, "SHIELDED!", "#fcd34d");
                             }
                             createExplosion(b.x, b.y, '#ef4444', 'square'); 
@@ -2194,7 +2348,6 @@
                     }
                 }
                 
-                // VIP Collision PRETZEL -> Trigger Happy Hour
                 for (let j = pretzels.length - 1; j >= 0; j--) {
                     const p = pretzels[j];
                     if (p.x > vipInstance.x - 40 && p.x < vipInstance.x + 40 && p.y > vipInstance.y - 40 && p.y < vipInstance.y + 20) {
@@ -2203,7 +2356,6 @@
                     }
                 }
                 
-                // VIP Collision CURDS -> Trigger Double Bubble
                 for (let j = curds.length - 1; j >= 0; j--) {
                     const c = curds[j];
                     if (c.x > vipInstance.x - 40 && c.x < vipInstance.x + 40 && c.y > vipInstance.y - 40 && c.y < vipInstance.y + 20) {
@@ -2225,7 +2377,6 @@
                     let pts = 50; score += pts; 
                     createFloatingText(b.x, canvas.height - 50, "LAW BREW SERVED", "lime");
                     playSound('score'); 
-                    // Break Flight Streak on floor hit
                     if(flightCollected.some(x=>x)) {
                         flightCollected = [false, false, false];
                         updateFlightDisplay();
@@ -2233,7 +2384,6 @@
                     }
                 } else {
                     if (b.type === 'BAD' && b.frame === 2) {
-                        // SPLASHER logic - Spawn Puddle
                         puddles.push(new Puddle(b.x, canvas.height - 30));
                     }
 
