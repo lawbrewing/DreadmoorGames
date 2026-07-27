@@ -985,7 +985,6 @@
     let thieves = []; 
     let pretzels = [];
     let curds = [];
-    let puddles = []; // NEW: Array for spills
 
     /* --- Resize Handling --- */
     function resize() {
@@ -1319,29 +1318,6 @@
         }
     }
 
-    class Puddle {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.timer = 600; // 10 seconds @ 60fps roughly
-            this.opacity = 1.0;
-        }
-        update() {
-            this.timer--;
-            if (this.timer < 60) this.opacity = this.timer / 60;
-        }
-        draw(ctx) {
-            if (!assets.spill) return;
-            ctx.save();
-            ctx.globalAlpha = this.opacity;
-            // Use natural image ratio
-            const w = assets.spill.width * ASSET_SCALES.SPILL;
-            const h = assets.spill.height * ASSET_SCALES.SPILL;
-            ctx.drawImage(assets.spill, this.x - w/2, this.y - h/2, w, h);
-            ctx.restore();
-        }
-    }
-
     class CheeseCurd {
         constructor(x) {
             this.x = x;
@@ -1561,15 +1537,8 @@
         update() { 
             // Physics Movement with Puddle Drag
             let speedFactor = 0.15; // Normal responsivness
-            
-            // Check Puddle Collision
-            for (let p of puddles) {
-                if (Math.abs(this.x - p.x) < 50) {
-                    speedFactor = 0.02; // Sticky!
-                    break;
-                }
-            }
-            
+          
+              
             // Lerp towards target
             this.x += (targetGuestX - this.x) * speedFactor;
             playerGuestX = this.x; // Sync back global
@@ -2333,14 +2302,6 @@
             }
         }
 
-        // Updates & Drawing
-        for (let i = puddles.length - 1; i >= 0; i--) {
-            const p = puddles[i];
-            p.update();
-            p.draw(ctx);
-            if (p.timer <= 0) puddles.splice(i, 1);
-        }
-
         if (vipInstance) {
             vipInstance.update();
             if (vipInstance.isVipActive && assets.vip) {
@@ -2441,10 +2402,7 @@
                         createFloatingText(canvas.width/2, canvas.height/2 + 50, "FLIGHT BROKEN", "red");
                     }
                 } else {
-                    if (b.type === 'BAD' && b.frame === 2) {
-                        puddles.push(new Puddle(b.x, canvas.height - 30));
-                    }
-
+                    
                     if (isDoubleBubble) {
                         score -= 100;
                         createFloatingText(b.x, canvas.height - 50, "-100", "orange");
