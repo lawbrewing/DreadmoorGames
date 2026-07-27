@@ -476,10 +476,12 @@
         <div id="streak-wrapper" class="hud-element">
             <div style="display: flex; flex-direction: column; align-items: center;">
                  <canvas id="flight-hud" width="150" height="60"></canvas>
-                 <div id="streak-display" style="font-size: 0.8rem; margin-top: 2px; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
+                 <div style="display: flex; gap: 15px; align-items: center; margin-top: 2px;">
+                     <div id="streak-display" style="font-size: 0.8rem; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
+                     <div id="flight-bonus-display" style="font-size: 0.8rem; color: gold; text-shadow: 1px 1px 0 #000; opacity: 0;">FLIGHT BONUS: <span id="flight-bonus-val">0</span></div>
+                 </div>
             </div>
         </div>
-    </div>
 
     <div id="pause-overlay" class="hidden">
         <button id="pause-btn" class="pause-btn">PAUSE (P)</button>
@@ -894,6 +896,8 @@
     const streakWrapper = document.getElementById('streak-wrapper');
     const streakDisplay = document.getElementById('streak-display');
     const streakVal = document.getElementById('streak-val');
+    const flightBonusDisplay = document.getElementById('flight-bonus-display');
+    const flightBonusVal = document.getElementById('flight-bonus-val');
     
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
@@ -1135,6 +1139,15 @@
         else streakWrapper.classList.remove('hot-streak');
         streakDisplay.style.opacity = (streak > 1) ? 1 : 0;
     }
+    function updateFlightBonusDisplay() {
+        if (flightStreak > 0) {
+            flightBonusVal.innerText = flightStreak >= 3 ? 'MAX' : flightStreak;
+            flightBonusDisplay.style.opacity = 1;
+        } else {
+            flightBonusDisplay.style.opacity = 0;
+        }
+    }
+  
 
     function updateFlightDisplay() {
         const ctx = flightHud.getContext('2d');
@@ -1681,6 +1694,7 @@
     function loseLife() {
         lives--;
         flightStreak = 0; // NEW: Reset the Tab Escalator
+        updateFlightBonusDisplay();
         updateLivesDisplay();
     }
 
@@ -1953,6 +1967,7 @@
         lives = 3; currentLevel = 1;
         streak = 0;
         flightStreak = 0;
+        updateFlightBonusDisplay();
         bossPhase = 1;
         // Reset Flight
         flightCollected = [false, false, false];
@@ -2381,6 +2396,7 @@ if (isBossMode) {
                                         // TAB ESCALATOR (Normal Levels)
                                         if (lives === 3) {
                                             flightStreak++;
+                                            updateFlightBonusDisplay();
                                             let bonus = (flightStreak === 1) ? 1000 : (flightStreak === 2 ? 2500 : 5000);
                                             let msg = flightStreak >= 3 ? "MAX FLIGHT BONUS" : `FLIGHT BONUS ${flightStreak}`;
             
