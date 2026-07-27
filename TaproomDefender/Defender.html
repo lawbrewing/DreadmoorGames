@@ -940,6 +940,8 @@
     let lives = 3;
     let currentLevel = 1;
     let lastTime = 0;
+    let flightStreak = 0;
+    let bossPhase = 1;
     
     // NEW: Flight Collection
     let flightCollected = [false, false, false]; // Tracks Frame 0, 1, 2
@@ -1671,6 +1673,7 @@
 
     function loseLife() {
         lives--;
+        flightStreak = 0; // NEW: Reset the Tab Escalator
         updateLivesDisplay();
     }
 
@@ -1942,6 +1945,8 @@
         displayScore = 0; 
         lives = 3; currentLevel = 1;
         streak = 0;
+        flightStreak = 0;
+        bossPhase = 1;
         // Reset Flight
         flightCollected = [false, false, false];
         updateFlightDisplay();
