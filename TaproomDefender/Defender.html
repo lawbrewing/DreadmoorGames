@@ -1297,21 +1297,32 @@
             this.vx = 5; 
             this.spawnTimer = 0;
         }
-        update(dt) {
+        update(dt, phase) {
             this.x += this.vx;
             if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
-            
+    
             this.spawnTimer += dt;
-            if (this.spawnTimer > 600) { 
-                 if (beers.length < 5) {
+    
+    // Phase 1 & 2: 20% faster spawn rate (480ms instead of 600ms)
+            const currentSpawnRate = (phase === 1 || phase === 2) ? 480 : 600;
+
+            if (this.spawnTimer > currentSpawnRate) { 
+                 if (beers.length < 6) { // Slightly increased cap for Phase 3 chaos
                      const b = new Beer(5, this.x);
+             
+             // Phase 3 mixes Swill and Law Brew
+                     if (phase === 3) {
+                         b.type = Math.random() > 0.4 ? 'GOOD' : 'BAD';
+                     } else {
+                         b.type = 'BAD'; 
+                     }
+             
                      b.speed *= 1.2;
-                     b.type = 'BAD'; 
                      beers.push(b);
                  }
                  this.spawnTimer = 0;
             }
-        }
+          }
         draw(ctx) {
             if (!assets.boss) return;
             ctx.save();
@@ -2229,27 +2240,49 @@
         }
 
         // --- BOSS MODE LOGIC ---
-        if (isBossMode) {
-            if (bossInstance && assets.boss) {
-                if (!bossWarmup) bossInstance.update(dt);
-                bossInstance.draw(ctx);
+if (isBossMode) {
+    if (bossInstance && assets.boss) {
+        if (!bossWarmup) bossInstance.update(dt, bossPhase);
+        bossInstance.draw(ctx);
+    }
+    
+    if (!bossWarmup) {
+        // Phases 1 & 2: Timer-based survival
+        if (bossPhase === 1 || bossPhase === 2) {
+            if (bossCountdown > 0) {
+                bossCountdown -= dt / 1000;
+                if (bossCountdown < 0) bossCountdown = 0;
+                bossTimerDisplay.innerText = Math.ceil(bossCountdown);
             }
-            if (!bossWarmup) {
-                if (bossCountdown > 0) {
-                        bossCountdown -= dt / 1000;
-                        if (bossCountdown < 0) bossCountdown = 0;
-                        bossTimerDisplay.innerText = Math.ceil(bossCountdown);
-                }
-                if (bossCountdown <= 0) {
-                    isBossMode = false;
+            
+            // Handle Phase Transitions
+            if (bossCountdown <= 0) {
+                if (bossPhase === 1) {
+                    bossPhase = 2;
+                    bossCountdown = 15;
+                    createFloatingText(canvas.width/2, canvas.height/2, "PHASE 2: THE RUSH!", "orange");
+                } 
+                else if (bossPhase === 2) {
+                    bossPhase = 3;
                     bossTimerDisplay.style.display = 'none';
-                    createFloatingText(canvas.width/2, canvas.height/2, "BOSS DEFEATED!", "gold");
-                    playSound('megaBonus');
-                    currentLevel++; 
-                    transitionToLevel(currentLevel);
+                    vipInstance.isVipActive = true; 
+                    flightCollected = [false, false, false];
+                    updateFlightDisplay();
+                    createFloatingText(canvas.width/2, canvas.height/2, "LAST CALL: CATCH A FLIGHT!", "gold");
                 }
             }
         }
+        
+        // Phase 2: Old Timers storm the floor
+        if (bossPhase === 2) {
+            thiefSpawnTimer += dt;
+            if (thiefSpawnTimer > 3000) { // Faster thief spawns during the rush
+                if (thieves.length < 2) thieves.push(new PatronRaider());
+                thiefSpawnTimer = 0;
+            }
+        }
+    }
+}
 
         // Spawning
         if (!isTransitioning && !bossWarmup && !isBossMode) {
