@@ -370,21 +370,7 @@
             from { transform: translate(-50%, -50%) scale(1); }
             to { transform: translate(-50%, -50%) scale(1.1); }
         }
-
-        #boss-timer-display {
-            position: absolute;
-            top: 15%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rye', serif;
-            font-size: 6rem;
-            color: #ef4444;
-            text-shadow: 0 0 20px red, 0 0 40px black;
-            z-index: 24;
-            display: none;
-            pointer-events: none;
-        }
-
+   
         .title-img {
             max-width: 80%;
             max-height: 35vh; 
@@ -487,8 +473,7 @@
         <button id="pause-btn" class="pause-btn">PAUSE (P)</button>
     </div>
     
-    <div id="boss-timer-display">15</div>
-
+   
     <div id="level-transition">
         <span id="level-title">LEVEL 1</span>
         <span id="level-subtext"></span>
@@ -887,7 +872,6 @@
     const livesContainer = document.getElementById('lives-container');
     const lastCallVignette = document.getElementById('last-call-vignette');
     const eventNotify = document.getElementById('event-notify');
-    const bossTimerDisplay = document.getElementById('boss-timer-display');
     const flightHud = document.getElementById('flight-hud');
     
     const scoreEl = document.getElementById('score');
@@ -1853,12 +1837,11 @@
 
         if (newLevel === 4) {
             titleText = "BOSS WAVE";
-            subText = "SURVIVE FOR 15 SECONDS!";
+            subText = "SURVIVE AND  COLLECT A FULL FLIGHT!";
             levelEl.textContent = "BOSS";
             isBossMode = true;
             bossCountdown = 15; 
             bossInstance = new Boss();
-            bossTimerDisplay.style.display = 'block';
             bossTimerDisplay.innerText = bossCountdown;
             bossWarmup = true;
         }
@@ -1937,8 +1920,7 @@
         isPaused = false;
         isDoubleBubble = false;
         isBossMode = false;
-        bossTimerDisplay.style.display = 'none';
-        
+               
         hud.classList.add('hidden');
         pauseOverlay.classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
@@ -1993,8 +1975,7 @@
         
         isBossMode = false;
         bossWarmup = false;
-        bossTimerDisplay.style.display = 'none';
-        
+                
         hasSpawnedPretzelLevel3 = false;
         hasSpawnedCurdLevel3 = false;
 
@@ -2263,7 +2244,6 @@ if (isBossMode) {
             if (bossCountdown > 0) {
                 bossCountdown -= dt / 1000;
                 if (bossCountdown < 0) bossCountdown = 0;
-                bossTimerDisplay.innerText = Math.ceil(bossCountdown);
             }
             
             // Handle Phase Transitions
@@ -2275,7 +2255,6 @@ if (isBossMode) {
                 } 
                 else if (bossPhase === 2) {
                     bossPhase = 3;
-                    bossTimerDisplay.style.display = 'none';
                     vipInstance.isVipActive = true; 
                     flightCollected = [false, false, false];
                     updateFlightDisplay();
