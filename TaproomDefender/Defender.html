@@ -1456,7 +1456,7 @@
                  ctx.shadowBlur = 15;
             }
             
-                // Calculate Source Rect based on Config
+            // Calculate Source Rect based on Config
             let sx = col * frameWidth;
             let sy, sHeight;
 
@@ -1467,6 +1467,16 @@
                 sy = frameHeight + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
                 sHeight = frameHeight - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
             }
+
+            // Calculate Dest Rect (Scaling based on the new clipped height)
+            const drawW = frameWidth * ASSET_SCALES.BEER;
+            const drawH = sHeight * ASSET_SCALES.BEER;
+
+            ctx.drawImage(
+                assets.beers,
+                sx, sy, frameWidth, sHeight,
+                -drawW/2, -drawH/2, drawW, drawH
+            );
 
             ctx.restore();
         }
