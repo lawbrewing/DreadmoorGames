@@ -87,15 +87,15 @@ let SPRITE_DATA = {
 };
 
 const ASSETS_PATHS = {
-    bg: 'assets/background.png', 
-    tower: 'assets/tower.png', 
-    taps: 'assets/taps.png',
+    bg: 'https://lawbrewing.github.io/DreadmoorGames/assets/background.png', 
+    tower: 'https://lawbrewing.github.io/DreadmoorGames/assets/tower.png', 
+    taps: 'https://lawbrewing.github.io/DreadmoorGames/assets/taps.png',
     menu: 'https://lawbrewing.github.io/DreadmoorGames/assets/menu.png',
     hud_sheet: 'https://lawbrewing.github.io/DreadmoorGames/assets/hud.png',
-    viking: 'assets/viking.png', 
-    judge: 'assets/judge.png',
-    spill: 'assets/spill.png', 
-    paddles: 'assets/paddles.png'
+    viking: 'https://lawbrewing.github.io/DreadmoorGames/assets/viking.png', 
+    judge: 'https://lawbrewing.github.io/DreadmoorGames/assets/judge.png',
+    spill: 'https://lawbrewing.github.io/DreadmoorGames/assets/spill.png', 
+    paddles: 'https://lawbrewing.github.io/DreadmoorGames/assets/paddles.png'
 };
 const assets = {}; 
 
