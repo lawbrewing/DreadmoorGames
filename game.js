@@ -526,14 +526,36 @@ class Game {
 }
 
 function loadImages() {
-    let loaded = 0; const keys = Object.keys(ASSETS_PATHS);
-    keys.forEach(k => {
-        const img = new Image(); img.src = ASSETS_PATHS[k];
-        img.onload = () => { assets[k] = img; if (++loaded === keys.length) {
+    let loaded = 0; 
+    let failed = 0;
+    const keys = Object.keys(ASSETS_PATHS);
+    
+    // Check if we have successfully processed all images (either loaded or failed)
+    const checkComplete = () => {
+        if (loaded + failed === keys.length) {
+            console.log(`Loading complete. ${loaded} loaded, ${failed} failed.`);
             window.game = new Game();
             function loop() { window.game.draw(); requestAnimationFrame(loop); }
             loop();
-        }};
+        }
+    };
+
+    keys.forEach(k => {
+        const img = new Image(); 
+        
+        img.onload = () => { 
+            assets[k] = img; 
+            loaded++;
+            checkComplete();
+        };
+        
+        // --- ADDED ERROR HANDLER ---
+        img.onerror = () => {
+            console.error(`❌ ERROR: Could not find image for '${k}' at path: ${ASSETS_PATHS[k]}`);
+            failed++;
+            checkComplete(); // Keep loading the rest of the game anyway!
+        };
+        
+        img.src = ASSETS_PATHS[k];
     });
 }
-loadImages();
