@@ -162,7 +162,7 @@ class Customer {
     update() {
         if (this.state === 'walking_in') {
             this.x += (this.targetX - this.x) * 0.05;
-            if (Math.abs(this.x - this.targetX) < 5) { this.state = 'ordering'; return 'arrived'; }
+            if (Math.abs(this.x - this.targetX) < 5) { this.state = 'waiting'; return 'arrived'; }
         } else if (this.state === 'walking_out') {
             this.x += (-400 - this.x) * 0.05;
             if (this.x < -300) return 'gone';
@@ -260,7 +260,7 @@ class Game {
         } else {
             this.lives--; this.notifications.trigger("TRASH!", "#f00"); this.customer.state = 'walking_out'; 
         }
-        setTimeout(() => { this.customer = null; this.spawnCustomer(); }, 2000);
+        
     }
 
     // --- DRAWING ---
@@ -433,6 +433,22 @@ class Game {
     draw() {
         this.updatePouring();
         this.notifications.update();
+        
+        // --- ADD THIS BLOCK ---
+        if (this.customer) {
+            const status = this.customer.update();
+            
+            if (status === 'timeout') {
+                this.lives--;
+                this.notifications.trigger("WALKED OUT!", "#f00");
+                this.customer.state = 'walking_out';
+            } else if (status === 'gone') {
+                // Customer has fully walked off screen
+                this.customer = null;
+                this.spawnCustomer();
+            }
+        }
+        // ----------------------
         
         ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
