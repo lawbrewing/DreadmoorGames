@@ -559,3 +559,5 @@ function loadImages() {
         img.src = ASSETS_PATHS[k];
     });
 }
+// Start the engine!
+loadImages();
