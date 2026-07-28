@@ -57,7 +57,7 @@ let SPRITE_DATA = {
     ],
     
     // VISUAL DATA
-    tower: { x: 960, y: 1080, s: 1.0, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+    tower: { x: 960, y: 1080, s: .5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
     
     // VISUAL TAPS (Renamed key to 'taps_visual')
     taps_visual: { 
@@ -311,11 +311,14 @@ class Game {
             );
         }
 
-        if (assets.taps) {
+if (assets.taps) {
             const taps = SPRITE_DATA.taps_visual.positions;
             taps.forEach((pos, idx) => {
                 ctx.save();
-                ctx.translate(t.x + pos.x, t.y + pos.y);
+                
+                // 1. Multiply the position offsets by the tower scale (t.s)
+                ctx.translate(t.x + (pos.x * t.s), t.y + (pos.y * t.s));
+                
                 if (this.activePour.active && this.activePour.tapIndex === idx) {
                     ctx.rotate(Math.PI / 4); 
                 }
@@ -326,14 +329,16 @@ class Game {
                 let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; 
                 if (srcX < 0) srcX = 0; // SAFETY CHECK
                 
+                // 2. Scale the tap dimensions
+                let drawW = frameW * t.s;
+                let drawH = frameH * t.s;
+                
                 ctx.drawImage(assets.taps, 
                     srcX, 0, frameW, frameH, 
-                    -frameW/2, 0, frameW, frameH 
+                    -drawW/2, 0, drawW, drawH 
                 );
-                
-                ctx.restore();
 
-                // DRAW SPILL 
+                // DRAW SPILL (Moved INSIDE the save/restore block so it stays attached to the tap!)
                 if (this.activePour.active && this.activePour.tapIndex === idx && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
@@ -342,15 +347,23 @@ class Game {
                         let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0;
                         if (spX < 0) spX = 0;
 
+                        // 3. Scale the spill dimensions
+                        let spillDrawW = spW * sp.s * t.s;
+                        let spillDrawH = spH * sp.s * t.s;
+
+                        // Draw relative to the tap's local center
                         ctx.drawImage(assets.spill, 
                             spX, 0, spW, spH,
-                            sp.x, sp.y - 450, spW * sp.s, spH * sp.s
+                            sp.x * t.s, (sp.y - 450) * t.s, 
+                            spillDrawW, spillDrawH
                         );
                     }
                 }
+                
+                // Restore context at the VERY END of the loop
+                ctx.restore();
             });
         }
-    }
 
     drawBeerLife(x, y, scale, isDead) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
