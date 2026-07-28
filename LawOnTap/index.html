@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://lawbrewing.github.io/DreadmoorGames/LawOnTap/static/style.css">
 </head>
 <body>
-    
     <div id="rotate-screen">
         <div style="font-size: 4rem;">🍺</div>
         <h2>BAR CLOSED</h2>
@@ -16,49 +15,10 @@
     </div>
 
     <div id="game-container">
-        
-        <div id="bar-background"></div>
-
+        <!-- The canvas handles ALL the graphics now! -->
         <canvas id="gameCanvas"></canvas>
-
-        <div id="tap-0" class="tap-station" style="left: 20%;">
-            <div class="tower"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="handle"></div>
-            <div class="hitbox" data-tap="0"></div>
-        </div>
-
-        <div id="tap-1" class="tap-station" style="left: 50%;">
-            <div class="tower"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="handle"></div>
-            <div class="hitbox" data-tap="1"></div>
-        </div>
-
-        <div id="tap-2" class="tap-station" style="left: 80%;">
-            <div class="tower"></div>
-            <div class="glass-container">
-                <div class="empty-glass"></div>
-                <div class="liquid-mask">
-                    <div class="full-glass-sprite"></div>
-                </div>
-            </div>
-            <div class="handle"></div>
-            <div class="hitbox" data-tap="2"></div>
-        </div>
-
     </div>
 
-    <script src="https://lawbrewing.github.io/DreadmoorGames/LawOnTap/static/game.js"></script>
+    <script src="static/game.js"></script>
 </body>
 </html>
