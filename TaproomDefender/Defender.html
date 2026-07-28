@@ -468,7 +468,7 @@
                  </div>
             </div>
         </div>
-
+    </div>
     <div id="pause-overlay" class="hidden">
         <button id="pause-btn" class="pause-btn">PAUSE (P)</button>
     </div>
@@ -1842,7 +1842,6 @@
             isBossMode = true;
             bossCountdown = 15; 
             bossInstance = new Boss();
-            bossTimerDisplay.innerText = bossCountdown;
             bossWarmup = true;
         }
         else if (newLevel <= levelsConfig.length) {
