@@ -87,15 +87,15 @@ let SPRITE_DATA = {
 };
 
 const ASSETS_PATHS = {
-    bg: '/assets/background.png', 
-    tower: '/assets/tower.png', 
-    taps: '/assets/taps.png',
-    menu: '/assets/menu.png',
-    hud_sheet: '/assets/hud.png',
-    viking: '/assets/viking.png', 
-    judge: '/assets/judge.png',
-    spill: '/assets/spill.png', 
-    paddles: '/assets/paddles.png'
+    bg: 'assets/background.png', 
+    tower: 'assets/tower.png', 
+    taps: 'assets/taps.png',
+    menu: 'assets/menu.png',
+    hud_sheet: 'assets/hud.png',
+    viking: 'assets/viking.png', 
+    judge: 'assets/judge.png',
+    spill: 'assets/spill.png', 
+    paddles: 'assets/paddles.png'
 };
 const assets = {}; 
 
