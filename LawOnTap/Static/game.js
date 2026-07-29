@@ -58,7 +58,9 @@ let SPRITE_DATA = {
     
     // VISUAL DATA
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
-    towers: [
+    towers_visual: {
+        s: 0.5, // Default scale for towers
+        positions: [
         { x: 388,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
         { x: 1025,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
         { x: 1630, y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
