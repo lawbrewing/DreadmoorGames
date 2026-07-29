@@ -302,21 +302,31 @@ class Game {
     }
 
     drawTower() {
-        // DRAW 3 INDEPENDENT TOWERS
-        if (assets.tower && SPRITE_DATA.towers) {
-            SPRITE_DATA.towers.forEach(t => {
-                const tw = assets.tower.width * t.s;
-                const th = assets.tower.height * t.s;
+        // DRAW 3 INDEPENDENT TOWERS FROM THE SPRITE SHEET
+        if (assets.tower && SPRITE_DATA.towers_visual) {
+            const towersData = SPRITE_DATA.towers_visual;
+            const towerScale = towersData.s || 0.5;
+            
+            // Assume tower.png is split into 3 vertical columns (one for each tower style)
+            let frameW = assets.tower.width / 3;
+            let frameH = assets.tower.height;
+
+            towersData.positions.forEach((t, idx) => {
+                ctx.save();
                 
-                let srcX = (t.clip && t.clip.sw > 0) ? t.clip.sx : 0; if (srcX < 0) srcX = 0;
-                let srcY = (t.clip && t.clip.sy > 0) ? t.clip.sy : 0;
-                let srcW = (t.clip && t.clip.sw > 0) ? t.clip.sw : assets.tower.width;
-                let srcH = (t.clip && t.clip.sh > 0) ? t.clip.sh : assets.tower.height;
+                // EXACT GLOBAL X AND Y - NO MATH REQUIRED!
+                ctx.translate(t.x, t.y);
+
+                let srcX = idx * frameW; // Automatically picks Column 0, 1, or 2 based on the array position
+                let drawW = frameW * towerScale;
+                let drawH = frameH * towerScale;
 
                 ctx.drawImage(assets.tower, 
-                    srcX, srcY, srcW, srcH, 
-                    t.x - tw/2, t.y - th, tw, th
+                    srcX, 0, frameW, frameH, 
+                    -drawW/2, -drawH, drawW, drawH
                 );
+                
+                ctx.restore();
             });
         }
 
