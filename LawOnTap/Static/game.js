@@ -59,9 +59,9 @@ let SPRITE_DATA = {
     // VISUAL DATA
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
     towers: [
-        { x: 500,  y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
-        { x: 960,  y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
-        { x: 1420, y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
+        { x: 388,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
+        { x: 1025,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
+        { x: 1630, y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
     ],
     
     // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
