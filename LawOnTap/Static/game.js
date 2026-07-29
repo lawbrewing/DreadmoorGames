@@ -57,21 +57,29 @@ let SPRITE_DATA = {
     ],
     
     // VISUAL DATA
-    tower: { x: 960, y: 1000, s: .5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+    // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
+    towers: [
+        { x: 500,  y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
+        { x: 960,  y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
+        { x: 1420, y: 1080, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
+    ],
     
-    // VISUAL TAPS (Renamed key to 'taps_visual')
+    // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
     taps_visual: { 
+        s: 1.0, 
         positions: [
-            {x: -180, y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
-            {x: 0,    y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}, 
-            {x: 180,  y: -350, clip: {sx:0, sy:0, sw:0, sh:0}}
+            { x: 500,  y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
+            { x: 960,  y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
+            { x: 1420, y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
         ],
     },
     
+    // SPILLS (These are just offsets from the Tap Handle above them)
+    // X: 0 means perfectly centered under the tap. Y: 300 means 300px below it.
     spills: [
-        { x: -64, y: 450, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: -29, y: 454, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 8,   y: 451, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+        { x: -20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: 0,   y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
+        { x: 20,  y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
     ],
 
     paddles: [
@@ -294,78 +302,75 @@ class Game {
     }
 
     drawTower() {
-        const t = SPRITE_DATA.tower;
-        if (assets.tower) {
-            const tw = assets.tower.width * t.s;
-            const th = assets.tower.height * t.s;
-            
-            // Safe Source X logic
-            let srcX = (t.clip && t.clip.sw > 0) ? t.clip.sx : 0;
-            if (srcX < 0) srcX = 0; // SAFETY CHECK
-            let srcY = (t.clip && t.clip.sh > 0) ? t.clip.sy : 0;
-            let srcW = (t.clip && t.clip.sw > 0) ? t.clip.sw : assets.tower.width;
-            let srcH = (t.clip && t.clip.sh > 0) ? t.clip.sh : assets.tower.height;
+        // DRAW 3 INDEPENDENT TOWERS
+        if (assets.tower && SPRITE_DATA.towers) {
+            SPRITE_DATA.towers.forEach(t => {
+                const tw = assets.tower.width * t.s;
+                const th = assets.tower.height * t.s;
+                
+                let srcX = (t.clip && t.clip.sw > 0) ? t.clip.sx : 0; if (srcX < 0) srcX = 0;
+                let srcY = (t.clip && t.clip.sy > 0) ? t.clip.sy : 0;
+                let srcW = (t.clip && t.clip.sw > 0) ? t.clip.sw : assets.tower.width;
+                let srcH = (t.clip && t.clip.sh > 0) ? t.clip.sh : assets.tower.height;
 
-            ctx.drawImage(assets.tower, 
-                srcX, srcY, srcW, srcH, 
-                t.x - tw/2, t.y - th, tw, th
-            );
+                ctx.drawImage(assets.tower, 
+                    srcX, srcY, srcW, srcH, 
+                    t.x - tw/2, t.y - th, tw, th
+                );
+            });
         }
 
-if (assets.taps) {
-            const taps = SPRITE_DATA.taps_visual.positions;
-            taps.forEach((pos, idx) => {
+        // DRAW 3 INDEPENDENT TAPS
+        if (assets.taps && SPRITE_DATA.taps_visual) {
+            const tapsData = SPRITE_DATA.taps_visual;
+            const tapScale = tapsData.s || 1.0;
+            
+            tapsData.positions.forEach((pos, idx) => {
                 ctx.save();
                 
-                // 1. Multiply the position offsets by the tower scale (t.s)
-                ctx.translate(t.x + (pos.x * t.s), t.y + (pos.y * t.s));
+                // EXACT GLOBAL X AND Y - NO MATH REQUIRED!
+                ctx.translate(pos.x, pos.y);
                 
                 if (this.activePour.active && this.activePour.tapIndex === idx) {
                     ctx.rotate(Math.PI / 4); 
                 }
                 
-                // FORCE 1/3 WIDTH FOR TAPS
                 let frameW = assets.taps.width / 3;
                 let frameH = assets.taps.height;
-                let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; 
-                if (srcX < 0) srcX = 0; // SAFETY CHECK
+                let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; if (srcX < 0) srcX = 0;
                 
-                // 2. Scale the tap dimensions
-                let drawW = frameW * t.s;
-                let drawH = frameH * t.s;
+                let drawW = frameW * tapScale;
+                let drawH = frameH * tapScale;
                 
                 ctx.drawImage(assets.taps, 
                     srcX, 0, frameW, frameH, 
                     -drawW/2, 0, drawW, drawH 
                 );
 
-                // DRAW SPILL (Moved INSIDE the save/restore block so it stays attached to the tap!)
+                // DRAW SPILL
                 if (this.activePour.active && this.activePour.tapIndex === idx && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
                         let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
                         let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
-                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0;
-                        if (spX < 0) spX = 0;
+                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (spX < 0) spX = 0;
 
-                        // 3. Scale the spill dimensions
-                        let spillDrawW = spW * sp.s * t.s;
-                        let spillDrawH = spH * sp.s * t.s;
+                        let spillDrawW = spW * sp.s * tapScale;
+                        let spillDrawH = spH * sp.s * tapScale;
 
-                        // Draw relative to the tap's local center
+                        // Spill uses simple pixel offsets from the Tap Handle
                         ctx.drawImage(assets.spill, 
                             spX, 0, spW, spH,
-                            sp.x * t.s, (sp.y - 450) * t.s, 
+                            sp.x, sp.y, 
                             spillDrawW, spillDrawH
                         );
                     }
                 }
                 
-                // Restore context at the VERY END of the loop
                 ctx.restore();
             });
         }
-    } 
+    }
 
     drawBeerLife(x, y, scale, isDead) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
