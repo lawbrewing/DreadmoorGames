@@ -304,22 +304,19 @@ class Game {
     }
 
     drawTower() {
-        // DRAW 3 INDEPENDENT TOWERS FROM THE SPRITE SHEET
+        // 1. DRAW 3 INDEPENDENT TOWERS FROM THE SPRITE SHEET
         if (assets.tower && SPRITE_DATA.towers_visual) {
             const towersData = SPRITE_DATA.towers_visual;
             const towerScale = towersData.s || 0.5;
             
-            // Assume tower.png is split into 3 vertical columns (one for each tower style)
             let frameW = assets.tower.width / 3;
             let frameH = assets.tower.height;
 
             towersData.positions.forEach((t, idx) => {
                 ctx.save();
-                
-                // EXACT GLOBAL X AND Y - NO MATH REQUIRED!
                 ctx.translate(t.x, t.y);
 
-                let srcX = idx * frameW; // Automatically picks Column 0, 1, or 2 based on the array position
+                let srcX = idx * frameW; 
                 let drawW = frameW * towerScale;
                 let drawH = frameH * towerScale;
 
@@ -332,45 +329,45 @@ class Game {
             });
         }
 
-        // DRAW 3 INDEPENDENT TAPS
+        // 2. DRAW 3 INDEPENDENT TAPS (2 Rows x 3 Columns)
         if (assets.taps && SPRITE_DATA.taps_visual) {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
             
+            // 3 columns wide, 2 rows high
+            let frameW = assets.taps.width / 3;
+            let frameH = assets.taps.height / 2;
+            
             tapsData.positions.forEach((pos, idx) => {
                 ctx.save();
-                
-                // EXACT GLOBAL X AND Y - NO MATH REQUIRED!
                 ctx.translate(pos.x, pos.y);
                 
-                if (this.activePour.active && this.activePour.tapIndex === idx) {
-                    ctx.rotate(Math.PI / 4); 
-                }
+                // Column index (0, 1, or 2) based on which tap this is
+                let srcX = idx * frameW;
                 
-                let frameW = assets.taps.width / 3;
-                let frameH = assets.taps.height;
-                let srcX = (pos.clip && pos.clip.sw > 0) ? pos.clip.sx : 0; if (srcX < 0) srcX = 0;
+                // Row index: Top row (0) if closed, Bottom row (1) if actively pouring this tap!
+                let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
+                let srcY = isPouring ? frameH : 0; 
                 
                 let drawW = frameW * tapScale;
                 let drawH = frameH * tapScale;
                 
                 ctx.drawImage(assets.taps, 
-                    srcX, 0, frameW, frameH, 
+                    srcX, srcY, frameW, frameH, 
                     -drawW/2, 0, drawW, drawH 
                 );
 
-                // DRAW SPILL
-                if (this.activePour.active && this.activePour.tapIndex === idx && this.activePour.spillTimer > 0) {
+                // DRAW SPILL (Only if this specific tap is pouring and spilling)
+                if (isPouring && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
                         let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
                         let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
-                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (spX < 0) spX = 0;
+                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (srcX < 0) srcX = 0;
 
                         let spillDrawW = spW * sp.s * tapScale;
                         let spillDrawH = spH * sp.s * tapScale;
 
-                        // Spill uses simple pixel offsets from the Tap Handle
                         ctx.drawImage(assets.spill, 
                             spX, 0, spW, spH,
                             sp.x, sp.y, 
