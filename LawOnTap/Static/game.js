@@ -68,11 +68,11 @@ let SPRITE_DATA = {
 }, 
     // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
     taps_visual: { 
-        s: .25, 
+        s: .5, 
         positions: [
-            { x: 388,  y: 150, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
-            { x: 1025,  y: 150, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
-            { x: 1662, y: 150, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
+            { x: 388,  y: 180, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
+            { x: 1025,  y: 180, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
+            { x: 1662, y: 180, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
         ],
     },
     
