@@ -32,10 +32,10 @@ const RECIPES = {
 
 const CUSTOMER_TYPES = {
     'viking':  { id: 'viking',  patience: 15000, orders: ['stout'] },
-    'hipster': { id: 'viking',  patience: 12000, orders: ['ipa'] }, 
-    'regular': { id: 'viking',  patience: 12000, orders: ['lager'] }, 
-    'vip':     { id: 'judge',   patience: 20000, orders: ['all_pure', 'all_mixed'] }, 
-    'karen':   { id: 'judge',   patience: 10000, orders: ['???'] }, 
+    'hipster': { id: 'hipster', patience: 12000, orders: ['ipa'] }, 
+    'regular': { id: 'regular', patience: 12000, orders: ['lager'] }, 
+    'vip':     { id: 'vip',     patience: 20000, orders: ['all_pure', 'all_mixed'] }, 
+    'karen':   { id: 'karen',   patience: 10000, orders: ['???'] }, 
     'judge':   { id: 'judge',   patience: 25000, orders: ['flight'] }
 };
 
@@ -70,9 +70,9 @@ let SPRITE_DATA = {
     taps_visual: { 
         s: .5, 
         positions: [
-            { x: 377,  y: 84, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
-            { x: 968,  y: 89, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
-            { x: 1576, y: 84, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,      clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap: 90 deg clockwise
+            { x: 968,  y: 89,  openRotation: Math.PI,         clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap: 180 deg
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,    clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap: 90 deg counter-clockwise
         ],
     },
     
@@ -90,9 +90,13 @@ let SPRITE_DATA = {
     ],
 
     customers: [
-        // Note: sx is -98. We will handle this as a DESTINATION offset in the draw loop, not a source clip.
-        { id: 'viking', name: "Viking", poses: [ {x:167, y:966, s:.48, clip:{sx:-98, sy:0, sw:0, sh:0}} ] },
-        { id: 'judge',  name: "Judge",  poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
+        { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'judge',   name: "Judge",   poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        // Added the missing cast:
+        { id: 'hipster', name: "Hipster", poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'regular', name: "Regular", poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'vip',     name: "VIP",     poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
+        { id: 'karen',   name: "Karen",   poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
     ]
 };
 
@@ -104,6 +108,10 @@ const ASSETS_PATHS = {
     hud_sheet: 'assets/hud.png',
     viking: 'assets/viking.png', 
     judge: 'assets/judge.png',
+    hipster: 'assets/hipster.png', // Added
+    regular: 'assets/regular.png', // Added
+    vip: 'assets/vip.png',         // Added
+    karen: 'assets/karen.png',     // Added
     spill: 'assets/spill.png', 
     paddles: 'assets/paddles.png'
 };
@@ -201,11 +209,17 @@ class Game {
     spawnCustomer() {
         if (this.customer) return;
         const rnd = Math.random();
+        
         if (rnd > 0.9) {
+            // 10% chance for the Boss (Judge)
             this.notifications.trigger("JUDGE INCOMING!", "#f00", 180);
             setTimeout(() => { this.customer = new Customer('judge'); }, 3000);
         } else {
-            this.customer = new Customer('viking');
+            // 90% chance to pick a random standard customer
+            const standardPool = ['viking', 'hipster', 'regular', 'vip', 'karen'];
+            const randomType = standardPool[Math.floor(Math.random() * standardPool.length)];
+            
+            this.customer = new Customer(randomType);
         }
     }
 
@@ -329,12 +343,11 @@ class Game {
             });
         }
 
-        // 2. DRAW 3 INDEPENDENT TAPS (2 Rows x 3 Columns)
+        // 2. DRAW 3 INDEPENDENT TAPS WITH INDIVIDUAL ROTATIONS
         if (assets.taps && SPRITE_DATA.taps_visual) {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
             
-            // 3 columns wide, 2 rows high
             let frameW = assets.taps.width / 3;
             let frameH = assets.taps.height / 2;
             
@@ -342,11 +355,14 @@ class Game {
                 ctx.save();
                 ctx.translate(pos.x, pos.y);
                 
-                // Column index (0, 1, or 2) based on which tap this is
-                let srcX = idx * frameW;
-                
-                // Row index: Top row (0) if closed, Bottom row (1) if actively pouring this tap!
                 let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
+                
+                // Apply specific rotation only when open/pouring
+                if (isPouring && pos.openRotation !== undefined) {
+                    ctx.rotate(pos.openRotation);
+                }
+                
+                let srcX = idx * frameW;
                 let srcY = isPouring ? frameH : 0; 
                 
                 let drawW = frameW * tapScale;
@@ -357,13 +373,13 @@ class Game {
                     -drawW/2, 0, drawW, drawH 
                 );
 
-                // DRAW SPILL (Only if this specific tap is pouring and spilling)
+                // DRAW SPILL
                 if (isPouring && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
                         let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
                         let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
-                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (srcX < 0) srcX = 0;
+                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (spX < 0) spX = 0;
 
                         let spillDrawW = spW * sp.s * tapScale;
                         let spillDrawH = spH * sp.s * tapScale;
