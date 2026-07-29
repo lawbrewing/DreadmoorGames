@@ -47,7 +47,7 @@ let SPRITE_DATA = {
         gameOver: { x: 969, y: 56, s: .45, visible: false },
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
-    menu: { x: 218, targetY: 295, s: 0.30, textX: 0, textY: 0 },
+    menu: { x: 190, targetY: 295, s: 0.40, textX: 0, textY: 0 },
     
     // Tap Hitboxes (Renamed to avoid conflict)
     taps_hitboxes: [
@@ -73,9 +73,9 @@ let SPRITE_DATA = {
             // Left Tap: 90 deg clockwise
             { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Middle Tap: 180 deg
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 65, y: 470 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Right Tap: 90 deg counter-clockwise
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -310, y: 182 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
         ],
     },
     
