@@ -71,11 +71,11 @@ let SPRITE_DATA = {
         s: .5, 
         positions: [
             // Left Tap: 90 deg clockwise
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 300, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Middle Tap: 180 deg
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Right Tap: 90 deg counter-clockwise
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -300, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
         ],
     },
     
@@ -346,28 +346,37 @@ class Game {
             });
         }
 
-        // 2. DRAW 3 INDEPENDENT TAPS WITH INDIVIDUAL ROTATIONS
+        // 2. DRAW 3 INDEPENDENT TAPS (2 Rows x 3 Columns)
         if (assets.taps && SPRITE_DATA.taps_visual) {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
             
+            // 3 columns wide, 2 rows high
             let frameW = assets.taps.width / 3;
             let frameH = assets.taps.height / 2;
             
             tapsData.positions.forEach((pos, idx) => {
-                ctx.save();
+                ctx.save(); // Global save for this tap station
                 ctx.translate(pos.x, pos.y);
                 
                 let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
                 
-                // Apply specific rotation only when open/pouring
-                if (isPouring && pos.openRotation !== undefined) {
-                    ctx.rotate(pos.openRotation);
+                // --- DRAW THE TAP HANDLE ---
+                ctx.save(); // Save BEFORE applying open-state rotation/offsets
+                
+                if (isPouring) {
+                    // 1. Nudge the handle in normal screen space (X is left/right, Y is up/down)
+                    if (pos.openOffset) {
+                        ctx.translate(pos.openOffset.x, pos.openOffset.y);
+                    }
+                    // 2. Rotate it AFTER translating it
+                    if (pos.openRotation !== undefined) {
+                        ctx.rotate(pos.openRotation);
+                    }
                 }
                 
                 let srcX = idx * frameW;
                 let srcY = isPouring ? frameH : 0; 
-                
                 let drawW = frameW * tapScale;
                 let drawH = frameH * tapScale;
                 
@@ -375,14 +384,17 @@ class Game {
                     srcX, srcY, frameW, frameH, 
                     -drawW/2, 0, drawW, drawH 
                 );
+                
+                ctx.restore(); // Restore so the spill doesn't inherit the tap's rotation/offset!
+                // -----------------------------
 
-                // DRAW SPILL
+                // --- DRAW THE SPILL ---
                 if (isPouring && this.activePour.spillTimer > 0) {
                     if (assets.spill) {
                         const sp = SPRITE_DATA.spills[idx];
                         let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
                         let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
-                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0; if (spX < 0) spX = 0;
+                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0;
 
                         let spillDrawW = spW * sp.s * tapScale;
                         let spillDrawH = spH * sp.s * tapScale;
@@ -394,8 +406,9 @@ class Game {
                         );
                     }
                 }
+                // -----------------------------
                 
-                ctx.restore();
+                ctx.restore(); // End global save for this tap station
             });
         }
     }
