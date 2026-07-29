@@ -71,11 +71,11 @@ let SPRITE_DATA = {
         s: .5, 
         positions: [
             // Left Tap: 90 deg clockwise
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Middle Tap: 180 deg
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
             // Right Tap: 90 deg counter-clockwise
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: 0, y: 1000 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
         ],
     },
     
