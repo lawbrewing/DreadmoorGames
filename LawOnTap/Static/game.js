@@ -364,6 +364,7 @@ if (assets.taps) {
                 ctx.restore();
             });
         }
+    } 
 
     drawBeerLife(x, y, scale, isDead) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
