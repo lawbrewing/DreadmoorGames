@@ -57,7 +57,7 @@ let SPRITE_DATA = {
     ],
     
     // VISUAL DATA
-    tower: { x: 960, y: 930, s: .5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+    tower: { x: 960, y: 1000, s: .5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
     
     // VISUAL TAPS (Renamed key to 'taps_visual')
     taps_visual: { 
