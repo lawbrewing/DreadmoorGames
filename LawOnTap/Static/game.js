@@ -65,14 +65,17 @@ let SPRITE_DATA = {
         { x: 1025,  y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
         { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
     ],
-}, 
-    // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
+},
+    // 3 INDEPENDENT TAPS
     taps_visual: { 
         s: .5, 
         positions: [
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,      clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap: 90 deg clockwise
-            { x: 968,  y: 89,  openRotation: Math.PI,         clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap: 180 deg
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,    clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap: 90 deg counter-clockwise
+            // Left Tap: 90 deg clockwise
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            // Middle Tap: 180 deg
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            // Right Tap: 90 deg counter-clockwise
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: 0, y: 300 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
         ],
     },
     
