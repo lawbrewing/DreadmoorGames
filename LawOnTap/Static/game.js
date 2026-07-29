@@ -68,9 +68,9 @@ let SPRITE_DATA = {
     taps_visual: { 
         s: 1.0, 
         positions: [
-            { x: 500,  y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
-            { x: 960,  y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
-            { x: 1420, y: 730, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
+            { x: 388,  y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
+            { x: 1025,  y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
+            { x: 1630, y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
         ],
     },
     
