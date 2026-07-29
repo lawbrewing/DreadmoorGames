@@ -61,18 +61,18 @@ let SPRITE_DATA = {
     towers_visual: {
         s: 0.5, // Default scale for towers
         positions: [
-        { x: 388,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
-        { x: 1025,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
-        { x: 1630, y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
+        { x: 388,  y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
+        { x: 1025,  y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
+        { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
     ],
 }, 
     // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
     taps_visual: { 
         s: 1.0, 
         positions: [
-            { x: 388,  y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
-            { x: 1025,  y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
-            { x: 1630, y: 860, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
+            { x: 388,  y: 300, clip: {sx:0, sy:0, sw:0, sh:0} }, // Left Tap
+            { x: 1025,  y: 300, clip: {sx:0, sy:0, sw:0, sh:0} }, // Middle Tap
+            { x: 1662, y: 300, clip: {sx:0, sy:0, sw:0, sh:0} }  // Right Tap
         ],
     },
     
