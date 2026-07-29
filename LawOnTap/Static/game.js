@@ -65,7 +65,7 @@ let SPRITE_DATA = {
         { x: 1025,  y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
         { x: 1630, y: 860, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
     ],
-    
+}, 
     // 3 INDEPENDENT TAPS (Using exact Global X/Y - No Math!)
     taps_visual: { 
         s: 1.0, 
