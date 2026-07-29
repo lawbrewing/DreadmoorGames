@@ -181,6 +181,7 @@ class Game {
         this.customer = null; this.menuAnim = { y: -600 };
         this.activePour = { active: false, tapIndex: -1, spillTimer: 0 };
         this.notifications = new NotificationSystem();
+        this.debugPos = { x: 0, y: 0 };
         
         this.initInput();
         this.resize();
@@ -442,6 +443,14 @@ if (assets.taps) {
         canvas.addEventListener('mouseup', handleEnd);
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
         canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleEnd(); });
+        // --- ADD STEP B RIGHT HERE ---
+        canvas.addEventListener('mousemove', (e) => {
+            if (this.debugPos) this.debugPos = getPos(e);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (this.debugPos) this.debugPos = getPos(e);
+        }, { passive: true });
+        // -----------------------------
     }
 
     draw() {
@@ -523,6 +532,27 @@ if (assets.taps) {
         
         this.notifications.draw();
 
+        // --- ADD STEP C RIGHT HERE ---
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(10, 10, 300, 60);
+        ctx.fillStyle = "#0f0"; // Neon green
+        ctx.font = "30px monospace";
+        ctx.textAlign = "left";
+        ctx.fillText(`X: ${Math.round(this.debugPos.x)}`, 20, 40);
+        ctx.fillText(`Y: ${Math.round(this.debugPos.y)}`, 160, 40);
+
+        ctx.strokeStyle = "#0f0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.debugPos.x - 20, this.debugPos.y);
+        ctx.lineTo(this.debugPos.x + 20, this.debugPos.y);
+        ctx.moveTo(this.debugPos.x, this.debugPos.y - 20);
+        ctx.lineTo(this.debugPos.x, this.debugPos.y + 20);
+        ctx.stroke();
+        ctx.restore();
+        // -----------------------------
+        
         ctx.restore();
     }
 
