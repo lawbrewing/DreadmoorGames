@@ -28,6 +28,7 @@
         }
 
         /* --- Background Logo --- */
+        /* --- Background Logo --- */
         #bg-logo {
             position: absolute;
             top: 50%;
@@ -41,11 +42,30 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: opacity 1.5s ease-in-out; /* Smooth fade in */
         }
 
         #bg-logo svg {
             width: 100%;
             height: 100%;
+        }
+
+        /* --- NEON ACCENT CLASSES --- */
+        .neon-glow {
+            opacity: 0.6 !important; /* Bumps up overall visibility */
+        }
+
+        /* Outer circle gets a Cyan glow */
+        .neon-glow circle {
+            filter: drop-shadow(0 0 15px #00ffff) drop-shadow(0 0 30px #00ffff);
+            transition: filter 1.5s ease-in-out;
+        }
+
+        /* Inner polygon and text get a Pink/Purple glow */
+        .neon-glow polygon,
+        .neon-glow text {
+            filter: drop-shadow(0 0 10px #ff00ff) drop-shadow(0 0 20px #ff00ff);
+            transition: filter 1.5s ease-in-out;
         }
 
         #gameCanvas {
@@ -911,8 +931,10 @@
     const levelsConfig = [
         { scoreToClear: 1000, spawnIntervalMs: 1500, speedMultiplier: 1.0, thiefSpawnMs: 999999, vipActive: false }, 
         { scoreToClear: 3000, spawnIntervalMs: 1200, speedMultiplier: 1.3, thiefSpawnMs: 7000, vipActive: false }, 
-        { scoreToClear: 15000, spawnIntervalMs: 1000, speedMultiplier: 1.6, thiefSpawnMs: 6000, vipActive: true },
-        // Level 4 is BOSS MODE
+        { scoreToClear: 6000, spawnIntervalMs: 1000, speedMultiplier: 1.5, thiefSpawnMs: 6000, vipActive: true }, // Lvl 3: Dinner Rush (VIP)
+        { scoreToClear: 10000, spawnIntervalMs: 850, speedMultiplier: 1.7, thiefSpawnMs: 5000, vipActive: true }, // Lvl 4: Prime Time (Curds)
+        { scoreToClear: 15000, spawnIntervalMs: 700, speedMultiplier: 1.9, thiefSpawnMs: 4000, vipActive: true }, // Lvl 5: Late Night (Pretzels)
+        // Level 6 is BOSS MODE
     ];
 
     // Game State
@@ -1075,7 +1097,7 @@
                     
                     streak++;
                     let multiplier = 1 + (Math.floor(streak / 3) * 0.2);
-                    let points = Math.floor(100 * multiplier);
+                    let points = Math.floor(200 * multiplier);
                     let text = `+${points}`;
                     let soundType = 'explosion';
 
@@ -1157,16 +1179,21 @@
             const size = HUD_CONFIG.paddleBeers.size;
             const dh = (sHeight / frameW) * size;
 
+            // NEW: Set the trim amount (match this to what you used in the Beer class)
+            const trimX = 6; 
+
             for(let i=0; i<3; i++) {
                 if(flightCollected[i]) {
                     const centerX = startX + (i * spacing);
                     const centerY = pH / 2 + yOffset;
 
-                    const sx = i * frameW;
+                    // NEW: Apply the trim to the source X and Width
+                    const sx = (i * frameW) + trimX;
+                    const sWidth = frameW - (trimX * 2);
                     
                     // Move beer UP by 15px to simulate sitting ON the paddle
                     ctx.drawImage(assets.beers, 
-                        sx, sy, frameW, sHeight,
+                        sx, sy, sWidth, sHeight, // Now using sWidth instead of frameW
                         centerX - size/2, centerY - dh/2, size, dh
                     );
                 }
@@ -1820,7 +1847,7 @@
     /* --- GAME LOOP & LOGIC --- */
 
     function checkLevelUp() {
-        if (currentLevel < 4 && !isBossMode) {
+        if (currentLevel < 6 && !isBossMode) { // Changed from 4 to 6
             const currentLevelIndex = currentLevel - 1;
             const requiredScore = levelsConfig[currentLevelIndex].scoreToClear;
             if (score >= requiredScore) {
@@ -1839,7 +1866,7 @@
         
         let titleText, subText;
 
-        if (newLevel === 4) {
+        if (newLevel === 6) {
             titleText = "BOSS WAVE";
             subText = "SURVIVE AND  COLLECT A FULL FLIGHT!";
             levelEl.textContent = "BOSS";
@@ -1894,7 +1921,7 @@
                     bossWarmup = false; 
                     createFloatingText(canvas.width/2, canvas.height/2, "SURVIVE!", "red");
                 }, 3000); 
-            } else if (newLevel === 5) {
+            } else if (newLevel === 7) {
                 switchMusic('main'); 
                 isTransitioning = false;
             } else {
@@ -1967,6 +1994,7 @@
 
         scoreEl.innerText = score;
         levelEl.innerText = currentLevel;
+        document.getElementById('bg-logo').classList.remove('neon-glow');
         
         beers = []; particles = []; clickEffects = []; thieves = []; pretzels = []; curds = []; puddles = [];
         spawnTimer = 0; thiefSpawnTimer = 0;
@@ -2063,7 +2091,7 @@
 
    function renderTutorialIcons() { 
         // Helper to draw sprites manually for the tutorial without using Game Classes
-        // This ensures they fit in the small UI boxes
+        const trimX = 6; // The magic bleed-fix number
         
         // 1. Swill (Bad Beer)
         const swillCanvas = document.getElementById('demo-swill');
@@ -2076,8 +2104,8 @@
             const sy = fh + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
             const sh = fh - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
             
-            // Draw scaled down
-            ctx.drawImage(assets.beers, 0, sy, fw, sh, 5, 5, 30, 40); 
+            // Draw trimmed
+            ctx.drawImage(assets.beers, trimX, sy, fw - (trimX * 2), sh, 5, 5, 30, 40); 
         }
 
         // 2. Law (Good Beer)
@@ -2091,7 +2119,8 @@
             const sy = SPRITE_CONFIG.row1.top;
             const sh = fh - SPRITE_CONFIG.row1.top - SPRITE_CONFIG.row1.bottom;
             
-            ctx.drawImage(assets.beers, 0, sy, fw, sh, 5, 5, 30, 40); 
+            // Draw trimmed
+            ctx.drawImage(assets.beers, trimX, sy, fw - (trimX * 2), sh, 5, 5, 30, 40); 
         }
 
         // 3. Green/Bad (Using another Swill frame)
@@ -2105,8 +2134,8 @@
             const sy = fh + SPRITE_CONFIG.row2.offset + SPRITE_CONFIG.row2.top;
             const sh = fh - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
             
-            // Use 2nd column for variety
-            ctx.drawImage(assets.beers, fw, sy, fw, sh, 5, 5, 30, 40); 
+            // Draw trimmed (Use 2nd column)
+            ctx.drawImage(assets.beers, fw + trimX, sy, fw - (trimX * 2), sh, 5, 5, 30, 40); 
         }
 
         // 4. Pretzel
@@ -2298,23 +2327,29 @@ if (isBossMode) {
                     if (safeX !== null) beers.push(new Beer(currentLevel, safeX));
                 }
                 
-                if (!isDoubleBubble && currentLevel === 3) {
+                if (!isDoubleBubble && currentLevel >= 3) {
                     if (beers.length + pretzels.length + curds.length < spawnCap) {
-                        if (Math.random() < 0.04) {
-                            let safeX = getSafeSpawnX();
-                            if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
-                        }
-                        if (Math.random() < 0.03) {
+                        
+                        // Level 4 (6,000 pts): Introduce Cheese Curds (Shields)
+                        if (currentLevel >= 4 && Math.random() < 0.03) {
                             let safeX = getSafeSpawnX();
                             if (safeX !== null) { curds.push(new CheeseCurd(safeX)); hasSpawnedCurdLevel3 = true; }
                         }
-                        if (score > 350 && !hasSpawnedPretzelLevel3) {
-                             let safeX = getSafeSpawnX();
-                             if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
+                        
+                        // Level 5 (10,000 pts): Introduce Pretzels (Lives)
+                        if (currentLevel >= 5 && Math.random() < 0.03) {
+                            let safeX = getSafeSpawnX();
+                            if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
                         }
-                        if (score > 450 && !hasSpawnedCurdLevel3) {
+
+                        // Guaranteed drops so the player definitely sees them shortly after unlocking
+                        if (currentLevel >= 4 && score > 6500 && !hasSpawnedCurdLevel3) {
                              let safeX = getSafeSpawnX();
                              if (safeX !== null) { curds.push(new CheeseCurd(safeX)); hasSpawnedCurdLevel3 = true; }
+                        }
+                        if (currentLevel >= 5 && score > 10500 && !hasSpawnedPretzelLevel3) {
+                             let safeX = getSafeSpawnX();
+                             if (safeX !== null) { pretzels.push(new Pretzel(safeX)); hasSpawnedPretzelLevel3 = true; }
                         }
                     }
                 }
@@ -2379,7 +2414,7 @@ if (isBossMode) {
                                         if (lives === 3) {
                                             flightStreak++;
                                             updateFlightBonusDisplay();
-                                            let bonus = (flightStreak === 1) ? 1000 : (flightStreak === 2 ? 2500 : 5000);
+                                            let bonus = (flightStreak === 1) ? 500 : (flightStreak === 2 ? 800 : 1000);
                                             let msg = flightStreak >= 3 ? "MAX FLIGHT BONUS" : `FLIGHT BONUS ${flightStreak}`;
             
                                             score += bonus;
@@ -2508,6 +2543,10 @@ if (isBossMode) {
         for (let i = clickEffects.length - 1; i >= 0; i--) { const c = clickEffects[i]; c.age++; ctx.fillStyle = `rgba(255, 255, 255, ${1 - c.age / 10})`; ctx.beginPath(); ctx.arc(c.x, c.y, 10 * (c.age / 10), 0, Math.PI * 2); ctx.fill(); if (c.age > 10) clickEffects.splice(i, 1); }
         
         ctx.restore(); 
+        const bgLogo = document.getElementById('bg-logo');
+        if (score >= 10000 && !bgLogo.classList.contains('neon-glow')) {
+            bgLogo.classList.add('neon-glow');
+        }
         checkLevelUp();
         requestAnimationFrame(gameLoop);
     }
