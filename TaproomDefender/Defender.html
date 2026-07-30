@@ -1180,7 +1180,7 @@
             const dh = (sHeight / frameW) * size;
 
             // NEW: Set the trim amount (match this to what you used in the Beer class)
-            const trimX = 6; 
+            const trimX = 10; 
 
             for(let i=0; i<3; i++) {
                 if(flightCollected[i]) {
@@ -1481,7 +1481,7 @@
             }
             
             // NEW: Shave pixels off the left/right of the frame to stop bleeding
-            const trimX = 6; // Increase this to 8 or 10 if you still see bleed
+            const trimX = 10; // Increase this to 8 or 10 if you still see bleed
             
             // Calculate Source Rect based on Config and Trim
             let sx = (col * frameWidth) + trimX;
