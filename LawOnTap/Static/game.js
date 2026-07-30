@@ -77,7 +77,7 @@ let SPRITE_DATA = {
             // Right Tap: 90 deg counter-clockwise
             { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: {sx:25, sy:0, sw: (assets.taps.width / 3) - 25, sh:0} }  
         ],
-sh:0    },
+    },
     
     // SPILLS (These are just offsets from the Tap Handle above them)
     // X: 0 means perfectly centered under the tap. Y: 300 means 300px below it.
