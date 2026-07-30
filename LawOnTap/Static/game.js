@@ -70,7 +70,7 @@ let SPRITE_DATA = {
     taps_visual: { 
         s: .5, 
         positions: [
-            // Left Tap: 90 deg clockwise
+            // Left Tap: 90 deg clockwise (Added 'clip:' here!)
             { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: { sx: 0, sy: 0, sw: (assets.taps.width / 3) - 30, sh: 0 } }, 
             // Middle Tap: 180 deg
             { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: {sx:0, sy:0, sw:0, sh: (assets.taps.height / 2) - 25} }, 
