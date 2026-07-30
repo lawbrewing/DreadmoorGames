@@ -70,14 +70,14 @@ let SPRITE_DATA = {
     taps_visual: { 
         s: .5, 
         positions: [
-            // Left Tap: 90 deg clockwise (trim 30px off the width)
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: { sx: 0, sy: 0, trimW: 30, trimH: 0 } }, 
+            // Left Tap: 90 deg clockwise (Shaved 30px off the TOP of the open sprite)
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, openClip: { sy: 30, trimH: 30 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
             
-            // Middle Tap: 180 deg (trim 25px off the bottom height)
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 25 } }, 
+            // Middle Tap: 180 deg (Shaved 25px off the TOP of the open sprite)
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 },   openClip: { sy: 25, trimH: 25 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
             
-            // Right Tap: 90 deg counter-clockwise (shift start 25px right, trim 25px off width)
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: { sx: 25, sy: 0, trimW: 25, trimH: 0 } }  
+            // Right Tap: 90 deg counter-clockwise (Shaved 25px off the TOP of the open sprite)
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, openClip: { sy: 25, trimH: 25 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }  
         ],
     },
     
@@ -375,16 +375,19 @@ class Game {
                     }
                 }
                 
-                // Safely grab your custom clips and trims
-                let clipSX = pos.clip ? (pos.clip.sx || 0) : 0;
-                let clipSY = pos.clip ? (pos.clip.sy || 0) : 0;
-                let trimW = pos.clip ? (pos.clip.trimW || 0) : 0;
-                let trimH = pos.clip ? (pos.clip.trimH || 0) : 0;
+                // SWAP CLIPS BASED ON STATE! 
+                // If pouring, use openClip. If not, use standard clip.
+                let activeClip = (isPouring && pos.openClip) ? pos.openClip : (pos.clip || {});
+                
+                let clipSX = activeClip.sx || 0;
+                let clipSY = activeClip.sy || 0;
+                let trimW = activeClip.trimW || 0;
+                let trimH = activeClip.trimH || 0;
 
                 let srcX = (idx * baseFrameW) + clipSX;
                 let srcY = (isPouring ? baseFrameH : 0) + clipSY; 
                 
-                // Apply the trims to crop out the extra pixels!
+                // Apply the trims
                 let finalFrameW = baseFrameW - trimW;
                 let finalFrameH = baseFrameH - trimH;
 
@@ -423,7 +426,6 @@ class Game {
             });
         }
     }
-
     drawBeerLife(x, y, scale, isDead) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
         const glassColor = "#2d2419";
