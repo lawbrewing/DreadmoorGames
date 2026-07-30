@@ -71,13 +71,13 @@ let SPRITE_DATA = {
         s: .5, 
         positions: [
             // Left Tap: 90 deg clockwise (Shaved 30px off the TOP of the open sprite)
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, openClip: { sy: 30, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, openClip: { sy: 30, trimH: 10 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
             
             // Middle Tap: 180 deg (Shaved 25px off the TOP of the open sprite)
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 },   openClip: { sy: 25, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 },   openClip: { sy: 25, trimH: 10 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
             
             // Right Tap: 90 deg counter-clockwise (Shaved 25px off the TOP of the open sprite)
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, openClip: { sy: 25, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }  
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, openClip: { sy: 25, trimH: 10 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }  
         ],
     },
     
