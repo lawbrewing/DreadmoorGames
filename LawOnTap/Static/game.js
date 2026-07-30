@@ -47,7 +47,7 @@ let SPRITE_DATA = {
         gameOver: { x: 969, y: 56, s: .45, visible: false },
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
-    menu: { x: 190, targetY: 295, s: 0.40, textX: 0, textY: 0 },
+    menu: { x: 170, targetY: 215, s: 0.40, textX: 0, textY: 0 },
     
     // Tap Hitboxes (Renamed to avoid conflict)
     taps_hitboxes: [
@@ -71,13 +71,13 @@ let SPRITE_DATA = {
         s: .5, 
         positions: [
             // Left Tap: 90 deg clockwise
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, { sx: 0, sy: 0, sw: (assets.taps.width / 3) - 30, sh: 0 } }, 
             // Middle Tap: 180 deg
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: {sx:0, sy:0, sw:0, sh:0} }, 
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: {sx:0, sy:0, sw:0, sh: (assets.taps.height / 2) - 25} }, 
             // Right Tap: 90 deg counter-clockwise
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: {sx:0, sy:0, sw:0, sh:0} }  
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: {sx:25, sy:0, sw: (assets.taps.width / 3) - 25, sh:0} }  
         ],
-    },
+sh:0    },
     
     // SPILLS (These are just offsets from the Tap Handle above them)
     // X: 0 means perfectly centered under the tap. Y: 300 means 300px below it.
