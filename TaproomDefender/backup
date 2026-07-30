@@ -370,21 +370,7 @@
             from { transform: translate(-50%, -50%) scale(1); }
             to { transform: translate(-50%, -50%) scale(1.1); }
         }
-
-        #boss-timer-display {
-            position: absolute;
-            top: 15%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rye', serif;
-            font-size: 6rem;
-            color: #ef4444;
-            text-shadow: 0 0 20px red, 0 0 40px black;
-            z-index: 24;
-            display: none;
-            pointer-events: none;
-        }
-
+   
         .title-img {
             max-width: 80%;
             max-height: 35vh; 
@@ -476,17 +462,18 @@
         <div id="streak-wrapper" class="hud-element">
             <div style="display: flex; flex-direction: column; align-items: center;">
                  <canvas id="flight-hud" width="150" height="60"></canvas>
-                 <div id="streak-display" style="font-size: 0.8rem; margin-top: 2px; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
+                 <div style="display: flex; gap: 15px; align-items: center; margin-top: 2px;">
+                     <div id="streak-display" style="font-size: 0.8rem; opacity: 0;">STREAK x<span id="streak-val">0</span></div>
+                     <div id="flight-bonus-display" style="font-size: 0.8rem; color: gold; text-shadow: 1px 1px 0 #000; opacity: 0;">FLIGHT BONUS: <span id="flight-bonus-val">0</span></div>
+                 </div>
             </div>
         </div>
     </div>
-
     <div id="pause-overlay" class="hidden">
         <button id="pause-btn" class="pause-btn">PAUSE (P)</button>
     </div>
     
-    <div id="boss-timer-display">15</div>
-
+   
     <div id="level-transition">
         <span id="level-title">LEVEL 1</span>
         <span id="level-subtext"></span>
@@ -531,8 +518,8 @@
                       <div class="icon-box">
                           <canvas id="demo-paddle" width="100" height="40" class="tutorial-canvas"></canvas>
                          <span class="icon-desc" style="margin-top: 5px;">
-                            Collect 3 unique brews to<br>
-                            <strong style="color: gold;">CLEAR ENEMIES & +1 LIFE</strong>
+                            Collect 3 unique brews  for +1 life and bonuses!<br>
+                           
                          </span>
                     </div>
                 </div>
@@ -543,14 +530,10 @@
                 <div class="icon-container">
                     <div class="icon-box">
                         <canvas id="demo-oldtimer" width="40" height="40" class="tutorial-canvas"></canvas>
-                        <span class="icon-desc">Steals<br>Beer</span>
-                    </div>
-                    <div class="icon-box">
-                         <canvas id="demo-spill" width="60" height="30" class="tutorial-canvas"></canvas>
-                        <span class="icon-desc">Sticky<br>Spills</span>
+                        <span class="icon-desc">Steals<br>Swill</span>
                     </div>
                 </div>
-            </div>
+                </div>
 
             <div class="tutorial-section">
                 <div class="section-title">Specials</div>
@@ -889,7 +872,6 @@
     const livesContainer = document.getElementById('lives-container');
     const lastCallVignette = document.getElementById('last-call-vignette');
     const eventNotify = document.getElementById('event-notify');
-    const bossTimerDisplay = document.getElementById('boss-timer-display');
     const flightHud = document.getElementById('flight-hud');
     
     const scoreEl = document.getElementById('score');
@@ -898,6 +880,8 @@
     const streakWrapper = document.getElementById('streak-wrapper');
     const streakDisplay = document.getElementById('streak-display');
     const streakVal = document.getElementById('streak-val');
+    const flightBonusDisplay = document.getElementById('flight-bonus-display');
+    const flightBonusVal = document.getElementById('flight-bonus-val');
     
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
@@ -940,6 +924,8 @@
     let lives = 3;
     let currentLevel = 1;
     let lastTime = 0;
+    let flightStreak = 0;
+    let bossPhase = 1;
     
     // NEW: Flight Collection
     let flightCollected = [false, false, false]; // Tracks Frame 0, 1, 2
@@ -985,7 +971,6 @@
     let thieves = []; 
     let pretzels = [];
     let curds = [];
-    let puddles = []; // NEW: Array for spills
 
     /* --- Resize Handling --- */
     function resize() {
@@ -1138,6 +1123,15 @@
         else streakWrapper.classList.remove('hot-streak');
         streakDisplay.style.opacity = (streak > 1) ? 1 : 0;
     }
+    function updateFlightBonusDisplay() {
+        if (flightStreak > 0) {
+            flightBonusVal.innerText = flightStreak >= 3 ? 'MAX' : flightStreak;
+            flightBonusDisplay.style.opacity = 1;
+        } else {
+            flightBonusDisplay.style.opacity = 0;
+        }
+    }
+  
 
     function updateFlightDisplay() {
         const ctx = flightHud.getContext('2d');
@@ -1296,48 +1290,36 @@
             this.vx = 5; 
             this.spawnTimer = 0;
         }
-        update(dt) {
+        update(dt, phase) {
             this.x += this.vx;
             if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
-            
+    
             this.spawnTimer += dt;
-            if (this.spawnTimer > 600) { 
-                 if (beers.length < 5) {
+    
+    // Phase 1 & 2: 20% faster spawn rate (480ms instead of 600ms)
+            const currentSpawnRate = (phase === 1 || phase === 2) ? 480 : 600;
+
+            if (this.spawnTimer > currentSpawnRate) { 
+                 if (beers.length < 6) { // Slightly increased cap for Phase 3 chaos
                      const b = new Beer(5, this.x);
+             
+             // Phase 3 mixes Swill and Law Brew
+                     if (phase === 3) {
+                         b.type = Math.random() > 0.4 ? 'GOOD' : 'BAD';
+                     } else {
+                         b.type = 'BAD'; 
+                     }
+             
                      b.speed *= 1.2;
-                     b.type = 'BAD'; 
                      beers.push(b);
                  }
                  this.spawnTimer = 0;
             }
-        }
+          }
         draw(ctx) {
             if (!assets.boss) return;
             ctx.save();
             ctx.drawImage(assets.boss, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
-            ctx.restore();
-        }
-    }
-
-    class Puddle {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.timer = 600; // 10 seconds @ 60fps roughly
-            this.opacity = 1.0;
-        }
-        update() {
-            this.timer--;
-            if (this.timer < 60) this.opacity = this.timer / 60;
-        }
-        draw(ctx) {
-            if (!assets.spill) return;
-            ctx.save();
-            ctx.globalAlpha = this.opacity;
-            // Use natural image ratio
-            const w = assets.spill.width * ASSET_SCALES.SPILL;
-            const h = assets.spill.height * ASSET_SCALES.SPILL;
-            ctx.drawImage(assets.spill, this.x - w/2, this.y - h/2, w, h);
             ctx.restore();
         }
     }
@@ -1471,8 +1453,12 @@
                  ctx.shadowBlur = 15;
             }
             
-            // Calculate Source Rect based on Config
-            let sx = col * frameWidth;
+            // NEW: Shave pixels off the left/right of the frame to stop bleeding
+            const trimX = 6; // Increase this to 8 or 10 if you still see bleed
+            
+            // Calculate Source Rect based on Config and Trim
+            let sx = (col * frameWidth) + trimX;
+            let sWidth = frameWidth - (trimX * 2);
             let sy, sHeight;
 
             if (row === 0) { // Law Brew
@@ -1483,13 +1469,13 @@
                 sHeight = frameHeight - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
             }
 
-            // Calculate Dest Rect (Scaling based on the new clipped height)
-            const drawW = frameWidth * ASSET_SCALES.BEER;
+            // Calculate Dest Rect (Scaling based on the new clipped width/height)
+            const drawW = sWidth * ASSET_SCALES.BEER;
             const drawH = sHeight * ASSET_SCALES.BEER;
 
             ctx.drawImage(
                 assets.beers,
-                sx, sy, frameWidth, sHeight,
+                sx, sy, sWidth, sHeight,
                 -drawW/2, -drawH/2, drawW, drawH
             );
 
@@ -1561,15 +1547,8 @@
         update() { 
             // Physics Movement with Puddle Drag
             let speedFactor = 0.15; // Normal responsivness
-            
-            // Check Puddle Collision
-            for (let p of puddles) {
-                if (Math.abs(this.x - p.x) < 50) {
-                    speedFactor = 0.02; // Sticky!
-                    break;
-                }
-            }
-            
+          
+              
             // Lerp towards target
             this.x += (targetGuestX - this.x) * speedFactor;
             playerGuestX = this.x; // Sync back global
@@ -1702,6 +1681,8 @@
 
     function loseLife() {
         lives--;
+        flightStreak = 0; // NEW: Reset the Tab Escalator
+        updateFlightBonusDisplay();
         updateLivesDisplay();
     }
 
@@ -1860,13 +1841,11 @@
 
         if (newLevel === 4) {
             titleText = "BOSS WAVE";
-            subText = "SURVIVE FOR 15 SECONDS!";
+            subText = "SURVIVE AND  COLLECT A FULL FLIGHT!";
             levelEl.textContent = "BOSS";
             isBossMode = true;
             bossCountdown = 15; 
             bossInstance = new Boss();
-            bossTimerDisplay.style.display = 'block';
-            bossTimerDisplay.innerText = bossCountdown;
             bossWarmup = true;
         }
         else if (newLevel <= levelsConfig.length) {
@@ -1906,7 +1885,7 @@
             levelTransitionEl.classList.remove('show-transition');
             if (newLevel === 4) {
                 levelTitleEl.textContent = "GET READY!";
-                levelSubtextEl.textContent = "MOVE VIP NOW!";
+                levelSubtextEl.textContent = "COLLECT A FULL FLIGHT!";
                 levelTransitionEl.classList.add('show-transition');
                 switchMusic('boss');
                 isTransitioning = false; 
@@ -1944,8 +1923,7 @@
         isPaused = false;
         isDoubleBubble = false;
         isBossMode = false;
-        bossTimerDisplay.style.display = 'none';
-        
+               
         hud.classList.add('hidden');
         pauseOverlay.classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
@@ -1973,6 +1951,9 @@
         displayScore = 0; 
         lives = 3; currentLevel = 1;
         streak = 0;
+        flightStreak = 0;
+        updateFlightBonusDisplay();
+        bossPhase = 1;
         // Reset Flight
         flightCollected = [false, false, false];
         updateFlightDisplay();
@@ -1997,8 +1978,7 @@
         
         isBossMode = false;
         bossWarmup = false;
-        bossTimerDisplay.style.display = 'none';
-        
+                
         hasSpawnedPretzelLevel3 = false;
         hasSpawnedCurdLevel3 = false;
 
@@ -2255,27 +2235,47 @@
         }
 
         // --- BOSS MODE LOGIC ---
-        if (isBossMode) {
-            if (bossInstance && assets.boss) {
-                if (!bossWarmup) bossInstance.update(dt);
-                bossInstance.draw(ctx);
+if (isBossMode) {
+    if (bossInstance && assets.boss) {
+        if (!bossWarmup) bossInstance.update(dt, bossPhase);
+        bossInstance.draw(ctx);
+    }
+    
+    if (!bossWarmup) {
+        // Phases 1 & 2: Timer-based survival
+        if (bossPhase === 1 || bossPhase === 2) {
+            if (bossCountdown > 0) {
+                bossCountdown -= dt / 1000;
+                if (bossCountdown < 0) bossCountdown = 0;
             }
-            if (!bossWarmup) {
-                if (bossCountdown > 0) {
-                        bossCountdown -= dt / 1000;
-                        if (bossCountdown < 0) bossCountdown = 0;
-                        bossTimerDisplay.innerText = Math.ceil(bossCountdown);
-                }
-                if (bossCountdown <= 0) {
-                    isBossMode = false;
-                    bossTimerDisplay.style.display = 'none';
-                    createFloatingText(canvas.width/2, canvas.height/2, "BOSS DEFEATED!", "gold");
-                    playSound('megaBonus');
-                    currentLevel++; 
-                    transitionToLevel(currentLevel);
+            
+            // Handle Phase Transitions
+            if (bossCountdown <= 0) {
+                if (bossPhase === 1) {
+                    bossPhase = 2;
+                    bossCountdown = 15;
+                    createFloatingText(canvas.width/2, canvas.height/2, "PHASE 2: THE RUSH!", "orange");
+                } 
+                else if (bossPhase === 2) {
+                    bossPhase = 3;
+                    vipInstance.isVipActive = true; 
+                    flightCollected = [false, false, false];
+                    updateFlightDisplay();
+                    createFloatingText(canvas.width/2, canvas.height/2, "LAST CALL: CATCH A FLIGHT!", "gold");
                 }
             }
         }
+        
+        // Phase 2: Old Timers storm the floor
+        if (bossPhase === 2) {
+            thiefSpawnTimer += dt;
+            if (thiefSpawnTimer > 3000) { // Faster thief spawns during the rush
+                if (thieves.length < 2) thieves.push(new PatronRaider());
+                thiefSpawnTimer = 0;
+            }
+        }
+    }
+}
 
         // Spawning
         if (!isTransitioning && !bossWarmup && !isBossMode) {
@@ -2333,14 +2333,6 @@
             }
         }
 
-        // Updates & Drawing
-        for (let i = puddles.length - 1; i >= 0; i--) {
-            const p = puddles[i];
-            p.update();
-            p.draw(ctx);
-            if (p.timer <= 0) puddles.splice(i, 1);
-        }
-
         if (vipInstance) {
             vipInstance.update();
             if (vipInstance.isVipActive && assets.vip) {
@@ -2369,20 +2361,42 @@
                                 if(!flightCollected[b.frame]) {
                                     flightCollected[b.frame] = true;
                                     updateFlightDisplay();
-                                    
+
                                     // CHECK FOR FULL FLIGHT
-                                    if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
-                                        playSound('megaBonus');
-                                        
-                                        score += 1000; 
-                                        createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! +1000", "gold");
-                                        
-                                        gainLife(); 
-                                        thieves = [];
-                                        puddles = []; 
-                                        flightCollected = [false, false, false];
-                                        updateFlightDisplay();
-                                    }
+                                if(flightCollected[0] && flightCollected[1] && flightCollected[2]) {
+                                    playSound('megaBonus');
+    
+                                    if (isBossMode && bossPhase === 3) {
+                                        // BOSS DEFEAT CONDITION
+                                        score += 5000;
+                                        createFloatingText(canvas.width/2, canvas.height/2, "BOSS DEFEATED! +5000", "gold");
+                                        isBossMode = false;
+                                        bossPhase = 0;
+                                        currentLevel++;
+                                        setTimeout(() => transitionToLevel(currentLevel), 1500);
+                                    } else {
+                                        // TAB ESCALATOR (Normal Levels)
+                                        if (lives === 3) {
+                                            flightStreak++;
+                                            updateFlightBonusDisplay();
+                                            let bonus = (flightStreak === 1) ? 1000 : (flightStreak === 2 ? 2500 : 5000);
+                                            let msg = flightStreak >= 3 ? "MAX FLIGHT BONUS" : `FLIGHT BONUS ${flightStreak}`;
+            
+                                            score += bonus;
+                                            createFloatingText(canvas.width/2, canvas.height/2, `${msg}! +${bonus}`, "gold");
+                                        } else {
+                                            // Standard recovery logic
+                                            score += 1000; 
+                                            createFloatingText(canvas.width/2, canvas.height/2, "FLIGHT COMPLETE! +1000", "gold");
+                                            gainLife(); 
+                                        }
+                                     }
+    
+                                     // Universal Flight Reset
+                                     thieves = [];
+                                     flightCollected = [false, false, false];
+                                     updateFlightDisplay();
+                                  }
                                 }
                             }
 
@@ -2441,10 +2455,7 @@
                         createFloatingText(canvas.width/2, canvas.height/2 + 50, "FLIGHT BROKEN", "red");
                     }
                 } else {
-                    if (b.type === 'BAD' && b.frame === 2) {
-                        puddles.push(new Puddle(b.x, canvas.height - 30));
-                    }
-
+                    
                     if (isDoubleBubble) {
                         score -= 100;
                         createFloatingText(b.x, canvas.height - 50, "-100", "orange");
