@@ -1453,8 +1453,12 @@
                  ctx.shadowBlur = 15;
             }
             
-            // Calculate Source Rect based on Config
-            let sx = col * frameWidth;
+            // NEW: Shave pixels off the left/right of the frame to stop bleeding
+            const trimX = 6; // Increase this to 8 or 10 if you still see bleed
+            
+            // Calculate Source Rect based on Config and Trim
+            let sx = (col * frameWidth) + trimX;
+            let sWidth = frameWidth - (trimX * 2);
             let sy, sHeight;
 
             if (row === 0) { // Law Brew
@@ -1465,13 +1469,13 @@
                 sHeight = frameHeight - SPRITE_CONFIG.row2.top - SPRITE_CONFIG.row2.bottom;
             }
 
-            // Calculate Dest Rect (Scaling based on the new clipped height)
-            const drawW = frameWidth * ASSET_SCALES.BEER;
+            // Calculate Dest Rect (Scaling based on the new clipped width/height)
+            const drawW = sWidth * ASSET_SCALES.BEER;
             const drawH = sHeight * ASSET_SCALES.BEER;
 
             ctx.drawImage(
                 assets.beers,
-                sx, sy, frameWidth, sHeight,
+                sx, sy, sWidth, sHeight,
                 -drawW/2, -drawH/2, drawW, drawH
             );
 
