@@ -70,12 +70,14 @@ let SPRITE_DATA = {
     taps_visual: { 
         s: .5, 
         positions: [
-            // Left Tap: 90 deg clockwise (Added 'clip:' here!)
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: { sx: 0, sy: 0, sw: (assets.taps.width / 3) - 30, sh: 0 } }, 
-            // Middle Tap: 180 deg
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: {sx:0, sy:0, sw:0, sh: (assets.taps.height / 2) - 25} }, 
-            // Right Tap: 90 deg counter-clockwise
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: {sx:25, sy:0, sw: (assets.taps.width / 3) - 25, sh:0} }  
+            // Left Tap: 90 deg clockwise (trim 30px off the width)
+            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 241, y: 171 }, clip: { sx: 0, sy: 0, trimW: 30, trimH: 0 } }, 
+            
+            // Middle Tap: 180 deg (trim 25px off the bottom height)
+            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 470 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 25 } }, 
+            
+            // Right Tap: 90 deg counter-clockwise (shift start 25px right, trim 25px off width)
+            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -245, y: 182 }, clip: { sx: 25, sy: 0, trimW: 25, trimH: 0 } }  
         ],
     },
     
@@ -351,9 +353,9 @@ class Game {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
             
-            // 3 columns wide, 2 rows high
-            let frameW = assets.taps.width / 3;
-            let frameH = assets.taps.height / 2;
+            // Base automatic grid math
+            let baseFrameW = assets.taps.width / 3;
+            let baseFrameH = assets.taps.height / 2;
             
             tapsData.positions.forEach((pos, idx) => {
                 ctx.save(); // Global save for this tap station
@@ -362,30 +364,39 @@ class Game {
                 let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
                 
                 // --- DRAW THE TAP HANDLE ---
-                ctx.save(); // Save BEFORE applying open-state rotation/offsets
+                ctx.save(); 
                 
                 if (isPouring) {
-                    // 1. Nudge the handle in normal screen space (X is left/right, Y is up/down)
                     if (pos.openOffset) {
                         ctx.translate(pos.openOffset.x, pos.openOffset.y);
                     }
-                    // 2. Rotate it AFTER translating it
                     if (pos.openRotation !== undefined) {
                         ctx.rotate(pos.openRotation);
                     }
                 }
                 
-                let srcX = idx * frameW;
-                let srcY = isPouring ? frameH : 0; 
-                let drawW = frameW * tapScale;
-                let drawH = frameH * tapScale;
+                // Safely grab your custom clips and trims
+                let clipSX = pos.clip ? (pos.clip.sx || 0) : 0;
+                let clipSY = pos.clip ? (pos.clip.sy || 0) : 0;
+                let trimW = pos.clip ? (pos.clip.trimW || 0) : 0;
+                let trimH = pos.clip ? (pos.clip.trimH || 0) : 0;
+
+                let srcX = (idx * baseFrameW) + clipSX;
+                let srcY = (isPouring ? baseFrameH : 0) + clipSY; 
+                
+                // Apply the trims to crop out the extra pixels!
+                let finalFrameW = baseFrameW - trimW;
+                let finalFrameH = baseFrameH - trimH;
+
+                let drawW = finalFrameW * tapScale;
+                let drawH = finalFrameH * tapScale;
                 
                 ctx.drawImage(assets.taps, 
-                    srcX, srcY, frameW, frameH, 
+                    srcX, srcY, finalFrameW, finalFrameH, 
                     -drawW/2, 0, drawW, drawH 
                 );
                 
-                ctx.restore(); // Restore so the spill doesn't inherit the tap's rotation/offset!
+                ctx.restore(); 
                 // -----------------------------
 
                 // --- DRAW THE SPILL ---
