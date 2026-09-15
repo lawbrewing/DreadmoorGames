@@ -2,7 +2,23 @@
 const SUITS = ['♥', '♦', '♣', '♠'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
- 
+const audio = {
+    bgm: new Audio('Static/tavern-loop.mp3'), // We will add this file later
+    pour: new Audio('Static/glass-clink.mp3'),
+    attack: new Audio('Static/slide.mp3')
+};
+
+// Configure Background Music
+audio.bgm.loop = true;
+audio.bgm.volume = 0.4; // Keep it quiet so it doesn't overpower the game
+
+function playSound(soundName) {
+    // Clones the audio so rapid clicks don't interrupt each other
+    let sound = audio[soundName].cloneNode();
+    sound.volume = 0.8;
+    sound.play().catch(e => console.log("Audio not ready"));
+}
+
 function getBeerColor(rank) {
     const r = parseInt(rank);
     if(isNaN(r)) return '#fff';
@@ -61,6 +77,9 @@ class Player {
 
 function startNewMatch() {
     showScreen('game-screen');
+    if (audio.bgm.paused) {
+        audio.bgm.play().catch(e => console.log("Waiting for interaction"));
+    }
     const numOpp = parseInt(document.getElementById('num-opponents').value);
     
     // Init Players (Reset Match Scores)
