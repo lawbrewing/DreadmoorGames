@@ -3,9 +3,9 @@ const SUITS = ['♥', '♦', '♣', '♠'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
 const audio = {
-    bgm: new Audio('Static/tavern-loop.mp3'), // We will add this file later
-    pour: new Audio('Static/glass-clink.mp3'),
-    attack: new Audio('Static/slide.mp3')
+    bgm: new Audio('assets/tavern-loop.mp3'), // We will add this file later
+    pour: new Audio('assets/glass-clink.mp3'),
+    attack: new Audio('assets/slide.mp3')
 };
 
 // Configure Background Music
