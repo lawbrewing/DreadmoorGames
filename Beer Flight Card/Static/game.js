@@ -323,12 +323,14 @@ function finishTurn() {
 function cpuAI(pid) {
     const cpu = players[pid];
     let played = false;
+    
+    // 1. SMART LAST CALL
     let myScore = calcScore(cpu.flight);
-    let humanScore = calcScore(players[0].flight);
+    // Find the highest score among ALL opponents
+    let maxOpponentScore = Math.max(...players.filter(p => p.id !== pid).map(p => calcScore(p.flight)));
 
-    if(cpu.flight.length === 4 && lastCallCaller === -1) {
-        let winningScore = 30; 
-        if(myScore >= winningScore && myScore >= humanScore) {
+    if (cpu.flight.length === 4 && lastCallCaller === -1) {
+        if (myScore >= 30 && myScore >= maxOpponentScore) {
             lastCallCaller = pid;
             log(`🔔 ${cpu.name} calls LAST CALL!`);
             finishTurn();
@@ -336,53 +338,136 @@ function cpuAI(pid) {
         }
     }
 
-    let brewsInHand = cpu.hand.filter(c => c.isBrew).sort((a,b) => b.val - a.val); 
+    // 2. COMBO AWARENESS FOR FLIGHT EVALUATION
     let worstInFlight = null;
     let worstFlightIdx = -1;
-    if(cpu.flight.length > 0) {
-        let sortedFlight = cpu.flight.map((c, i) => ({val: c.val, idx: i})).sort((a,b) => a.val - b.val);
-        worstInFlight = sortedFlight[0]; 
-        worstFlightIdx = sortedFlight[0].idx;
+    if (cpu.flight.length > 0) {
+        let evalFlight = cpu.flight.map((c, i) => {
+            let comboWeight = 0;
+            // Check for matching ranks (pairs/trips) and suits (flush draws)
+            let rankCount = cpu.flight.filter(x => x.r === c.r).length;
+            let suitCount = cpu.flight.filter(x => x.s === c.s).length;
+            
+            if (rankCount > 1) comboWeight += (rankCount * 5); 
+            if (suitCount > 2) comboWeight += 5; 
+            
+            return { score: c.val + comboWeight, val: c.val, idx: i, card: c };
+        }).sort((a,b) => a.score - b.score);
+        
+        worstInFlight = evalFlight[0]; 
+        worstFlightIdx = evalFlight[0].idx;
     }
 
-    if(brewsInHand.length > 0) {
-        let bestBrew = brewsInHand[0];
-        let handIdx = cpu.hand.indexOf(bestBrew);
-
-        if(cpu.flight.length < 4) {
-            cpu.hand.splice(handIdx, 1);
-            cpu.flight.push(bestBrew);
-            log(`${cpu.name} poured ${bestBrew.r}${bestBrew.s}`);
+    // 3. PLAY ATTACK CARDS (Patrons)
+    let patronIdx = cpu.hand.findIndex(c => !c.isBrew);
+    if (patronIdx !== -1 && !played) {
+        let pCard = cpu.hand[patronIdx];
+        let opponentsWithFlights = players.filter(p => p.id !== pid && p.flight.length > 0);
+        
+        if (pCard.r === 'J') {
+            cpu.hand.splice(patronIdx, 1);
+            if(deck.length) cpu.hand.push(deck.pop());
+            if(deck.length) cpu.hand.push(deck.pop());
+            
+            // Discard lowest raw value card
+            cpu.hand.sort((a,b) => (a.isBrew ? a.val : 0) - (b.isBrew ? b.val : 0));
+            cpu.hand.shift();
+            log(`${cpu.name} played Jack (Drew 2, Discarded 1).`);
             played = true;
         } 
-        else if(worstInFlight && bestBrew.val > worstInFlight.val) {
-            let oldCard = cpu.flight[worstFlightIdx];
-            cpu.flight[worstFlightIdx] = bestBrew;
-            cpu.hand[handIdx] = oldCard; 
-            cpu.hand.splice(handIdx, 1); 
-            log(`${cpu.name} SWAPPED ${oldCard.r} for ${bestBrew.r}`);
+        else if (pCard.r === 'Q' && opponentsWithFlights.length > 0) {
+            cpu.hand.splice(patronIdx, 1);
+            // Find highest card across ALL opponents
+            let bestTarget = null, targetOpp = null;
+            opponentsWithFlights.forEach(opp => {
+                opp.flight.forEach(c => {
+                    if (!bestTarget || c.val > bestTarget.val) { bestTarget = c; targetOpp = opp; }
+                });
+            });
+            let idx = targetOpp.flight.findIndex(c => c.uid === bestTarget.uid);
+            targetOpp.flight.splice(idx, 1);
+            log(`${cpu.name} played Queen! Removed ${bestTarget.r} from ${targetOpp.name}.`);
+            played = true;
+        }
+        else if (pCard.r === 'A' && opponentsWithFlights.length > 0) {
+            // Find highest card to steal
+            let bestTarget = null, targetOpp = null;
+            opponentsWithFlights.forEach(opp => {
+                opp.flight.forEach(c => {
+                    if (!bestTarget || c.val > bestTarget.val) { bestTarget = c; targetOpp = opp; }
+                });
+            });
+            
+            // Only steal if we have room OR it's better than our worst flight card
+            if (cpu.flight.length < 4 || (worstInFlight && bestTarget.val > worstInFlight.val)) {
+                cpu.hand.splice(patronIdx, 1);
+                let idx = targetOpp.flight.findIndex(c => c.uid === bestTarget.uid);
+                let stolen = targetOpp.flight.splice(idx, 1)[0];
+                
+                if (cpu.flight.length < 4) {
+                    cpu.flight.push(stolen);
+                    log(`${cpu.name} played Ace! Stole ${stolen.r} from ${targetOpp.name}.`);
+                } else {
+                    let oldCard = cpu.flight[worstFlightIdx];
+                    cpu.flight[worstFlightIdx] = stolen;
+                    log(`${cpu.name} played Ace! Stole ${stolen.r} from ${targetOpp.name}, swapping it for ${oldCard.r}.`);
+                }
+                played = true;
+            }
+        }
+        else if (pCard.r === 'K') {
+            cpu.hand.splice(patronIdx, 1);
+            // Target the player currently in the lead
+            let targetOpp = players.filter(p => p.id !== pid && p.hand.length > 0)
+                                   .sort((a,b) => calcScore(b.flight) - calcScore(a.flight))[0];
+            
+            if (targetOpp) {
+                let rIdx = Math.floor(Math.random() * targetOpp.hand.length);
+                let peekedCard = targetOpp.hand[rIdx];
+                
+                // Only keep it if it's a solid Brew (7 or higher)
+                if (peekedCard.isBrew && peekedCard.val >= 7) {
+                    cpu.hand.sort((a,b) => (a.isBrew ? a.val : 0) - (b.isBrew ? b.val : 0));
+                    let trash = cpu.hand.shift();
+                    targetOpp.hand.splice(rIdx, 1, trash);
+                    cpu.hand.push(peekedCard);
+                    log(`${cpu.name} played King! Swapped a card with ${targetOpp.name}.`);
+                } else {
+                    log(`${cpu.name} played King on ${targetOpp.name} but returned the card.`);
+                }
+            } else {
+                log(`${cpu.name} played King but no one had cards to check.`);
+            }
             played = true;
         }
     }
 
-    if(!played) {
-        let patronIdx = cpu.hand.findIndex(c => !c.isBrew);
-        if(patronIdx !== -1) {
-             let pCard = cpu.hand.splice(patronIdx, 1)[0];
-             if(pCard.r === 'J') { 
-                 if(deck.length) cpu.hand.push(deck.pop());
-                 if(deck.length) cpu.hand.push(deck.pop());
-                 cpu.hand.sort((a,b) => a.val - b.val);
-                 cpu.hand.shift(); 
-                 log(`${cpu.name} played Jack.`);
-             } else {
-                 log(`${cpu.name} played ${pCard.r} (Effect skipped for speed).`);
-             }
-             played = true;
+    // 4. POUR A BREW (If no attack card was played)
+    if (!played) {
+        let brewsInHand = cpu.hand.filter(c => c.isBrew).sort((a,b) => b.val - a.val); 
+        if (brewsInHand.length > 0) {
+            let bestBrew = brewsInHand[0];
+            let handIdx = cpu.hand.indexOf(bestBrew);
+
+            if (cpu.flight.length < 4) {
+                cpu.hand.splice(handIdx, 1);
+                cpu.flight.push(bestBrew);
+                log(`${cpu.name} poured ${bestBrew.r}${bestBrew.s}`);
+                played = true;
+            } 
+            else if (worstInFlight && bestBrew.val > worstInFlight.val) { 
+                let oldCard = cpu.flight[worstFlightIdx];
+                cpu.flight[worstFlightIdx] = bestBrew;
+                cpu.hand[handIdx] = oldCard; 
+                cpu.hand.splice(handIdx, 1); 
+                log(`${cpu.name} SWAPPED ${oldCard.r} for ${bestBrew.r}`);
+                played = true;
+            }
         }
     }
 
-    if(!played) {
+    // 5. WASTE A CARD (If absolutely nothing else can be done)
+    if (!played) {
         cpu.hand.sort((a,b) => {
             let vA = a.isBrew ? a.val : 0;
             let vB = b.isBrew ? b.val : 0;
