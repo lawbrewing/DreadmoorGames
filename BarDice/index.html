@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Law Brewing Bar Dice</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../assets/icon-192x192.png">
+    
+    <!-- Points to the root manifest -->
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Critical Runtime Error:", message, "Line:", lineno);
+            if (message.includes("CORS")) {
+                 document.body.innerHTML = "<div style='color:white;padding:20px;text-align:center'><h2>Local Server Required</h2><p>Please run this through a local web server (like python -m http.server) to allow Babel to load the external game.js file.</p></div>";
+            }
+        };
+    </script>
+
+    <!-- React & Babel (Production Minified) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root">
+        <div class="loading-text" style="color: #888; text-align: center; margin-top: 20px;">
+            Loading Law Brewing Bar Dice...
+        </div>
+    </div>
+    
+    <!-- Game Logic -->
+    <script src="game.js" type="text/babel"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../sw.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
