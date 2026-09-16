@@ -1,20 +1,30 @@
-// --- VISUAL CONFIG ---
-const SUITS = ['♥', '♦', '♣', '♠'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
+// --- AUDIO ENGINE & UTILS ---
 const audio = {
     bgm: new Audio('assets/tavern-loop.mp3'),
     pour: new Audio('assets/pour.mp3'),
     slide: new Audio('assets/slide.mp3'),
     woosh: new Audio('assets/woosh.mp3'),
-    bell: new Audio('assets/bell.mp3'),
+    bell: new Audio('assets/bell.mp3')
 };
 
-// Configure Background Music
+// ⏱️ Pacing Helper (Pauses code execution for X milliseconds)
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Configure Background Music & Mute Logic
 audio.bgm.loop = true;
-audio.bgm.volume = 0.4; // Keep it quiet so it doesn't overpower the game
+audio.bgm.volume = 0.4; 
+
+let isMuted = false;
+
+function toggleMute() {
+    isMuted = !isMuted;
+    audio.bgm.muted = isMuted;
+    const btn = document.getElementById('mute-btn');
+    if (btn) btn.innerText = isMuted ? "🔈 UNMUTE" : "🔊 MUTE";
+}
 
 function playSound(soundName) {
+    if (isMuted) return; 
     // Clones the audio so rapid clicks don't interrupt each other
     let sound = audio[soundName].cloneNode();
     sound.volume = 0.8;
