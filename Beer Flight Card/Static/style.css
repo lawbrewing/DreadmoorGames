@@ -175,3 +175,25 @@ select {
     font-family: 'Rye', serif; color: var(--highlight); font-size: 0.8em;
     margin-right: 10px;
 }
+
+/* POLISH & PACING STYLES */
+.leader-glow {
+    box-shadow: 0 0 15px var(--gold) !important;
+    border-color: var(--gold) !important;
+}
+.leader-crown::after {
+    content: ' 👑';
+}
+
+@keyframes pourIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.anim-pour { animation: pourIn 0.4s ease-out forwards; }
+
+@keyframes attackShake {
+    0%, 100% { transform: translateX(0); border-color: red; box-shadow: 0 0 15px red; }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+.anim-attack { animation: attackShake 0.4s infinite; z-index: 10; }
