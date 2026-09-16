@@ -1,3 +1,7 @@
+const SUITS = ['♥', '♦', '♣', '♠'];
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
+
 // --- AUDIO ENGINE & UTILS ---
 const audio = {
     bgm: new Audio('assets/tavern-loop.mp3'),
