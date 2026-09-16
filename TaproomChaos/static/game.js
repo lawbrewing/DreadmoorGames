@@ -1,7 +1,7 @@
 const LEVELS = 3;
-const ROOM_SIZE = 34; // Slightly larger for physics chaos
+const ROOM_SIZE = 34; 
 const PLAYER_SPEED = 18;
-const ENEMY_SPEED = 0.0003; // Matter.js force scaling
+const ENEMY_SPEED = 0.0003; 
 const HIT_FORCE = 0.08; 
 const PLAYER_START = { x: 0, z: 12 };
 
@@ -66,12 +66,13 @@ function init() {
         // --- Matter.js Setup ---
         engine = Matter.Engine.create();
         world = engine.world;
-        engine.gravity.y = 0; // Top-down 2D physics
+        engine.gravity.y = 0; 
 
         // --- Three.js Setup ---
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a0f0a);
-        scene.fog = new THREE.FogExp2(0x1a0f0a, 0.025);
+        // Changed to linear fog to prevent it from swallowing the scene too aggressively
+        scene.fog = new THREE.Fog(0x1a0f0a, 20, 60); 
 
         camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
         camera.position.set(0, 26, 32);
@@ -82,17 +83,23 @@ function init() {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        // Brightened Ambient Light
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambient);
         
-        const spotLight = new THREE.SpotLight(0xffaa55, 1.2);
-        spotLight.position.set(0, 40, 10);
-        spotLight.angle = Math.PI/3;
-        spotLight.penumbra = 0.5;
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 2048;
-        spotLight.shadow.mapSize.height = 2048;
-        scene.add(spotLight);
+        // Switched to DirectionalLight for broader coverage
+        const dirLight = new THREE.DirectionalLight(0xffaa55, 1.2);
+        dirLight.position.set(10, 40, 20);
+        dirLight.castShadow = true;
+        
+        // CRITICAL FIX: Expand the shadow camera bounds so the room isn't drawn as a giant shadow
+        dirLight.shadow.camera.left = -40;
+        dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40;
+        dirLight.shadow.camera.bottom = -40;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
 
         clock = new THREE.Clock();
         generateDetailedTextures();
@@ -113,26 +120,34 @@ function init() {
     }
 }
 
-// Helper to convert SVG string to Texture
+// CRITICAL FIX: Draw SVG to a Canvas first to guarantee WebGL accepts it without turning black
 function createSVGTexture(svgString) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    
+    const img = new Image();
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const tex = new THREE.TextureLoader().load(url);
-    tex.minFilter = THREE.LinearFilter;
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        tex.needsUpdate = true;
+        URL.revokeObjectURL(url);
+    };
+    img.src = url;
     return tex;
 }
 
 function generateDetailedTextures() {
-    // 1. Player (Bartender Mike - Flannel, Beard, Apron)
+    // 1. Player
     const svgPlayer = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
         <defs><radialGradient id="gradPlayer" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ddd"/></radialGradient></defs>
         <circle cx="128" cy="128" r="110" fill="url(#gradPlayer)" stroke="#333" stroke-width="8"/>
-        <!-- Flannel -->
         <path d="M 40 180 Q 128 260 216 180 L 230 256 L 26 256 Z" fill="#c62828"/>
         <path d="M 60 180 L 60 256 M 100 200 L 100 256 M 156 200 L 156 256 M 196 180 L 196 256" stroke="#000" stroke-width="6" opacity="0.4"/>
-        <!-- Apron -->
         <rect x="88" y="190" width="80" height="70" fill="#4e342e" rx="10"/>
-        <!-- Face & Beard -->
         <circle cx="128" cy="110" r="50" fill="#ffccbc"/>
         <path d="M 78 110 Q 128 200 178 110 Q 170 170 128 170 Q 86 170 78 110" fill="#5d4037"/>
         <rect x="100" y="90" width="15" height="15" fill="#333" rx="5"/>
@@ -140,13 +155,11 @@ function generateDetailedTextures() {
         <path d="M 115 130 Q 128 145 141 130" stroke="#fff" stroke-width="4" fill="none"/>
     </svg>`;
     
-    // 2. Villain (Neon Punk Cyber Patron)
+    // 2. Villain
     const svgVillain = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
         <defs><radialGradient id="gradV" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#333"/><stop offset="100%" stop-color="#111"/></radialGradient></defs>
         <circle cx="128" cy="128" r="110" fill="url(#gradV)" stroke="#ff0055" stroke-width="8"/>
-        <!-- Mohawk -->
         <path d="M 108 40 L 128 10 L 148 40 Z M 98 60 L 128 20 L 158 60 Z" fill="#00ffcc"/>
-        <!-- Angry Face -->
         <circle cx="128" cy="130" r="55" fill="#e0e0e0"/>
         <path d="M 90 110 L 115 125 M 166 110 L 141 125" stroke="#ff0055" stroke-width="8" stroke-linecap="round"/>
         <circle cx="105" cy="135" r="8" fill="#ff0055"/>
@@ -154,26 +167,22 @@ function generateDetailedTextures() {
         <path d="M 110 160 Q 128 145 146 160" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/>
     </svg>`;
 
-    // 3. Table (Patron Base)
+    // 3. Table
     const svgTable = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
         <circle cx="128" cy="128" r="120" fill="#5d4037" stroke="#3e2723" stroke-width="12"/>
         <circle cx="128" cy="128" r="100" fill="none" stroke="#4e342e" stroke-width="4"/>
-        <!-- Coasters -->
         <circle cx="80" cy="80" r="15" fill="#e0e0e0"/>
         <circle cx="176" cy="100" r="15" fill="#e0e0e0"/>
         <circle cx="128" cy="176" r="15" fill="#e0e0e0"/>
-        <!-- Stools -->
         <circle cx="40" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/>
         <circle cx="216" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/>
     </svg>`;
 
-    // 4. Table Served (With Beer)
+    // 4. Table Served
     const svgTableServed = svgTable.replace('</svg>', `
-        <!-- Beers -->
         <rect x="70" y="60" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
         <rect x="166" y="80" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
         <rect x="118" y="156" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
-        <!-- Foam -->
         <circle cx="80" cy="60" r="12" fill="#fff"/><circle cx="176" cy="80" r="12" fill="#fff"/><circle cx="128" cy="156" r="12" fill="#fff"/>
     </svg>`);
 
@@ -190,17 +199,18 @@ function generateDetailedTextures() {
     textures.tableServed = createSVGTexture(svgTableServed);
     textures.spill = createSVGTexture(svgSpill);
 
-    // Floor Tile
+    // CRITICAL FIX: Brighten Floor Tile so it isn't pitch black
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512;
     const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#1e110d'; fctx.fillRect(0,0,512,512);
-    fctx.strokeStyle = '#2a1812'; fctx.lineWidth = 4;
+    fctx.fillStyle = '#4a2c22'; // Lightened from #1e110d
+    fctx.fillRect(0,0,512,512);
+    fctx.strokeStyle = '#311b15'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
     textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
 
-    // Create standard materials (to support shadows instead of Sprites)
+    // Standard materials
     materials.player = new THREE.MeshStandardMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, roughness: 0.8 });
     materials.villain = new THREE.MeshStandardMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, roughness: 0.8 });
     materials.table = new THREE.MeshStandardMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, roughness: 0.9 });
@@ -211,7 +221,7 @@ function createBillboard(material, size) {
     const geo = new THREE.PlaneGeometry(size, size);
     const mesh = new THREE.Mesh(geo, material);
     mesh.castShadow = true;
-    mesh.receiveShadow = false; // Billboards look weird receiving shadows
+    mesh.receiveShadow = false; 
     return mesh;
 }
 
@@ -229,7 +239,6 @@ function createParticleSystem(x, z, color, count=10) {
 }
 
 function buildEnvironment() {
-    // Floor
     const floorGeo = new THREE.PlaneGeometry(ROOM_SIZE*2, ROOM_SIZE*2);
     const floorMat = new THREE.MeshStandardMaterial({ map: textures.floor, roughness: 0.8 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -237,7 +246,6 @@ function buildEnvironment() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Bar (Visual + Physics)
     const barW = 24, barH = 4, barD = 6, barZ = -12;
     const barGeo = new THREE.BoxGeometry(barW, barH, barD);
     const barMat = new THREE.MeshStandardMaterial({ color: 0x2e1a10, roughness: 0.9 });
@@ -246,10 +254,8 @@ function buildEnvironment() {
     bar.castShadow = true; bar.receiveShadow = true;
     scene.add(bar);
     
-    // Physics Bar
     Matter.World.add(world, Matter.Bodies.rectangle(0, barZ, barW, barD, { isStatic: true }));
 
-    // Physics Walls
     const wOpts = { isStatic: true };
     Matter.World.add(world, [
         Matter.Bodies.rectangle(0, -ROOM_SIZE, ROOM_SIZE*2, 2, wOpts),
@@ -258,7 +264,6 @@ function buildEnvironment() {
         Matter.Bodies.rectangle(ROOM_SIZE, 0, 2, ROOM_SIZE*2, wOpts)
     ]);
 
-    // Player Setup
     playerMesh = createBillboard(materials.player, 4);
     playerMesh.position.set(PLAYER_START.x, 2, PLAYER_START.z);
     scene.add(playerMesh);
@@ -270,28 +275,23 @@ function buildEnvironment() {
 }
 
 function spawnLevelEntities() {
-    // Cleanup Three.js
     state.patrons.forEach(p => scene.remove(p.mesh));
     state.enemies.forEach(e => scene.remove(e.mesh));
     state.obstacles.forEach(o => scene.remove(o.mesh));
     
-    // Cleanup Matter.js
     state.patrons.forEach(p => Matter.World.remove(world, p.body));
     state.enemies.forEach(e => Matter.World.remove(world, e.body));
 
     state.patrons = []; state.enemies = []; state.obstacles = [];
 
-    // Tables (Patrons)
     for(let i=0; i<state.patronsTotal; i++) {
         const mesh = createBillboard(materials.table, 4.5);
-        // Random pos away from bar
         const x = (Math.random() - 0.5) * 24;
         const z = (Math.random() - 0.2) * 20; 
         
         mesh.position.set(x, 2.25, z);
         scene.add(mesh);
         
-        // Heavy, high friction dynamic body so they slide but don't fly
         const body = Matter.Bodies.circle(x, z, 2.0, { 
             mass: 50, frictionAir: 0.8, restitution: 0.1 
         });
@@ -300,7 +300,6 @@ function spawnLevelEntities() {
         state.patrons.push({ mesh, body, served: false });
     }
 
-    // Enemies
     const enemyCount = state.level * 2;
     for(let i=0; i<enemyCount; i++) {
         const mesh = createBillboard(materials.villain, 3.5);
@@ -317,7 +316,6 @@ function spawnLevelEntities() {
         state.enemies.push({ mesh, body, hp: 3, speed: ENEMY_SPEED + (state.level*0.0001) });
     }
 
-    // Spills (Obstacles, visual only for bounding box check)
     const obsCount = state.level * 3;
     for(let i=0; i<obsCount; i++) {
         const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true });
@@ -332,7 +330,6 @@ function spawnLevelEntities() {
     }
 }
 
-// Controls, Buttons, Flight UI logic remains functionally identical...
 function setupButtons() {
     const bind = (id, fn) => {
         const el = document.getElementById(id);
@@ -444,7 +441,6 @@ function performSlap() {
     if(!state.isPlaying) return;
     AudioSys.sfxSlap();
     
-    // Animate punch
     playerMesh.scale.x = 4.5;
     setTimeout(()=>playerMesh.scale.x = 4.0, 150);
 
@@ -452,9 +448,8 @@ function performSlap() {
         const e = state.enemies[i];
         const dist = Matter.Vector.magnitude(Matter.Vector.sub(e.body.position, playerBody.position));
         
-        if(dist < 6.0) { // Hit range
+        if(dist < 6.0) { 
             e.hp--;
-            // Apply massive physics impulse away from player
             const forceDir = Matter.Vector.normalise(Matter.Vector.sub(e.body.position, playerBody.position));
             Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(forceDir, HIT_FORCE));
             
@@ -479,7 +474,7 @@ function performPour() {
         const dist = Matter.Vector.magnitude(Matter.Vector.sub(p.body.position, playerBody.position));
         if(!p.served && dist < 6.0) {
             p.served = true;
-            p.mesh.material = materials.tableServed; // Swap to served material
+            p.mesh.material = materials.tableServed; 
             state.patronsServed++;
             AudioSys.sfxPour();
             createParticleSystem(p.body.position.x, p.body.position.y, 0xfbc02d, 10);
@@ -519,10 +514,8 @@ function animate(time) {
         state.timeLeft -= dt;
         if(state.timeLeft <= 0) state.annoyance = 100;
 
-        // Physics step
         Matter.Engine.update(engine, dt * 1000);
 
-        // Player movement (Apply velocity based on joystick)
         if (joystick.active) {
             Matter.Body.setVelocity(playerBody, {
                 x: joystick.x * PLAYER_SPEED,
@@ -530,19 +523,16 @@ function animate(time) {
             });
             playerMesh.position.y = 2.0 + Math.abs(Math.sin(time*0.015))*0.4;
         } else {
-            Matter.Body.setVelocity(playerBody, { x: 0, y: 0 }); // Stop immediately
+            Matter.Body.setVelocity(playerBody, { x: 0, y: 0 }); 
             playerMesh.position.y = 2.0;
         }
 
-        // Sync Player Mesh to Body
         playerMesh.position.x = playerBody.position.x;
         playerMesh.position.z = playerBody.position.y;
 
-        // Camera Follow
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
         camera.position.z += ((playerMesh.position.z + 14) - camera.position.z) * 0.1;
 
-        // Sync and Billboard all meshes
         const camQuat = camera.quaternion;
         playerMesh.quaternion.copy(camQuat);
 
@@ -551,7 +541,6 @@ function animate(time) {
             p.mesh.position.z = p.body.position.y;
             p.mesh.quaternion.copy(camQuat);
             
-            // Check if moving fast (pushed) to add annoyance
             if(Matter.Vector.magnitude(p.body.velocity) > 2) {
                 state.annoyance += 5 * dt;
                 if(Math.random() < 0.1) AudioSys.sfxCrash();
@@ -559,7 +548,6 @@ function animate(time) {
         });
 
         state.enemies.forEach(e => {
-            // Apply force towards player
             const dir = Matter.Vector.normalise(Matter.Vector.sub(playerBody.position, e.body.position));
             Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, e.speed));
             
@@ -568,23 +556,19 @@ function animate(time) {
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
             e.mesh.quaternion.copy(camQuat);
 
-            // Damage player if close
             if(Matter.Vector.magnitude(Matter.Vector.sub(playerBody.position, e.body.position)) < 3.0) {
                 state.annoyance += 25 * dt; 
-                // Bounce back slightly
                 Matter.Body.setVelocity(e.body, Matter.Vector.mult(dir, -5));
                 AudioSys.sfxCrash();
             }
         });
 
-        // Obstacles (Static proximity check)
         state.obstacles.forEach(o => {
             if(playerMesh.position.distanceTo(o.mesh.position) < 3.5) {
                 state.annoyance += 8 * dt;
             }
         });
 
-        // Update Particles
         for(let i=state.particles.length-1; i>=0; i--) {
             let p = state.particles[i];
             p.life -= dt * 2;
@@ -593,7 +577,7 @@ function animate(time) {
                 state.particles.splice(i, 1);
             } else {
                 p.position.addScaledVector(p.velocity, dt);
-                p.velocity.y -= 30 * dt; // gravity
+                p.velocity.y -= 30 * dt; 
                 p.material.opacity = p.life;
                 p.quaternion.copy(camQuat);
             }
