@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradients for the glowing beams -->
+    <linearGradient id="beam-right" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b0000" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam-left" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#8b0000" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full Bleed App Icon Background (No rounded corners) -->
+  <rect width="512" height="512" fill="#0a0a0a"/>
+
+  <!-- Scale container to keep everything inside the circular "safe zone" for OS cropping -->
+  <g transform="translate(256, 256) scale(0.85) translate(-256, -256)">
+    <!-- Sweeping Red Beams -->
+    <polygon points="256,180 512,100 512,260" fill="url(#beam-right)"/>
+    <polygon points="256,180 0,100 0,260" fill="url(#beam-left)"/>
+
+    <!-- Lighthouse Base -->
+    <path d="M 180 370 L 332 370 L 290 200 L 222 200 Z" fill="#1a1a1a" stroke="#8b0000" stroke-width="6" stroke-linejoin="round"/>
+    
+    <!-- Lighthouse Door -->
+    <path d="M 240 370 L 272 370 L 272 320 A 16 16 0 0 0 240 320 Z" fill="#0a0a0a" stroke="#8b0000" stroke-width="4"/>
+
+    <!-- Lantern Room -->
+    <rect x="230" y="150" width="52" height="50" fill="#111111" stroke="#8b0000" stroke-width="6" stroke-linejoin="round"/>
+    
+    <!-- Lighthouse Roof -->
+    <polygon points="220,150 292,150 256,90" fill="#1a1a1a" stroke="#8b0000" stroke-width="6" stroke-linejoin="round"/>
+    
+    <!-- Glowing Light Core -->
+    <circle cx="256" cy="175" r="14" fill="#ff3333"/>
+    <circle cx="256" cy="175" r="8" fill="#ffffff"/>
+
+    <!-- Dreadmoor Text -->
+    <text x="256" y="430" font-family="'Old English Text MT', 'Palatino Linotype', 'Book Antiqua', serif" font-size="48" font-weight="normal" fill="#ffffff" text-anchor="middle" letter-spacing="4">DREADMOOR</text>
+    
+    <!-- Games Text -->
+    <text x="256" y="475" font-family="'Old English Text MT', 'Palatino Linotype', 'Book Antiqua', serif" font-size="32" font-weight="normal" fill="#8b0000" text-anchor="middle" letter-spacing="8">GAMES</text>
+  </g>
+</svg>
