@@ -10,21 +10,11 @@ const audio = {
 // ⏱️ Pacing Helper (Pauses code execution for X milliseconds)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Configure Background Music & Mute Logic
+// Configure Background Music
 audio.bgm.loop = true;
 audio.bgm.volume = 0.4; 
 
-let isMuted = false;
-
-function toggleMute() {
-    isMuted = !isMuted;
-    audio.bgm.muted = isMuted;
-    const btn = document.getElementById('mute-btn');
-    if (btn) btn.innerText = isMuted ? "🔈 UNMUTE" : "🔊 MUTE";
-}
-
 function playSound(soundName) {
-    if (isMuted) return; 
     // Clones the audio so rapid clicks don't interrupt each other
     let sound = audio[soundName].cloneNode();
     sound.volume = 0.8;
