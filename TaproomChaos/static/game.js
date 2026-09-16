@@ -39,7 +39,7 @@ const materials = {};
 // Simple web audio syntesizer
 const AudioSys = {
     ctx: null,
-    init: function() { try { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); } catch(e) {} },
+    init: function() { try { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); } catch(e) { console.warn("Audio disabled"); } },
     playTone: function(freq, type, duration, vol=0.2) {
         if(!this.ctx || this.ctx.state !== 'running') return;
         try {
@@ -70,13 +70,10 @@ function init() {
 
         // --- Three.js Setup ---
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a0f0a);
-        scene.fog = new THREE.Fog(0x1a0f0a, 20, 60); 
+        scene.background = new THREE.Color(0x2a1a14); // Brighter background
 
         camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
         camera.position.set(0, 26, 32);
-        
-        // CRITICAL FIX 1: Tell the camera to look down at the center of the room initially
         camera.lookAt(0, 0, 0); 
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -85,11 +82,12 @@ function init() {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        // Max out ambient light so nothing is ever pitch black
+        const ambient = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambient);
         
-        const dirLight = new THREE.DirectionalLight(0xffaa55, 1.2);
-        dirLight.position.set(10, 40, 20);
+        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.0);
+        dirLight.position.set(15, 40, 20);
         dirLight.castShadow = true;
         
         dirLight.shadow.camera.left = -40;
@@ -119,23 +117,12 @@ function init() {
     }
 }
 
+// Bulletproof SVG loading via Data URIs
 function createSVGTexture(svgString) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    const tex = new THREE.CanvasTexture(canvas);
+    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+    const tex = new THREE.TextureLoader().load(url);
     tex.minFilter = THREE.LinearFilter;
-    
-    const img = new Image();
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    img.onload = () => {
-        ctx.clearRect(0, 0, 256, 256); // Ensure transparency is respected
-        ctx.drawImage(img, 0, 0);
-        tex.needsUpdate = true;
-        URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    tex.magFilter = THREE.LinearFilter;
     return tex;
 }
 
@@ -198,33 +185,34 @@ function generateDetailedTextures() {
     textures.tableServed = createSVGTexture(svgTableServed);
     textures.spill = createSVGTexture(svgSpill);
 
+    // Brightened Floor Canvas
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512;
     const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#4a2c22'; 
+    fctx.fillStyle = '#6d4c41'; // Light wood
     fctx.fillRect(0,0,512,512);
-    fctx.strokeStyle = '#311b15'; fctx.lineWidth = 4;
+    fctx.strokeStyle = '#4e342e'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
     textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
 
-    materials.player = new THREE.MeshStandardMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, roughness: 0.8 });
-    materials.villain = new THREE.MeshStandardMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, roughness: 0.8 });
-    materials.table = new THREE.MeshStandardMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, roughness: 0.9 });
-    materials.tableServed = new THREE.MeshStandardMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1, roughness: 0.9 });
+    // CRITICAL FIX: DoubleSide ensures billboards are never invisible from behind
+    materials.player = new THREE.MeshLambertMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.villain = new THREE.MeshLambertMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.table = new THREE.MeshLambertMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.tableServed = new THREE.MeshLambertMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
 }
 
 function createBillboard(material, size) {
     const geo = new THREE.PlaneGeometry(size, size);
     const mesh = new THREE.Mesh(geo, material);
     mesh.castShadow = true;
-    mesh.receiveShadow = false; 
     return mesh;
 }
 
 function createParticleSystem(x, z, color, count=10) {
     const geo = new THREE.PlaneGeometry(0.5, 0.5);
-    const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true });
+    const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, side: THREE.DoubleSide });
     for(let i=0; i<count; i++) {
         const p = new THREE.Mesh(geo, mat);
         p.position.set(x + (Math.random()-0.5), 1.5, z + (Math.random()-0.5));
@@ -237,7 +225,7 @@ function createParticleSystem(x, z, color, count=10) {
 
 function buildEnvironment() {
     const floorGeo = new THREE.PlaneGeometry(ROOM_SIZE*2, ROOM_SIZE*2);
-    const floorMat = new THREE.MeshStandardMaterial({ map: textures.floor, roughness: 0.8 });
+    const floorMat = new THREE.MeshLambertMaterial({ map: textures.floor });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
@@ -245,7 +233,7 @@ function buildEnvironment() {
 
     const barW = 24, barH = 4, barD = 6, barZ = -12;
     const barGeo = new THREE.BoxGeometry(barW, barH, barD);
-    const barMat = new THREE.MeshStandardMaterial({ color: 0x2e1a10, roughness: 0.9 });
+    const barMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
     const bar = new THREE.Mesh(barGeo, barMat);
     bar.position.set(0, barH/2, barZ);
     bar.castShadow = true; bar.receiveShadow = true;
@@ -315,7 +303,7 @@ function spawnLevelEntities() {
 
     const obsCount = state.level * 3;
     for(let i=0; i<obsCount; i++) {
-        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true });
+        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true, side: THREE.DoubleSide });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), mat);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.y = 0.05;
@@ -530,16 +518,15 @@ function animate(time) {
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
         camera.position.z += ((playerMesh.position.z + 14) - camera.position.z) * 0.1;
         
-        // CRITICAL FIX 2: Constantly update camera lookAt so it doesn't drift into the sky
         camera.lookAt(playerMesh.position);
 
-        const camQuat = camera.quaternion;
-        playerMesh.quaternion.copy(camQuat);
+        // CRITICAL FIX: Make sure the sprite faces the camera so it is never backface-culled
+        playerMesh.lookAt(camera.position);
 
         state.patrons.forEach(p => {
             p.mesh.position.x = p.body.position.x;
             p.mesh.position.z = p.body.position.y;
-            p.mesh.quaternion.copy(camQuat);
+            p.mesh.lookAt(camera.position);
             
             if(Matter.Vector.magnitude(p.body.velocity) > 2) {
                 state.annoyance += 5 * dt;
@@ -554,7 +541,7 @@ function animate(time) {
             e.mesh.position.x = e.body.position.x;
             e.mesh.position.z = e.body.position.y;
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
-            e.mesh.quaternion.copy(camQuat);
+            e.mesh.lookAt(camera.position);
 
             if(Matter.Vector.magnitude(Matter.Vector.sub(playerBody.position, e.body.position)) < 3.0) {
                 state.annoyance += 25 * dt; 
@@ -579,7 +566,7 @@ function animate(time) {
                 p.position.addScaledVector(p.velocity, dt);
                 p.velocity.y -= 30 * dt; 
                 p.material.opacity = p.life;
-                p.quaternion.copy(camQuat);
+                p.lookAt(camera.position);
             }
         }
 
