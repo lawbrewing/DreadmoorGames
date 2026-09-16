@@ -167,17 +167,23 @@
             ),
             James: () => (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full">
-                    <rect width="100" height="100" fill="#1a202c"/>
-                    <ellipse cx="50" cy="55" rx="35" ry="32" fill="#c0b2a4"/>
-                    <circle cx="35" cy="50" r="7" fill="#e2e8f0"/>
-                    <circle cx="65" cy="50" r="7" fill="#e2e8f0"/>
-                    <circle cx="35" cy="50" r="3" fill="#2b6cb0"/>
-                    <circle cx="65" cy="50" r="3" fill="#2b6cb0"/>
-                    <rect x="25" y="47" width="20" height="6" fill="none" stroke="#1a202c" strokeWidth="2"/>
-                    <rect x="55" y="47" width="20" height="6" fill="none" stroke="#1a202c" strokeWidth="2"/>
-                    <line x1="45" y1="50" x2="55" y2="50" stroke="#1a202c" strokeWidth="2"/>
-                    <path d="M45 62 L50 72 L55 62 Z" fill="#8d7f72"/>
-                    <line x1="42" y1="82" x2="58" y2="82" stroke="#4a5568" strokeWidth="4"/>
+                    <rect width="100" height="100" fill="#2a4365"/>
+                    {/* Hair Back */}
+                    <path d="M20 50 Q50 10 80 50 L80 60 Q50 20 20 60 Z" fill="#2d3748"/>
+                    {/* Face */}
+                    <ellipse cx="50" cy="55" rx="30" ry="35" fill="#fbd38d"/>
+                    {/* Glasses */}
+                    <rect x="28" y="45" width="16" height="10" rx="2" fill="none" stroke="#1a202c" strokeWidth="2"/>
+                    <rect x="56" y="45" width="16" height="10" rx="2" fill="none" stroke="#1a202c" strokeWidth="2"/>
+                    <line x1="44" y1="50" x2="56" y2="50" stroke="#1a202c" strokeWidth="2"/>
+                    <circle cx="36" cy="50" r="2" fill="#2b6cb0"/>
+                    <circle cx="64" cy="50" r="2" fill="#2b6cb0"/>
+                    {/* Hair Front */}
+                    <path d="M20 40 Q50 15 80 40 Q80 20 50 10 Q20 20 20 40 Z" fill="#2d3748"/>
+                    {/* Nose */}
+                    <path d="M48 55 L50 65 L54 62" fill="none" stroke="#dd6b20" strokeWidth="2"/>
+                    {/* Smirk */}
+                    <path d="M42 75 Q50 78 55 74" fill="none" stroke="#c53030" strokeWidth="2"/>
                 </svg>
             ),
             Cutter: () => (
@@ -703,8 +709,9 @@
                             <div>
                                 <h1 className="text-xl font-western text-yellow-500 tracking-wider">LAW BREWING BAR DICE</h1>
                                 <div className="flex gap-3 text-xs text-slate-300 font-mono">
-                                    <span className="flex items-center gap-1 cursor-help"><Icon name="DollarSign" size={12} className="text-green-400"/> {funds}</span>
-                                    <span className="flex items-center gap-1 cursor-help"><Icon name="Beer" size={12} className="text-amber-500"/> ${pot}</span>
+                                    {/* Tooltips restored here! */}
+                                    <span title="House Funds: Start at $50. Game over if $0 is reached." className="flex items-center gap-1 cursor-help"><Icon name="DollarSign" size={12} className="text-green-400"/> {funds}</span>
+                                    <span title="Current Pot: All players contribute $10. The winner takes this pot." className="flex items-center gap-1 cursor-help"><Icon name="Beer" size={12} className="text-amber-500"/> ${pot}</span>
                                 </div>
                             </div>
                         </div>
