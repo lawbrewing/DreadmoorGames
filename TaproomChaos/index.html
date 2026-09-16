@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Law Brewing: Taproom Chaos</title>
+    <link rel="stylesheet" href="static/style.css">
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.min.js"></script>
+    <!-- Matter.js for 2D Physics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+    <div id="error-log"></div>
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div class="marquee">
+            <span>🎶 NOW PLAYING: Rob Zombie - Dragula 🎶</span>
+        </div>
+        <div class="hud-top">
+            <div>
+                <div id="timer-display">00:00</div>
+                <div id="level-indicator" style="font-size:18px; color:#aaa; font-family: 'Roboto Mono', monospace;">LEVEL 1</div>
+            </div>
+            <div>
+                <div id="meter-container">
+                    <div id="meter-fill"></div>
+                    <div id="meter-label">ANNOYANCE: 0%</div>
+                </div>
+                <div id="patron-counter">SERVED: 0/6</div>
+            </div>
+        </div>
+
+        <div id="msg-area"></div>
+
+        <div id="controls-layer">
+            <div id="joystick-zone" class="control-zone"><div id="joystick-knob"></div></div>
+            <div id="action-zone" class="control-zone">
+                <div id="btn-pour" class="action-btn">POUR</div>
+                <div id="btn-slap" class="action-btn">SLAP</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h3 style="color:#eee; font-family:'Roboto Mono', monospace; margin-bottom: -15px;">Dreadmoor Games Presents</h3>
+        <h1>LAW BREWING<br>TAPROOM</h1>
+        <p><b>Physics-Based Service Sim</b></p>
+        <p>1. Navigate the busy taproom floor.<br>
+           2. <b>POUR</b> beer for sitting patrons.<br>
+           3. <b>SLAP</b> aggressive villains into tables!<br>
+           4. Avoid <b>Spills</b> & <b>Plants</b>!<br>
+           5. Beat the <b>Timer</b>.</p>
+        <button id="btn-start" class="main-btn">OPEN TAB</button>
+    </div>
+
+    <!-- Level Complete -->
+    <div id="level-screen" class="screen hidden">
+        <h1 style="color:#4caf50">ROUND CLEAR</h1>
+        <p>Tables served in time. The taproom is buzzing.</p>
+        <button id="btn-next-level" class="main-btn">NEXT ROUND</button>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color:#d32f2f" id="game-over-title">MAX ANNOYANCE!</h1>
+        <p id="game-over-msg">You flipped a table and quit.</p>
+        <button id="btn-restart" class="main-btn">RE-APPLY</button>
+    </div>
+
+    <!-- Final Flight Puzzle -->
+    <div id="flight-screen" class="screen hidden">
+        <h1>THE FINAL FLIGHT</h1>
+        <p>Build the perfect Law Brewing flight: An <b>IPA</b>, a <b>Stout</b>, a <b>Sour</b>, and a <b>Milkshake</b> (in any order).</p>
+        <div id="flight-ui">
+            <div class="beer-grid" id="beer-slots">
+                <div class="slot" data-index="0">Empty</div>
+                <div class="slot" data-index="1">Empty</div>
+                <div class="slot" data-index="2">Empty</div>
+                <div class="slot" data-index="3">Empty</div>
+            </div>
+            
+            <div id="beer-info-box">Select a tap to view details...</div>
+            <div id="beer-choices"></div>
+            
+            <div class="flight-actions">
+                <button id="btn-clear-flight" class="choice-btn clear-btn">Reset</button>
+                <button id="btn-submit-flight" class="choice-btn submit-btn">SERVE</button>
+            </div>
+            <p id="flight-msg"></p>
+        </div>
+    </div>
+
+    <!-- Win Screen -->
+    <div id="win-screen" class="screen hidden">
+        <h1 style="color:#4caf50">TAPROOM MASTER!</h1>
+        <p>You survived the chaos and served the perfect flight.</p>
+        <button id="btn-play-again" class="main-btn">PLAY AGAIN</button>
+    </div>
+
+    <script src="static/game.js"></script>
+</body>
+</html>
