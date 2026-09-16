@@ -162,6 +162,35 @@
             color: #dc2626;
             box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
         }
+        
+        /* Explicit Install Button Styling */
+        #installAppBtn {
+            display: none; /* Crucial: Stays hidden on iOS and already-installed devices */
+            background: #0a0a0a;
+            color: #ff3333;
+            border: 2px solid #8b0000;
+            padding: 15px 30px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 8px;
+            margin: 0 auto 40px auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.4);
+            z-index: 100;
+            position: relative;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        #installAppBtn:hover {
+            background: #8b0000;
+            color: #ffffff;
+            box-shadow: 0 0 25px rgba(255, 51, 51, 0.8);
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-red-600 selection:text-white">
@@ -226,7 +255,6 @@
 
                 <h1 class="font-display font-bold text-2xl tracking-wider uppercase text-white leading-none mt-1">Dreadmoor <span class="text-red-600">Games</span></h1>
             </div>
-            <!-- Navigation links removed per request -->
         </header>
 
         <!-- Hero Section -->
@@ -242,13 +270,16 @@
         </section>
 
         <!-- Games Grid Section -->
-        <section class="max-w-5xl mx-auto px-6 md:px-12 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <section class="max-w-5xl mx-auto px-6 md:px-12 py-8 flex flex-col text-center">
+            
+            <!-- INSTALL BUTTON ADDED HERE -->
+            <button id="installAppBtn">Install Game Library</button>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                 
                 <!-- Game 1: Defender -->
-                <article class="game-card rounded-lg overflow-hidden group">
+                <article class="game-card rounded-lg overflow-hidden group text-left">
                     <div class="aspect-video w-full overflow-hidden bg-zinc-800 relative border-b border-zinc-800">
-                        <!-- REPLACE SRC HERE WITH ACTUAL ART WORK -->
                         <img src="https://placehold.co/800x500/18181b/dc2626?text=Defender+Art+Here" alt="Defender Logo" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>
@@ -258,7 +289,6 @@
                             <h4 class="font-display text-2xl font-bold uppercase tracking-wide text-white mb-3">Defender:<br>The Sheriff of Taps</h4>
                             <p class="text-gray-400 text-sm font-sans mb-6">Defend the taps at all costs. Hold the line against the thirsty hordes in this intense tactical standout.</p>
                         </div>
-                        <!-- REPLACE HREF HERE WITH ACTUAL GAME INDEX HTML -->
                         <a href="./defender/index.html" class="btn-edgy font-display tracking-widest text-white py-3 w-full uppercase text-sm">
                             Play Game
                         </a>
@@ -266,9 +296,8 @@
                 </article>
 
                 <!-- Game 2: Chaos -->
-                <article class="game-card rounded-lg overflow-hidden group">
+                <article class="game-card rounded-lg overflow-hidden group text-left">
                     <div class="aspect-video w-full overflow-hidden bg-zinc-800 relative border-b border-zinc-800">
-                        <!-- REPLACE SRC HERE WITH ACTUAL ART WORK -->
                         <img src="https://placehold.co/800x500/18181b/dc2626?text=Chaos+Art+Here" alt="Taproom Chaos Logo" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>
@@ -278,7 +307,6 @@
                             <h4 class="font-display text-2xl font-bold uppercase tracking-wide text-white mb-3">Taproom<br>Chaos</h4>
                             <p class="text-gray-400 text-sm font-sans mb-6">Total anarchy behind the bar. Serve, survive, and keep the chaos contained before the night is over.</p>
                         </div>
-                        <!-- REPLACE HREF HERE WITH ACTUAL GAME INDEX HTML -->
                         <a href="./taproom-chaos/index.html" class="btn-edgy font-display tracking-widest text-white py-3 w-full uppercase text-sm">
                             Play Game
                         </a>
@@ -286,9 +314,8 @@
                 </article>
 
                 <!-- Game 3: Bar Dice -->
-                <article class="game-card rounded-lg overflow-hidden group">
+                <article class="game-card rounded-lg overflow-hidden group text-left">
                     <div class="aspect-video w-full overflow-hidden bg-zinc-800 relative border-b border-zinc-800">
-                        <!-- REPLACE SRC HERE WITH ACTUAL ART WORK -->
                         <img src="https://placehold.co/800x500/18181b/dc2626?text=Bar+Dice+Art+Here" alt="Bar Dice Logo" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>
@@ -298,7 +325,6 @@
                             <h4 class="font-display text-2xl font-bold uppercase tracking-wide text-white mb-3">Bar<br>Dice</h4>
                             <p class="text-gray-400 text-sm font-sans mb-6">Roll the bones and press your luck. A gritty digital adaptation of the classic tavern pastime.</p>
                         </div>
-                        <!-- REPLACE HREF HERE WITH ACTUAL GAME INDEX HTML -->
                         <a href="./bar-dice/index.html" class="btn-edgy font-display tracking-widest text-white py-3 w-full uppercase text-sm">
                             Play Game
                         </a>
@@ -306,9 +332,8 @@
                 </article>
 
                 <!-- Game 4: The Taproom Card Game -->
-                <article class="game-card rounded-lg overflow-hidden group">
+                <article class="game-card rounded-lg overflow-hidden group text-left">
                     <div class="aspect-video w-full overflow-hidden bg-zinc-800 relative border-b border-zinc-800">
-                        <!-- REPLACE SRC HERE WITH ACTUAL ART WORK -->
                         <img src="https://placehold.co/800x500/18181b/dc2626?text=Card+Game+Art+Here" alt="The Taproom Card Game Logo" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>
@@ -318,7 +343,6 @@
                             <h4 class="font-display text-2xl font-bold uppercase tracking-wide text-white mb-3">The Taproom:<br>A Beer Flight Card Game</h4>
                             <p class="text-gray-400 text-sm font-sans mb-6">Build the perfect flight. Strategize, draft, and outmaneuver your opponents in this highly competitive tabletop card experience.</p>
                         </div>
-                        <!-- REPLACE HREF HERE WITH ACTUAL GAME INDEX HTML -->
                         <a href="./taproom-card-game/index.html" class="btn-edgy font-display tracking-widest text-white py-3 w-full uppercase text-sm">
                             Play Game
                         </a>
@@ -335,9 +359,9 @@
 
     </main>
 
+    <!-- Video Sequence Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Elements
             const startScreen = document.getElementById('start-screen');
             const enterBtn = document.getElementById('enter-btn');
             
@@ -347,38 +371,27 @@
             
             const mainContent = document.getElementById('main-content');
             
-            // Video Sequence State
             const videoSequence = ['lawbrew.mp4', 'dreadmoor.mp4'];
             let currentVideoIndex = 0;
 
-            // Transition function to show main content
             const showMainContent = () => {
-                // Pause and clear video
                 introVideo.pause();
                 introVideo.removeAttribute('src');
                 introVideo.load();
-                
-                // Hide Intro visually
                 introWrapper.style.opacity = '0';
                 
                 setTimeout(() => {
-                    // Remove intro from flow
                     introWrapper.classList.add('hidden');
-                    
-                    // Show Main Content
                     mainContent.classList.remove('hidden');
-                    // Small delay to ensure CSS transition triggers after display:block
                     setTimeout(() => {
                         mainContent.style.opacity = '1';
                         window.scrollTo(0, 0);
                     }, 50);
-                }, 1000); // Wait for fade out
+                }, 1000); 
             };
 
-            // Play video function
             const playVideo = (index) => {
                 if (index >= videoSequence.length) {
-                    // Sequence finished
                     showMainContent();
                     return;
                 }
@@ -386,7 +399,6 @@
                 introVideo.src = videoSequence[index];
                 introVideo.play().catch(error => {
                     console.warn(`Video ${videoSequence[index]} play blocked or not found. Skipping...`, error);
-                    // If video fails to load/play (e.g., missing file in local testing), automatically skip to the next
                     playNext();
                 });
             };
@@ -395,49 +407,50 @@
                 currentVideoIndex++;
                 playVideo(currentVideoIndex);
             };
-
-            // Event Listeners
             
-            // 1. User clicks "Enter" (unlocks audio/video playback)
             enterBtn.addEventListener('click', () => {
                 startScreen.classList.add('hidden');
-                
                 introWrapper.classList.remove('hidden');
                 setTimeout(() => {
                     introWrapper.style.opacity = '1';
-                    // Start the sequence
                     playVideo(0);
                 }, 50);
             });
 
-            // 2. Video ends -> Play next
             introVideo.addEventListener('ended', playNext);
-            
-            // 3. Fallback: If video file literally isn't found (404), skip it immediately
             introVideo.addEventListener('error', playNext);
-
-            // 4. Skip Button clicked -> Bypass sequence immediately
             skipBtn.addEventListener('click', showMainContent);
-            
-            // Generate dummy manifest blob for PWA requirement testing if real one is absent
-            const manifestStr = JSON.stringify({
-              "name": "Dreadmoor Games",
-              "short_name": "Dreadmoor",
-              "start_url": ".",
-              "display": "standalone",
-              "background_color": "#09090b",
-              "theme_color": "#09090b",
-              "icons": []
-            });
-            const blob = new Blob([manifestStr], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            document.querySelector('link[rel="manifest"]').setAttribute('href', manifestURL);
         });
     </script>
+
+    <!-- Service Worker & PWA Install Logic -->
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
-  }
-</script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installAppBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt = null;
+        });
+    </script>
 </body>
 </html>
