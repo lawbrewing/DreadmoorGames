@@ -71,11 +71,13 @@ function init() {
         // --- Three.js Setup ---
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a0f0a);
-        // Changed to linear fog to prevent it from swallowing the scene too aggressively
         scene.fog = new THREE.Fog(0x1a0f0a, 20, 60); 
 
         camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
         camera.position.set(0, 26, 32);
+        
+        // CRITICAL FIX 1: Tell the camera to look down at the center of the room initially
+        camera.lookAt(0, 0, 0); 
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -83,16 +85,13 @@ function init() {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // Brightened Ambient Light
         const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambient);
         
-        // Switched to DirectionalLight for broader coverage
         const dirLight = new THREE.DirectionalLight(0xffaa55, 1.2);
         dirLight.position.set(10, 40, 20);
         dirLight.castShadow = true;
         
-        // CRITICAL FIX: Expand the shadow camera bounds so the room isn't drawn as a giant shadow
         dirLight.shadow.camera.left = -40;
         dirLight.shadow.camera.right = 40;
         dirLight.shadow.camera.top = 40;
@@ -120,7 +119,6 @@ function init() {
     }
 }
 
-// CRITICAL FIX: Draw SVG to a Canvas first to guarantee WebGL accepts it without turning black
 function createSVGTexture(svgString) {
     const canvas = document.createElement('canvas');
     canvas.width = 256; canvas.height = 256;
@@ -132,6 +130,7 @@ function createSVGTexture(svgString) {
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     img.onload = () => {
+        ctx.clearRect(0, 0, 256, 256); // Ensure transparency is respected
         ctx.drawImage(img, 0, 0);
         tex.needsUpdate = true;
         URL.revokeObjectURL(url);
@@ -199,10 +198,9 @@ function generateDetailedTextures() {
     textures.tableServed = createSVGTexture(svgTableServed);
     textures.spill = createSVGTexture(svgSpill);
 
-    // CRITICAL FIX: Brighten Floor Tile so it isn't pitch black
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512;
     const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#4a2c22'; // Lightened from #1e110d
+    fctx.fillStyle = '#4a2c22'; 
     fctx.fillRect(0,0,512,512);
     fctx.strokeStyle = '#311b15'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
@@ -210,7 +208,6 @@ function generateDetailedTextures() {
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
     textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
 
-    // Standard materials
     materials.player = new THREE.MeshStandardMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, roughness: 0.8 });
     materials.villain = new THREE.MeshStandardMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, roughness: 0.8 });
     materials.table = new THREE.MeshStandardMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, roughness: 0.9 });
@@ -532,6 +529,9 @@ function animate(time) {
 
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
         camera.position.z += ((playerMesh.position.z + 14) - camera.position.z) * 0.1;
+        
+        // CRITICAL FIX 2: Constantly update camera lookAt so it doesn't drift into the sky
+        camera.lookAt(playerMesh.position);
 
         const camQuat = camera.quaternion;
         playerMesh.quaternion.copy(camQuat);
