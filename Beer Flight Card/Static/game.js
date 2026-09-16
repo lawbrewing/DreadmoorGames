@@ -6,7 +6,8 @@ const audio = {
     bgm: new Audio('assets/tavern-loop.mp3'),
     pour: new Audio('assets/pour.mp3'),
     slide: new Audio('assets/slide.mp3'),
-    woosh: new Audio('assets/woosh.mp3')
+    woosh: new Audio('assets/woosh.mp3'),
+    bell: new Audio('assets/bell.mp3'),
 };
 
 // Configure Background Music
@@ -132,7 +133,10 @@ function startShift() {
 function startTurn(pIdx) {
     currentPlayerIndex = pIdx;
     const p = players[pIdx];
-    
+    // Clear animation states from last turn
+    players.forEach(player => {
+        player.flight.forEach(c => { c.justPoured = false; c.isTargeted = false; });
+    });
     if(lastCallCaller !== -1 && pIdx === lastCallCaller) {
         endShift(); return;
     }
@@ -161,6 +165,7 @@ function startTurn(pIdx) {
 function triggerLastCall() {
     if(currentPlayerIndex === 0 && players[0].flight.length === 4) {
         lastCallCaller = 0;
+        playSound('bell');
         log(`🔔 YOU CALLED LAST CALL!`);
         document.getElementById('last-call-btn').style.display='none';
         finishTurn();
@@ -342,80 +347,73 @@ function finishTurn() {
     startTurn(nextIdx);
 }
 
-// --- SMART CPU AI ---
-function cpuAI(pid) {
+// --- SMART CPU AI (NOW PACED FOR READABILITY) ---
+async function cpuAI(pid) {
     const cpu = players[pid];
     let played = false;
     
-    // 1. SMART LAST CALL
     let myScore = calcScore(cpu.flight);
-    // Find the highest score among ALL opponents
     let maxOpponentScore = Math.max(...players.filter(p => p.id !== pid).map(p => calcScore(p.flight)));
 
+    // 1. LAST CALL
     if (cpu.flight.length === 4 && lastCallCaller === -1) {
         if (myScore >= 30 && myScore >= maxOpponentScore) {
             lastCallCaller = pid;
+            playSound('bell');
             log(`🔔 ${cpu.name} calls LAST CALL!`);
+            renderGame();
+            await sleep(2000); // Let the bell ring
             finishTurn();
             return;
         }
     }
 
-    // 2. COMBO AWARENESS FOR FLIGHT EVALUATION
+    // Evaluate Flight
     let worstInFlight = null;
     let worstFlightIdx = -1;
     if (cpu.flight.length > 0) {
         let evalFlight = cpu.flight.map((c, i) => {
             let comboWeight = 0;
-            // Check for matching ranks (pairs/trips) and suits (flush draws)
             let rankCount = cpu.flight.filter(x => x.r === c.r).length;
             let suitCount = cpu.flight.filter(x => x.s === c.s).length;
-            
             if (rankCount > 1) comboWeight += (rankCount * 5); 
             if (suitCount > 2) comboWeight += 5; 
-            
             return { score: c.val + comboWeight, val: c.val, idx: i, card: c };
         }).sort((a,b) => a.score - b.score);
-        
         worstInFlight = evalFlight[0]; 
         worstFlightIdx = evalFlight[0].idx;
     }
 
-    // 3. PLAY ATTACK CARDS (Patrons)
+    // 2. ATTACK CARDS
     let patronIdx = cpu.hand.findIndex(c => !c.isBrew);
     if (patronIdx !== -1 && !played) {
         let pCard = cpu.hand[patronIdx];
         let opponentsWithFlights = players.filter(p => p.id !== pid && p.flight.length > 0);
         
-        if (pCard.r === 'J') {
-            playSound('slide');
+        if (pCard.r === 'Q' && opponentsWithFlights.length > 0) {
             cpu.hand.splice(patronIdx, 1);
-            if(deck.length) cpu.hand.push(deck.pop());
-            if(deck.length) cpu.hand.push(deck.pop());
-            
-            // Discard lowest raw value card
-            cpu.hand.sort((a,b) => (a.isBrew ? a.val : 0) - (b.isBrew ? b.val : 0));
-            cpu.hand.shift();
-            log(`${cpu.name} played Jack (Drew 2, Discarded 1).`);
-            played = true;
-        } 
-        else if (pCard.r === 'Q' && opponentsWithFlights.length > 0) {
-            playSound('slide');
-            cpu.hand.splice(patronIdx, 1);
-            // Find highest card across ALL opponents
             let bestTarget = null, targetOpp = null;
             opponentsWithFlights.forEach(opp => {
                 opp.flight.forEach(c => {
                     if (!bestTarget || c.val > bestTarget.val) { bestTarget = c; targetOpp = opp; }
                 });
             });
+
+            // HIGHLIGHT PHASE (Pause and show who is targeted)
+            bestTarget.isTargeted = true;
+            log(`${cpu.name} played Queen! Targeting ${targetOpp.name}'s ${bestTarget.r}.`);
+            playSound('slide');
+            renderGame();
+            
+            await sleep(1200); // ⏱️ 1.2 SECOND PAUSE
+            
+            // ACTION PHASE (Remove the card)
             let idx = targetOpp.flight.findIndex(c => c.uid === bestTarget.uid);
             targetOpp.flight.splice(idx, 1);
-            log(`${cpu.name} played Queen! Removed ${bestTarget.r} from ${targetOpp.name}.`);
+            playSound('woosh');
             played = true;
         }
         else if (pCard.r === 'A' && opponentsWithFlights.length > 0) {
-            // Find highest card to steal
             let bestTarget = null, targetOpp = null;
             opponentsWithFlights.forEach(opp => {
                 opp.flight.forEach(c => {
@@ -423,53 +421,49 @@ function cpuAI(pid) {
                 });
             });
             
-            // Only steal if we have room OR it's better than our worst flight card
             if (cpu.flight.length < 4 || (worstInFlight && bestTarget.val > worstInFlight.val)) {
-                playSound('woosh');
                 cpu.hand.splice(patronIdx, 1);
+                
+                // HIGHLIGHT PHASE
+                bestTarget.isTargeted = true;
+                log(`${cpu.name} played Ace! Stealing from ${targetOpp.name}.`);
+                playSound('slide');
+                renderGame();
+                
+                await sleep(1200); // ⏱️ 1.2 SECOND PAUSE
+
+                // ACTION PHASE
                 let idx = targetOpp.flight.findIndex(c => c.uid === bestTarget.uid);
                 let stolen = targetOpp.flight.splice(idx, 1)[0];
+                stolen.isTargeted = false; // Turn off red outline
+                stolen.justPoured = true;  // Turn on pour animation
+                playSound('woosh');
                 
                 if (cpu.flight.length < 4) {
                     cpu.flight.push(stolen);
-                    log(`${cpu.name} played Ace! Stole ${stolen.r} from ${targetOpp.name}.`);
                 } else {
-                    let oldCard = cpu.flight[worstFlightIdx];
                     cpu.flight[worstFlightIdx] = stolen;
-                    log(`${cpu.name} played Ace! Stole ${stolen.r} from ${targetOpp.name}, swapping it for ${oldCard.r}.`);
                 }
                 played = true;
             }
         }
-        else if (pCard.r === 'K') {
-            playSound('slide');
-            cpu.hand.splice(patronIdx, 1);
-            // Target the player currently in the lead
-            let targetOpp = players.filter(p => p.id !== pid && p.hand.length > 0)
-                                   .sort((a,b) => calcScore(b.flight) - calcScore(a.flight))[0];
-            
-            if (targetOpp) {
-                let rIdx = Math.floor(Math.random() * targetOpp.hand.length);
-                let peekedCard = targetOpp.hand[rIdx];
-                
-                // Only keep it if it's a solid Brew (7 or higher)
-                if (peekedCard.isBrew && peekedCard.val >= 7) {
-                    cpu.hand.sort((a,b) => (a.isBrew ? a.val : 0) - (b.isBrew ? b.val : 0));
-                    let trash = cpu.hand.shift();
-                    targetOpp.hand.splice(rIdx, 1, trash);
-                    cpu.hand.push(peekedCard);
-                    log(`${cpu.name} played King! Swapped a card with ${targetOpp.name}.`);
-                } else {
-                    log(`${cpu.name} played King on ${targetOpp.name} but returned the card.`);
-                }
-            } else {
-                log(`${cpu.name} played King but no one had cards to check.`);
-            }
-            played = true;
+        // Basic King/Jack (Fast execution)
+        else {
+             cpu.hand.splice(patronIdx, 1);
+             playSound('slide');
+             if(pCard.r === 'J') {
+                 if(deck.length) cpu.hand.push(deck.pop());
+                 if(deck.length) cpu.hand.push(deck.pop());
+                 cpu.hand.shift();
+                 log(`${cpu.name} played Jack.`);
+             } else {
+                 log(`${cpu.name} played King.`);
+             }
+             played = true;
         }
     }
 
-    // 4. POUR A BREW (If no attack card was played)
+    // 3. POUR A BREW
     if (!played) {
         let brewsInHand = cpu.hand.filter(c => c.isBrew).sort((a,b) => b.val - a.val); 
         if (brewsInHand.length > 0) {
@@ -478,6 +472,7 @@ function cpuAI(pid) {
 
             if (cpu.flight.length < 4) {
                 cpu.hand.splice(handIdx, 1);
+                bestBrew.justPoured = true; // Trigger animation
                 cpu.flight.push(bestBrew);
                 playSound('pour');
                 log(`${cpu.name} poured ${bestBrew.r}${bestBrew.s}`);
@@ -485,6 +480,7 @@ function cpuAI(pid) {
             } 
             else if (worstInFlight && bestBrew.val > worstInFlight.val) { 
                 let oldCard = cpu.flight[worstFlightIdx];
+                bestBrew.justPoured = true;
                 cpu.flight[worstFlightIdx] = bestBrew;
                 cpu.hand[handIdx] = oldCard; 
                 cpu.hand.splice(handIdx, 1); 
@@ -495,18 +491,15 @@ function cpuAI(pid) {
         }
     }
 
-    // 5. WASTE A CARD (If absolutely nothing else can be done)
+    // 4. WASTE
     if (!played) {
-        cpu.hand.sort((a,b) => {
-            let vA = a.isBrew ? a.val : 0;
-            let vB = b.isBrew ? b.val : 0;
-            return vA - vB;
-        });
+        cpu.hand.sort((a,b) => (a.isBrew ? a.val : 0) - (b.isBrew ? b.val : 0));
         let w = cpu.hand.shift();
         log(`${cpu.name} wasted ${w.r}${w.s}`);
-        played = true;
     }
 
+    renderGame();
+    await sleep(1000); // ⏱️ Pause so humans can read the final action
     finishTurn();
 }
 
@@ -515,14 +508,20 @@ function renderGame() {
     const human = players[0];
     const oppContainer = document.getElementById('opponents-container');
     oppContainer.innerHTML = '';
+    
+    // Find highest score for the Leader Glow
+    let maxScore = Math.max(...players.map(p => calcScore(p.flight)));
+
     players.forEach(p => {
         if(p.type === 'HUMAN') return;
         let isTarget = (gameState === 'TARGET_PLAYER');
+        let isLeader = (calcScore(p.flight) === maxScore && maxScore > 0);
+        
         let html = `
-            <div class="opponent-zone ${currentPlayerIndex===p.id?'active-turn':''} ${isTarget?'targetable':''}" 
+            <div class="opponent-zone ${currentPlayerIndex===p.id?'active-turn':''} ${isTarget?'targetable':''} ${isLeader?'leader-glow':''}" 
                  onclick="cardAction('OPP_${p.id}', null)">
                 <div style="font-size:0.8em; display:flex; justify-content:space-between;">
-                    <span>${p.name}</span>
+                    <span class="${isLeader?'leader-crown':''}">${p.name}</span>
                     <span style="color:var(--gold)">${calcScore(p.flight)}</span>
                 </div>
                 <div class="paddle-container" style="transform:scale(${players.length>2?0.85:1}); margin:0;">
@@ -535,18 +534,19 @@ function renderGame() {
         oppContainer.innerHTML += html;
     });
 
-    document.getElementById('player-flight').innerHTML = human.flight.map(c => renderBeerHTML(c, 0, false)).join('');
-    document.getElementById('player-hand').innerHTML = human.hand.map((c,i) => renderCardHTML(c, true)).join('');
-    document.getElementById('player-score-val').innerText = calcScore(human.flight);
-}
+    let humanIsLeader = (calcScore(human.flight) === maxScore && maxScore > 0);
+    const playerPaddleDiv = document.getElementById('player-flight');
+    
+    if (humanIsLeader) {
+        playerPaddleDiv.classList.add('leader-glow');
+        document.getElementById('player-score-val').innerHTML = calcScore(human.flight) + ' <span style="font-size:1.2em">👑</span>';
+    } else {
+        playerPaddleDiv.classList.remove('leader-glow');
+        document.getElementById('player-score-val').innerHTML = calcScore(human.flight);
+    }
 
-function renderCardHTML(c, interactive) {
-    const isSelected = (gameState==='SWAP_TARGET' && players[0].hand[swapSourceIdx] === c);
-    const click = interactive ? `onclick="cardAction('HAND','${c.uid}')"` : '';
-    return `<div class="card ${['♥','♦'].includes(c.s)?'red':'black'} ${isSelected?'selected':''}" ${click}>
-                <div class="card-corner">${c.r}<br>${c.s}</div>
-                <div class="card-corner bottom">${c.r}<br>${c.s}</div>
-            </div>`;
+    playerPaddleDiv.innerHTML = human.flight.map(c => renderBeerHTML(c, 0, false)).join('');
+    document.getElementById('player-hand').innerHTML = human.hand.map((c,i) => renderCardHTML(c, true)).join('');
 }
 
 function renderBeerHTML(c, pid, isOpp) {
@@ -555,12 +555,16 @@ function renderBeerHTML(c, pid, isOpp) {
     const isRed = ['♥','♦'].includes(c.s);
     let loc = isOpp ? `OPP_CARD_${pid}_${c.uid}` : 'P_FLIGHT';
     let clickable = false;
-    if(isOpp && gameState === 'TARGET_CARD') clickable = true;
     
-    // ALLOW CLICKING OWN FLIGHT FOR SWAPPING (HAND) OR ACE UPGRADE
+    if(isOpp && gameState === 'TARGET_CARD') clickable = true;
     if(!isOpp && (gameState === 'SWAP_TARGET' || gameState === 'ACE_SWAP_TARGET')) clickable = true;
 
-    return `<div class="beer-glass ${!isOpp?'player-size':''}" 
+    // Apply Animation Classes
+    let extraClasses = '';
+    if (c.justPoured) extraClasses += ' anim-pour';
+    if (c.isTargeted) extraClasses += ' anim-attack';
+
+    return `<div class="beer-glass ${!isOpp?'player-size':''} ${extraClasses}" 
             style="--beer-color:${beerColor}; 
                    color:${isDark?'white':'black'}; 
                    text-shadow:${isDark?'0 0 2px black':'0 0 2px white'};
