@@ -549,6 +549,15 @@ function renderGame() {
     document.getElementById('player-hand').innerHTML = human.hand.map((c,i) => renderCardHTML(c, true)).join('');
 }
 
+function renderCardHTML(c, interactive) {
+    const isSelected = (gameState==='SWAP_TARGET' && players[0].hand[swapSourceIdx] === c);
+    const click = interactive ? `onclick="cardAction('HAND','${c.uid}')"` : '';
+    return `<div class="card ${['♥','♦'].includes(c.s)?'red':'black'} ${isSelected?'selected':''}" ${click}>
+                <div class="card-corner">${c.r}<br>${c.s}</div>
+                <div class="card-corner bottom">${c.r}<br>${c.s}</div>
+            </div>`;
+}
+
 function renderBeerHTML(c, pid, isOpp) {
     const beerColor = getBeerColor(c.r);
     const isDark = parseInt(c.r) >= 8;
