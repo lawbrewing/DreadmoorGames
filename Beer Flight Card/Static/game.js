@@ -5,7 +5,7 @@ const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
 const audio = {
     bgm: new Audio('assets/tavern-loop.mp3'),
     pour: new Audio('assets/pour.mp3'),
-    attack: new Audio('assets/slide.mp3'),
+    slide: new Audio('assets/slide.mp3'),
     woosh: new Audio('assets/woosh.mp3')
 };
 
