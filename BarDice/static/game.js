@@ -30,7 +30,7 @@ const Icon = ({ name, size = 16, className = "" }) => {
     return <div className={className} style={{ width: size, height: size, display: 'inline-block' }}><Component /></div>;
 };
 
-// --- ENHANCED CUSTOM AVATARS ---
+// --- ENHANCED CUSTOM AVATARS (COMMENTS FIXED) ---
 const Avatars = {
     Pete: () => (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full">
@@ -88,32 +88,32 @@ const Avatars = {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full">
             <rect width="100" height="100" fill="#7b341e"/>
             <circle cx="50" cy="55" r="30" fill="#f6ad55"/>
-            <!-- Bandana -->
+            {/* Bandana */}
             <path d="M15 35 Q50 10 85 35 L80 45 Q50 35 20 45 Z" fill="#e53e3e"/>
             <circle cx="20" cy="40" r="5" fill="#c53030"/>
-            <!-- Eyepatch -->
+            {/* Eyepatch */}
             <circle cx="35" cy="52" r="8" fill="#1a202c"/>
             <line x1="20" y1="45" x2="50" y2="60" stroke="#1a202c" strokeWidth="2"/>
-            <!-- Good Eye -->
+            {/* Good Eye */}
             <circle cx="65" cy="52" r="4" fill="#1a202c"/>
-            <!-- Scar -->
+            {/* Scar */}
             <line x1="60" y1="65" x2="70" y2="75" stroke="#c53030" strokeWidth="2"/>
             <line x1="63" y1="68" x2="67" y2="66" stroke="#c53030" strokeWidth="1"/>
-            <!-- Scowl -->
+            {/* Scowl */}
             <path d="M40 80 Q50 75 60 82" stroke="#1a202c" strokeWidth="3" fill="none"/>
         </svg>
     ),
     Loomis: () => (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full">
             <rect width="100" height="100" fill="#2b6cb0"/>
-            <!-- Neck & Head -->
+            {/* Neck & Head */}
             <path d="M40 100 Q40 50 60 30 Q70 20 80 30 Q80 40 65 45 Q50 50 50 100 Z" fill="#f7fafc"/>
-            <!-- Beak -->
+            {/* Beak */}
             <path d="M80 30 L98 35 L80 40 Z" fill="#ecc94b"/>
-            <!-- Eye -->
+            {/* Eye */}
             <circle cx="68" cy="32" r="3" fill="#ecc94b"/>
             <circle cx="68" cy="32" r="1.5" fill="#1a202c"/>
-            <!-- Feather accent -->
+            {/* Feather accent */}
             <path d="M55 25 Q45 20 40 28" stroke="#e2e8f0" strokeWidth="2" fill="none"/>
         </svg>
     )
