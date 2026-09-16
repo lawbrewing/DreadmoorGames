@@ -3,9 +3,10 @@ const SUITS = ['♥', '♦', '♣', '♠'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const CPU_NAMES = ["", "Mara Lawson", "James Roberts", "Pinecone Pete"];
 const audio = {
-    bgm: new Audio('assets/tavern-loop.mp3'), // We will add this file later
-    pour: new Audio('assets/glass-clink.mp3'),
-    attack: new Audio('assets/slide.mp3')
+    bgm: new Audio('assets/tavern-loop.mp3'),
+    pour: new Audio('assets/pour.mp3'),
+    attack: new Audio('assets/slide.mp3'),
+    woosh: new Audio('assets/woosh.mp3')
 };
 
 // Configure Background Music
@@ -177,6 +178,7 @@ window.cardAction = function(loc, uid) {
         const handCard = human.hand[swapSourceIdx];
         human.hand.splice(swapSourceIdx, 1); 
         let oldCard = human.flight.splice(flightIdx, 1, handCard)[0];
+        playSound('woosh');
         log(`Swapped ${oldCard.r} for ${handCard.r}.`);
         finishTurn(); return;
     }
@@ -232,6 +234,7 @@ window.cardAction = function(loc, uid) {
         if(card.isBrew) {
             if(human.flight.length < 4) { 
                 human.hand.splice(idx,1); human.flight.push(card); 
+                playSound('pour');
                 log(`Poured ${card.r}${card.s}`); finishTurn(); 
             } else {
                 swapSourceIdx = idx; gameState = 'SWAP_TARGET';
@@ -244,6 +247,7 @@ window.cardAction = function(loc, uid) {
 }
 
 function handlePatron(c, handIdx) {
+    playSound('slide');
     players[0].hand.splice(handIdx, 1);
 
     if(c.r==='J') { 
@@ -384,6 +388,7 @@ function cpuAI(pid) {
         let opponentsWithFlights = players.filter(p => p.id !== pid && p.flight.length > 0);
         
         if (pCard.r === 'J') {
+            playSound('slide');
             cpu.hand.splice(patronIdx, 1);
             if(deck.length) cpu.hand.push(deck.pop());
             if(deck.length) cpu.hand.push(deck.pop());
@@ -395,6 +400,7 @@ function cpuAI(pid) {
             played = true;
         } 
         else if (pCard.r === 'Q' && opponentsWithFlights.length > 0) {
+            playSound('slide');
             cpu.hand.splice(patronIdx, 1);
             // Find highest card across ALL opponents
             let bestTarget = null, targetOpp = null;
@@ -419,6 +425,7 @@ function cpuAI(pid) {
             
             // Only steal if we have room OR it's better than our worst flight card
             if (cpu.flight.length < 4 || (worstInFlight && bestTarget.val > worstInFlight.val)) {
+                playSound('woosh');
                 cpu.hand.splice(patronIdx, 1);
                 let idx = targetOpp.flight.findIndex(c => c.uid === bestTarget.uid);
                 let stolen = targetOpp.flight.splice(idx, 1)[0];
@@ -435,6 +442,7 @@ function cpuAI(pid) {
             }
         }
         else if (pCard.r === 'K') {
+            playSound('slide');
             cpu.hand.splice(patronIdx, 1);
             // Target the player currently in the lead
             let targetOpp = players.filter(p => p.id !== pid && p.hand.length > 0)
@@ -471,6 +479,7 @@ function cpuAI(pid) {
             if (cpu.flight.length < 4) {
                 cpu.hand.splice(handIdx, 1);
                 cpu.flight.push(bestBrew);
+                playSound('pour');
                 log(`${cpu.name} poured ${bestBrew.r}${bestBrew.s}`);
                 played = true;
             } 
@@ -479,6 +488,7 @@ function cpuAI(pid) {
                 cpu.flight[worstFlightIdx] = bestBrew;
                 cpu.hand[handIdx] = oldCard; 
                 cpu.hand.splice(handIdx, 1); 
+                playSound('pour');
                 log(`${cpu.name} SWAPPED ${oldCard.r} for ${bestBrew.r}`);
                 played = true;
             }
