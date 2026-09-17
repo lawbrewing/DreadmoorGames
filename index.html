@@ -375,6 +375,9 @@
             let currentVideoIndex = 0;
 
             const showMainContent = () => {
+                // 1. SET THE SESSION FLAG SO IT DOESN'T PLAY AGAIN
+                sessionStorage.setItem('introPlayed', 'true');
+
                 introVideo.pause();
                 introVideo.removeAttribute('src');
                 introVideo.load();
@@ -420,6 +423,15 @@
             introVideo.addEventListener('ended', playNext);
             introVideo.addEventListener('error', playNext);
             skipBtn.addEventListener('click', showMainContent);
+
+            // 2. CHECK THE SESSION FLAG ON PAGE LOAD
+            if (sessionStorage.getItem('introPlayed') === 'true') {
+                // User already saw the intro this session, instantly show the menu
+                startScreen.classList.add('hidden');
+                introWrapper.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                mainContent.style.opacity = '1';
+            }
         });
     </script>
 
