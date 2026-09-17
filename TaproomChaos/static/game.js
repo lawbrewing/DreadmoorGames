@@ -1,8 +1,5 @@
 const LEVELS = 3;
 const ROOM_SIZE = 34; 
-const PLAYER_SPEED = 18;
-const ENEMY_SPEED = 0.0003; 
-const HIT_FORCE = 0.08; 
 const PLAYER_START = { x: 0, z: 12 };
 
 // Custom Tap List
@@ -25,7 +22,8 @@ let state = {
     level: 1, isPlaying: false, annoyance: 0,
     patronsTotal: 5, patronsServed: 0, timeLeft: 45,
     enemies: [], patrons: [], obstacles: [], particles: [],
-    flight: [null, null, null, null]
+    flight: [null, null, null, null],
+    physicsAccumulator: 0
 };
 
 // Three & Matter Globals
@@ -35,8 +33,9 @@ let playerBody, playerMesh;
 let joystick = { x: 0, y: 0, active: false };
 const textures = {};
 const materials = {};
+const geometries = {};
 
-// Simple web audio syntesizer
+// Simple Web Audio Synthesizer
 const AudioSys = {
     ctx: null,
     init: function() { try { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); } catch(e) { console.warn("Audio disabled"); } },
@@ -66,7 +65,7 @@ function init() {
         // --- Matter.js Setup ---
         engine = Matter.Engine.create();
         world = engine.world;
-        engine.gravity.y = 0; 
+        engine.gravity.y = 0; // Top down 2D physics
 
         // --- Three.js Setup ---
         scene = new THREE.Scene();
@@ -85,20 +84,21 @@ function init() {
         const ambient = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambient);
         
-        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.0);
+        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.2);
         dirLight.position.set(15, 40, 20);
         dirLight.castShadow = true;
         
+        // Ensure the shadow map covers the whole room
         dirLight.shadow.camera.left = -40;
         dirLight.shadow.camera.right = 40;
         dirLight.shadow.camera.top = 40;
         dirLight.shadow.camera.bottom = -40;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
 
         clock = new THREE.Clock();
-        generateDetailedTextures();
+        generateNativeCanvasTextures(); // Swapped to native Canvas for 100% stability
         setupControls();
         setupButtons();
         buildEnvironment();
@@ -116,56 +116,98 @@ function init() {
     }
 }
 
-// Bulletproof SVG loading via Data URIs
-function createSVGTexture(svgString) {
-    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
-    const tex = new THREE.TextureLoader().load(url);
+// 100% Synchronous, crash-proof texture generation
+function createTexture(drawFn) {
+    const c = document.createElement('canvas'); 
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    drawFn(ctx);
+    const tex = new THREE.CanvasTexture(c);
     tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
     return tex;
 }
 
-function generateDetailedTextures() {
-    const svgPlayer = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><radialGradient id="gradPlayer" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ddd"/></radialGradient></defs><circle cx="128" cy="128" r="110" fill="url(#gradPlayer)" stroke="#333" stroke-width="8"/><path d="M 40 180 Q 128 260 216 180 L 230 256 L 26 256 Z" fill="#c62828"/><path d="M 60 180 L 60 256 M 100 200 L 100 256 M 156 200 L 156 256 M 196 180 L 196 256" stroke="#000" stroke-width="6" opacity="0.4"/><rect x="88" y="190" width="80" height="70" fill="#4e342e" rx="10"/><circle cx="128" cy="110" r="50" fill="#ffccbc"/><path d="M 78 110 Q 128 200 178 110 Q 170 170 128 170 Q 86 170 78 110" fill="#5d4037"/><rect x="100" y="90" width="15" height="15" fill="#333" rx="5"/><rect x="140" y="90" width="15" height="15" fill="#333" rx="5"/><path d="M 115 130 Q 128 145 141 130" stroke="#fff" stroke-width="4" fill="none"/></svg>`;
-    const svgVillain = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><radialGradient id="gradV" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#333"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><circle cx="128" cy="128" r="110" fill="url(#gradV)" stroke="#ff0055" stroke-width="8"/><path d="M 108 40 L 128 10 L 148 40 Z M 98 60 L 128 20 L 158 60 Z" fill="#00ffcc"/><circle cx="128" cy="130" r="55" fill="#e0e0e0"/><path d="M 90 110 L 115 125 M 166 110 L 141 125" stroke="#ff0055" stroke-width="8" stroke-linecap="round"/><circle cx="105" cy="135" r="8" fill="#ff0055"/><circle cx="151" cy="135" r="8" fill="#ff0055"/><path d="M 110 160 Q 128 145 146 160" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`;
-    const svgTable = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><circle cx="128" cy="128" r="120" fill="#5d4037" stroke="#3e2723" stroke-width="12"/><circle cx="128" cy="128" r="100" fill="none" stroke="#4e342e" stroke-width="4"/><circle cx="80" cy="80" r="15" fill="#e0e0e0"/><circle cx="176" cy="100" r="15" fill="#e0e0e0"/><circle cx="128" cy="176" r="15" fill="#e0e0e0"/><circle cx="40" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/><circle cx="216" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/></svg>`;
-    const svgTableServed = svgTable.replace('</svg>', `<rect x="70" y="60" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><rect x="166" y="80" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><rect x="118" y="156" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><circle cx="80" cy="60" r="12" fill="#fff"/><circle cx="176" cy="80" r="12" fill="#fff"/><circle cx="128" cy="156" r="12" fill="#fff"/></svg>`);
-    const svgSpill = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><path d="M 128 30 C 180 30 220 80 200 140 C 180 200 150 230 100 210 C 50 190 30 140 60 90 C 80 50 90 30 128 30 Z" fill="rgba(251, 192, 45, 0.8)"/><circle cx="180" cy="80" r="15" fill="rgba(251, 192, 45, 0.8)"/><circle cx="70" cy="180" r="20" fill="rgba(251, 192, 45, 0.8)"/></svg>`;
+function generateNativeCanvasTextures() {
+    textures.player = createTexture((ctx) => {
+        // Flannel Body
+        ctx.fillStyle = '#b71c1c'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
+        // Apron
+        ctx.fillStyle = '#3e2723'; ctx.fillRect(88, 150, 80, 106);
+        // Head
+        ctx.fillStyle = '#ffccbc'; ctx.beginPath(); ctx.arc(128, 100, 50, 0, Math.PI*2); ctx.fill();
+        // Beard
+        ctx.fillStyle = '#4e342e'; ctx.beginPath(); ctx.arc(128, 115, 45, 0, Math.PI); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#000'; ctx.fillRect(105, 90, 10, 10); ctx.fillRect(141, 90, 10, 10);
+    });
 
-    textures.player = createSVGTexture(svgPlayer);
-    textures.villain = createSVGTexture(svgVillain);
-    textures.table = createSVGTexture(svgTable);
-    textures.tableServed = createSVGTexture(svgTableServed);
-    textures.spill = createSVGTexture(svgSpill);
+    textures.villain = createTexture((ctx) => {
+        // Jacket
+        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
+        // Mohawk
+        ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.moveTo(108, 60); ctx.lineTo(128, 10); ctx.lineTo(148, 60); ctx.fill();
+        // Head
+        ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.arc(128, 120, 50, 0, Math.PI*2); ctx.fill();
+        // Neon Shades
+        ctx.fillStyle = '#ff0055'; ctx.fillRect(90, 100, 76, 20);
+    });
 
-    const fc = document.createElement('canvas'); fc.width=512; fc.height=512;
-    const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#6d4c41'; 
-    fctx.fillRect(0,0,512,512);
+    textures.table = createTexture((ctx) => {
+        // Stools
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
+        // Table Top
+        ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    });
+
+    textures.tableServed = createTexture((ctx) => {
+        // Base Table
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        // Pints
+        ctx.fillStyle = '#fbc02d'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+        ctx.fillRect(90, 80, 20, 30); ctx.strokeRect(90, 80, 20, 30);
+        ctx.fillRect(146, 120, 20, 30); ctx.strokeRect(146, 120, 20, 30);
+    });
+
+    textures.spill = createTexture((ctx) => {
+        ctx.fillStyle = 'rgba(251, 192, 45, 0.9)';
+        ctx.beginPath(); ctx.arc(128, 128, 80, 0, Math.PI*2); ctx.arc(80, 80, 40, 0, Math.PI*2); ctx.arc(180, 150, 50, 0, Math.PI*2); ctx.fill();
+    });
+
+    // Floor
+    const fc = document.createElement('canvas'); fc.width=512; fc.height=512; const fctx = fc.getContext('2d');
+    fctx.fillStyle = '#6d4c41'; fctx.fillRect(0,0,512,512);
     fctx.strokeStyle = '#4e342e'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
-    textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
-    textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
+    textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping; textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
 
-    materials.player = new THREE.MeshLambertMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.villain = new THREE.MeshLambertMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.table = new THREE.MeshLambertMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.tableServed = new THREE.MeshLambertMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    // Standard Materials
+    materials.player = new THREE.MeshLambertMaterial({ map: textures.player, transparent: true, alphaTest: 0.1 });
+    materials.villain = new THREE.MeshLambertMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1 });
+    materials.table = new THREE.MeshLambertMaterial({ map: textures.table, transparent: true, alphaTest: 0.1 });
+    materials.tableServed = new THREE.MeshLambertMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1 });
+    
+    // Shared Particle Materials (Fixes Memory Leak)
+    materials.particleHit = new THREE.MeshLambertMaterial({ color: 0xff0055 });
+    materials.particlePour = new THREE.MeshLambertMaterial({ color: 0xfbc02d });
+    geometries.particle = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 }
 
 function createBillboard(material, size) {
     const geo = new THREE.PlaneGeometry(size, size);
+    geo.rotateY(Math.PI); // Rotates the plane so it faces the camera perfectly without backface culling issues
     const mesh = new THREE.Mesh(geo, material);
     mesh.castShadow = true;
     return mesh;
 }
 
-function createParticleSystem(x, z, color, count=10) {
-    const geo = new THREE.PlaneGeometry(0.5, 0.5);
-    const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, side: THREE.DoubleSide });
+function createParticleSystem(x, z, type, count=12) {
+    const mat = type === 'hit' ? materials.particleHit : materials.particlePour;
     for(let i=0; i<count; i++) {
-        const p = new THREE.Mesh(geo, mat);
+        const p = new THREE.Mesh(geometries.particle, mat);
         p.position.set(x + (Math.random()-0.5), 1.5, z + (Math.random()-0.5));
         p.velocity = new THREE.Vector3((Math.random()-0.5)*15, (Math.random()*10)+5, (Math.random()-0.5)*15);
         p.life = 1.0;
@@ -184,7 +226,7 @@ function buildEnvironment() {
 
     const barW = 24, barH = 4, barD = 6, barZ = -12;
     const barGeo = new THREE.BoxGeometry(barW, barH, barD);
-    const barMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+    const barMat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
     const bar = new THREE.Mesh(barGeo, barMat);
     bar.position.set(0, barH/2, barZ);
     bar.castShadow = true; bar.receiveShadow = true;
@@ -192,6 +234,7 @@ function buildEnvironment() {
     
     Matter.World.add(world, Matter.Bodies.rectangle(0, barZ, barW, barD, { isStatic: true }));
 
+    // Boundary Walls
     const wOpts = { isStatic: true };
     Matter.World.add(world, [
         Matter.Bodies.rectangle(0, -ROOM_SIZE, ROOM_SIZE*2, 2, wOpts),
@@ -201,65 +244,75 @@ function buildEnvironment() {
     ]);
 
     playerMesh = createBillboard(materials.player, 4);
-    playerMesh.position.set(PLAYER_START.x, 2, PLAYER_START.z);
     scene.add(playerMesh);
 
+    // High frictionAir creates smooth drag (no jittering)
     playerBody = Matter.Bodies.circle(PLAYER_START.x, PLAYER_START.z, 1.5, { 
-        frictionAir: 0.2, restitution: 0.2, mass: 10 
+        frictionAir: 0.8, restitution: 0.1, mass: 20 
     });
     Matter.World.add(world, playerBody);
 }
 
 function spawnLevelEntities() {
-    state.patrons.forEach(p => scene.remove(p.mesh));
-    state.enemies.forEach(e => scene.remove(e.mesh));
-    state.obstacles.forEach(o => scene.remove(o.mesh));
-    
-    state.patrons.forEach(p => Matter.World.remove(world, p.body));
-    state.enemies.forEach(e => Matter.World.remove(world, e.body));
+    state.patrons.forEach(p => { scene.remove(p.mesh); Matter.World.remove(world, p.body); });
+    state.enemies.forEach(e => { scene.remove(e.mesh); Matter.World.remove(world, e.body); });
+    state.obstacles.forEach(o => { scene.remove(o.mesh); });
 
     state.patrons = []; state.enemies = []; state.obstacles = [];
 
+    // CRITICAL FIX: Structured Grid Spawning guarantees tables NEVER spawn inside each other
+    const tableGrid = [
+        {x: -12, z: -2}, {x: 0, z: -2}, {x: 12, z: -2},
+        {x: -12, z: 8},  {x: 0, z: 8},  {x: 12, z: 8},
+        {x: -12, z: 18}, {x: 0, z: 18}, {x: 12, z: 18},
+        {x: -18, z: 4},  {x: 18, z: 4}, {x: -18, z: 14}, {x: 18, z: 14}
+    ];
+
     for(let i=0; i<state.patronsTotal; i++) {
+        const pos = tableGrid[i % tableGrid.length];
         const mesh = createBillboard(materials.table, 4.5);
-        const x = (Math.random() - 0.5) * 24;
-        const z = (Math.random() - 0.2) * 20; 
+        
+        // Add a tiny visual offset so the grid doesn't look perfectly rigid
+        const x = pos.x + (Math.random()-0.5);
+        const z = pos.z + (Math.random()-0.5);
         
         mesh.position.set(x, 2.25, z);
         scene.add(mesh);
         
         const body = Matter.Bodies.circle(x, z, 2.0, { 
-            mass: 50, frictionAir: 0.8, restitution: 0.1 
+            mass: 80, frictionAir: 0.9, restitution: 0.1 // Heavy, slides slowly
         });
         Matter.World.add(world, body);
-
         state.patrons.push({ mesh, body, served: false });
     }
 
     const enemyCount = state.level * 2;
+    const edgeSpawns = [{x: -26, z: 10}, {x: 26, z: 10}, {x: 0, z: 26}];
     for(let i=0; i<enemyCount; i++) {
+        const edge = edgeSpawns[i % edgeSpawns.length];
+        const x = edge.x + (Math.random()-0.5)*4;
+        const z = edge.z + (Math.random()-0.5)*4;
+        
         const mesh = createBillboard(materials.villain, 3.5);
-        const x = (Math.random() - 0.5) * 28;
-        const z = (Math.random() - 0.5) * 24;
         mesh.position.set(x, 1.75, z);
         scene.add(mesh);
         
         const body = Matter.Bodies.circle(x, z, 1.5, {
-            mass: 5, frictionAir: 0.1, restitution: 0.5
+            mass: 15, frictionAir: 0.8, restitution: 0.3
         });
         Matter.World.add(world, body);
 
-        state.enemies.push({ mesh, body, hp: 3, speed: ENEMY_SPEED + (state.level*0.0001) });
+        state.enemies.push({ mesh, body, hp: 3, speed: 0.08 + (state.level * 0.02) });
     }
 
     const obsCount = state.level * 3;
     for(let i=0; i<obsCount; i++) {
-        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true, side: THREE.DoubleSide });
+        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), mat);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.y = 0.05;
-        mesh.position.x = (Math.random() - 0.5) * 28;
-        mesh.position.z = (Math.random() - 0.5) * 24;
+        mesh.position.x = (Math.random() - 0.5) * 26;
+        mesh.position.z = (Math.random() - 0.5) * 20;
         mesh.receiveShadow = true;
         scene.add(mesh);
         state.obstacles.push({ mesh });
@@ -269,7 +322,7 @@ function spawnLevelEntities() {
 function setupButtons() {
     const bind = (id, fn) => {
         const el = document.getElementById(id);
-        if(el) { el.addEventListener('click', fn); el.addEventListener('touchstart', (e)=>{e.preventDefault(); fn();}, {passive:false}); }
+        if(el) { el.addEventListener('click', fn); el.addEventListener('touchstart', (e)=>{ if(e.cancelable) e.preventDefault(); fn();}, {passive:false}); }
     };
     bind('btn-start', startGame);
     bind('btn-next-level', nextLevel);
@@ -286,16 +339,26 @@ function setupControls() {
     const knob = document.getElementById('joystick-knob');
     
     const handleTouch = (e) => {
-        e.preventDefault();
-        const touch = e.touches ? e.touches[0] : e;
-        if (!touch) return;
+        if(e.cancelable) e.preventDefault();
+        
+        // CRITICAL FIX: Bulletproof coordinate extraction prevents NaN Joystick inputs
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+        } else if (e.clientX !== undefined) {
+            clientX = e.clientX; clientY = e.clientY;
+        }
+        
+        if (clientX === undefined) return;
         
         const rect = zone.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         
-        let dx = touch.clientX - centerX;
-        let dy = touch.clientY - centerY;
+        let dx = clientX - centerX;
+        let dy = clientY - centerY;
         const dist = Math.sqrt(dx*dx + dy*dy);
         const maxDist = rect.width / 2;
         
@@ -331,18 +394,17 @@ function startGame() {
 
 function loadLevel(level) {
     state.level = level;
-    state.patronsTotal = 3 + (level * 2);
+    state.patronsTotal = 4 + (level * 2);
     state.patronsServed = 0;
     state.timeLeft = 40 + (level * 10);
     state.annoyance = 0;
     state.isPlaying = true;
+    state.physicsAccumulator = 0;
     
     Matter.Body.setPosition(playerBody, { x: PLAYER_START.x, y: PLAYER_START.z });
     Matter.Body.setVelocity(playerBody, { x: 0, y: 0 });
     
-    // CRITICAL FIX: Restart the clock so dt doesn't explode and cause NaN coordinates
     clock.start(); 
-
     spawnLevelEntities();
     updateUI();
 }
@@ -365,13 +427,11 @@ function showMessage(txt, color='#fff') {
     el.style.color = color;
     
     const pos = playerMesh.position.clone();
-    pos.y += 3;
-    pos.project(camera);
+    pos.y += 3; pos.project(camera);
     const x = (pos.x * .5 + .5) * window.innerWidth;
     const y = (pos.y * -.5 + .5) * window.innerHeight;
     
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    el.style.left = `${x}px`; el.style.top = `${y}px`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 800);
 }
@@ -380,31 +440,32 @@ function performSlap() {
     if(!state.isPlaying) return;
     AudioSys.sfxSlap();
     
-    playerMesh.scale.x = 4.5;
+    playerMesh.scale.x = 4.8;
     setTimeout(()=>playerMesh.scale.x = 4.0, 150);
 
     for(let i=state.enemies.length-1; i>=0; i--) {
         const e = state.enemies[i];
         let sub = Matter.Vector.sub(e.body.position, playerBody.position);
         
-        // Prevent NaN if they overlap exactly
-        if (sub.x === 0 && sub.y === 0) { sub = { x: 0.1, y: 0.1 }; } 
+        // Prevent NaN logic crashes if bodies are exactly perfectly aligned
+        if (Matter.Vector.magnitude(sub) < 0.001) { sub = { x: 0.1, y: 0.1 }; } 
 
         const dist = Matter.Vector.magnitude(sub);
-        
-        if(dist < 6.0) { 
+        if(dist < 7.0) { 
             e.hp--;
             const forceDir = Matter.Vector.normalise(sub);
-            Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(forceDir, HIT_FORCE));
             
-            createParticleSystem(e.body.position.x, e.body.position.y, 0xff0055, 15);
+            // Send enemy flying smoothly
+            Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(forceDir, 2.5));
+            
+            createParticleSystem(e.body.position.x, e.body.position.y, 'hit', 12);
             showMessage("BAM!", "#ff0055");
             
             if(e.hp <= 0) {
                 scene.remove(e.mesh);
                 Matter.World.remove(world, e.body);
                 state.enemies.splice(i, 1);
-                state.annoyance = Math.max(0, state.annoyance - 20); 
+                state.annoyance = Math.max(0, state.annoyance - 15); 
             }
             break; 
         }
@@ -416,12 +477,12 @@ function performPour() {
     if(!state.isPlaying) return;
     for(let p of state.patrons) {
         const dist = Matter.Vector.magnitude(Matter.Vector.sub(p.body.position, playerBody.position));
-        if(!p.served && dist < 6.0) {
+        if(!p.served && dist < 7.0) {
             p.served = true;
             p.mesh.material = materials.tableServed; 
             state.patronsServed++;
             AudioSys.sfxPour();
-            createParticleSystem(p.body.position.x, p.body.position.y, 0xfbc02d, 10);
+            createParticleSystem(p.body.position.x, p.body.position.y, 'pour', 10);
             showMessage("+SERVED", "#4caf50");
             updateUI();
             checkLevelClear();
@@ -452,63 +513,79 @@ function updateUI() {
 }
 
 function animate(time) {
-    // CRITICAL FIX: Clamp dt so it never jumps beyond 50ms, protecting physics
+    // CRITICAL FIX: Cap max delta to prevent Physics Explosions if the tab is backgrounded
     const dt = Math.min(clock.getDelta(), 0.05); 
     
     if (state.isPlaying) {
         state.timeLeft -= dt;
         if(state.timeLeft <= 0) state.annoyance = 100;
+        
+        state.annoyance += 2.5 * dt;
 
-        Matter.Engine.update(engine, dt * 1000);
+        // CRITICAL FIX: Fixed Time Step Physics ensures 100% engine stability
+        state.physicsAccumulator += dt;
+        const fixedStep = 1 / 60;
 
-        if (joystick.active) {
-            Matter.Body.setVelocity(playerBody, {
-                x: joystick.x * PLAYER_SPEED,
-                y: joystick.y * PLAYER_SPEED
+        while (state.physicsAccumulator >= fixedStep) {
+            // Apply Joystick Forces
+            if (joystick.active) {
+                Matter.Body.applyForce(playerBody, playerBody.position, {
+                    x: joystick.x * 0.08,
+                    y: joystick.y * 0.08
+                });
+            }
+
+            // Apply Enemy AI Forces
+            state.enemies.forEach(e => {
+                let sub = Matter.Vector.sub(playerBody.position, e.body.position);
+                if (Matter.Vector.magnitude(sub) < 0.001) { sub = { x: 0.1, y: 0.1 }; } 
+                
+                const dir = Matter.Vector.normalise(sub);
+                Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, e.speed));
+                
+                if(Matter.Vector.magnitude(sub) < 3.0) {
+                    state.annoyance += 30 * fixedStep; 
+                    Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, -0.4));
+                    if(Math.random() < 0.1) AudioSys.sfxCrash();
+                }
             });
-            playerMesh.position.y = 2.0 + Math.abs(Math.sin(time*0.015))*0.4;
-        } else {
-            Matter.Body.setVelocity(playerBody, { x: 0, y: 0 }); 
-            playerMesh.position.y = 2.0;
+
+            // Annoyance from moving tables (crashing)
+            state.patrons.forEach(p => {
+                if(Matter.Vector.magnitude(p.body.velocity) > 0.8) {
+                    state.annoyance += 10 * fixedStep;
+                    if(Math.random() < 0.05) AudioSys.sfxCrash();
+                }
+            });
+
+            Matter.Engine.update(engine, fixedStep * 1000);
+            state.physicsAccumulator -= fixedStep;
         }
 
+        // --- Render Sync ---
         playerMesh.position.x = playerBody.position.x;
         playerMesh.position.z = playerBody.position.y;
+        playerMesh.position.y = 2.0 + (joystick.active ? Math.abs(Math.sin(time*0.015))*0.4 : 0);
 
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
-        camera.position.z += ((playerMesh.position.z + 14) - camera.position.z) * 0.1;
+        camera.position.z += ((playerMesh.position.z + 16) - camera.position.z) * 0.1;
         
         camera.lookAt(playerMesh.position);
-        playerMesh.lookAt(camera.position);
+        
+        const camQuat = camera.quaternion;
+        playerMesh.quaternion.copy(camQuat);
 
         state.patrons.forEach(p => {
             p.mesh.position.x = p.body.position.x;
             p.mesh.position.z = p.body.position.y;
-            p.mesh.lookAt(camera.position);
-            
-            if(Matter.Vector.magnitude(p.body.velocity) > 2) {
-                state.annoyance += 5 * dt;
-                if(Math.random() < 0.1) AudioSys.sfxCrash();
-            }
+            p.mesh.quaternion.copy(camQuat);
         });
 
         state.enemies.forEach(e => {
-            let sub = Matter.Vector.sub(playerBody.position, e.body.position);
-            if (sub.x === 0 && sub.y === 0) { sub = { x: 0.1, y: 0.1 }; } // NaN protection
-            
-            const dir = Matter.Vector.normalise(sub);
-            Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, e.speed));
-            
             e.mesh.position.x = e.body.position.x;
             e.mesh.position.z = e.body.position.y;
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
-            e.mesh.lookAt(camera.position);
-
-            if(Matter.Vector.magnitude(sub) < 3.0) {
-                state.annoyance += 25 * dt; 
-                Matter.Body.setVelocity(e.body, Matter.Vector.mult(dir, -5));
-                AudioSys.sfxCrash();
-            }
+            e.mesh.quaternion.copy(camQuat);
         });
 
         state.obstacles.forEach(o => {
@@ -517,6 +594,7 @@ function animate(time) {
             }
         });
 
+        // 3D Particles
         for(let i=state.particles.length-1; i>=0; i--) {
             let p = state.particles[i];
             p.life -= dt * 2;
@@ -526,12 +604,11 @@ function animate(time) {
             } else {
                 p.position.addScaledVector(p.velocity, dt);
                 p.velocity.y -= 30 * dt; 
-                p.material.opacity = p.life;
-                p.lookAt(camera.position);
+                p.scale.setScalar(p.life);
+                p.rotation.x += 10 * dt; p.rotation.y += 10 * dt;
             }
         }
 
-        state.annoyance += 2.5 * dt;
         updateUI();
 
         if(state.annoyance >= 100) {
