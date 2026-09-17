@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Law Brewing: Taproom Chaos</title>
     <link rel="stylesheet" href="static/style.css">
-    <!-- Three.js for 3D Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.min.js"></script>
-    <!-- Matter.js for 2D Physics -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
     <div id="error-log"></div>
@@ -16,12 +13,12 @@
 
     <div id="ui-layer">
         <div class="marquee">
-            <span>🎶 NOW PLAYING: Rob Zombie - Dragula 🎶</span>
+            <span>🎶 NOW PLAYING: Rob Zombie - Dragula 🎶 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🍻 SPECIAL ON TAP: NOT Burnt Marshmallow Pastry Stout 🍻</span>
         </div>
         <div class="hud-top">
             <div>
-                <div id="timer-display">00:00</div>
-                <div id="level-indicator" style="font-size:18px; color:#aaa; font-family: 'Roboto Mono', monospace;">LEVEL 1</div>
+                <div id="timer-display">TIME: 60</div>
+                <div id="level-indicator">LEVEL 1</div>
             </div>
             <div>
                 <div id="meter-container">
@@ -45,12 +42,12 @@
 
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
-        <h3 style="color:#eee; font-family:'Roboto Mono', monospace; margin-bottom: -15px;">Dreadmoor Games Presents</h3>
+        <h3 class="studio-tag">Dreadmoor Games Presents</h3>
         <h1>LAW BREWING<br>TAPROOM</h1>
-        <p><b>Physics-Based Service Sim</b></p>
+        <p><b>Arcade Physics Service Sim</b></p>
         <p>1. Navigate the busy taproom floor.<br>
            2. <b>POUR</b> beer for sitting patrons.<br>
-           3. <b>SLAP</b> aggressive villains into tables!<br>
+           3. <b>SLAP</b> aggressive villains for knockback!<br>
            4. Avoid <b>Spills</b> & <b>Plants</b>!<br>
            5. Beat the <b>Timer</b>.</p>
         <button id="btn-start" class="main-btn">OPEN TAB</button>
@@ -75,16 +72,9 @@
         <h1>THE FINAL FLIGHT</h1>
         <p>Build the perfect Law Brewing flight: An <b>IPA</b>, a <b>Stout</b>, a <b>Sour</b>, and a <b>Milkshake</b> (in any order).</p>
         <div id="flight-ui">
-            <div class="beer-grid" id="beer-slots">
-                <div class="slot" data-index="0">Empty</div>
-                <div class="slot" data-index="1">Empty</div>
-                <div class="slot" data-index="2">Empty</div>
-                <div class="slot" data-index="3">Empty</div>
-            </div>
-            
+            <div class="beer-grid" id="beer-slots"></div>
             <div id="beer-info-box">Select a tap to view details...</div>
             <div id="beer-choices"></div>
-            
             <div class="flight-actions">
                 <button id="btn-clear-flight" class="choice-btn clear-btn">Reset</button>
                 <button id="btn-submit-flight" class="choice-btn submit-btn">SERVE</button>
