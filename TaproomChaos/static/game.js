@@ -1,5 +1,7 @@
 const LEVELS = 3;
 const ROOM_SIZE = 34; 
+const PLAYER_SPEED = 18;
+const ENEMY_SPEED = 4.5;
 const PLAYER_START = { x: 0, z: 12 };
 
 // Custom Tap List
@@ -22,8 +24,7 @@ let state = {
     level: 1, isPlaying: false, annoyance: 0,
     patronsTotal: 5, patronsServed: 0, timeLeft: 45,
     enemies: [], patrons: [], obstacles: [], particles: [],
-    flight: [null, null, null, null],
-    physicsAccumulator: 0
+    flight: [null, null, null, null]
 };
 
 // Three & Matter Globals
@@ -84,11 +85,10 @@ function init() {
         const ambient = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambient);
         
-        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.2);
+        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.0);
         dirLight.position.set(15, 40, 20);
         dirLight.castShadow = true;
         
-        // Ensure the shadow map covers the whole room
         dirLight.shadow.camera.left = -40;
         dirLight.shadow.camera.right = 40;
         dirLight.shadow.camera.top = 40;
@@ -98,7 +98,7 @@ function init() {
         scene.add(dirLight);
 
         clock = new THREE.Clock();
-        generateNativeCanvasTextures(); // Swapped to native Canvas for 100% stability
+        generateNativeCanvasTextures(); 
         setupControls();
         setupButtons();
         buildEnvironment();
@@ -124,6 +124,7 @@ function createTexture(drawFn) {
     drawFn(ctx);
     const tex = new THREE.CanvasTexture(c);
     tex.minFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
     return tex;
 }
 
@@ -183,22 +184,22 @@ function generateNativeCanvasTextures() {
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping; textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
+    textures.floor.needsUpdate = true;
 
-    // Standard Materials
-    materials.player = new THREE.MeshLambertMaterial({ map: textures.player, transparent: true, alphaTest: 0.1 });
-    materials.villain = new THREE.MeshLambertMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1 });
-    materials.table = new THREE.MeshLambertMaterial({ map: textures.table, transparent: true, alphaTest: 0.1 });
-    materials.tableServed = new THREE.MeshLambertMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1 });
+    // CRITICAL FIX: MeshBasicMaterial completely ignores lighting. These characters will NEVER be dark shadows.
+    materials.player = new THREE.MeshBasicMaterial({ map: textures.player, transparent: true, alphaTest: 0.1 });
+    materials.villain = new THREE.MeshBasicMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1 });
+    materials.table = new THREE.MeshBasicMaterial({ map: textures.table, transparent: true, alphaTest: 0.1 });
+    materials.tableServed = new THREE.MeshBasicMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1 });
     
-    // Shared Particle Materials (Fixes Memory Leak)
-    materials.particleHit = new THREE.MeshLambertMaterial({ color: 0xff0055 });
-    materials.particlePour = new THREE.MeshLambertMaterial({ color: 0xfbc02d });
+    // Shared Particle Materials (Fixes GPU Memory Leak)
+    materials.particleHit = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+    materials.particlePour = new THREE.MeshBasicMaterial({ color: 0xfbc02d });
     geometries.particle = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 }
 
 function createBillboard(material, size) {
     const geo = new THREE.PlaneGeometry(size, size);
-    geo.rotateY(Math.PI); // Rotates the plane so it faces the camera perfectly without backface culling issues
     const mesh = new THREE.Mesh(geo, material);
     mesh.castShadow = true;
     return mesh;
@@ -246,7 +247,6 @@ function buildEnvironment() {
     playerMesh = createBillboard(materials.player, 4);
     scene.add(playerMesh);
 
-    // High frictionAir creates smooth drag (no jittering)
     playerBody = Matter.Bodies.circle(PLAYER_START.x, PLAYER_START.z, 1.5, { 
         frictionAir: 0.8, restitution: 0.1, mass: 20 
     });
@@ -264,15 +264,13 @@ function spawnLevelEntities() {
     const tableGrid = [
         {x: -12, z: -2}, {x: 0, z: -2}, {x: 12, z: -2},
         {x: -12, z: 8},  {x: 0, z: 8},  {x: 12, z: 8},
-        {x: -12, z: 18}, {x: 0, z: 18}, {x: 12, z: 18},
-        {x: -18, z: 4},  {x: 18, z: 4}, {x: -18, z: 14}, {x: 18, z: 14}
+        {x: -12, z: 18}, {x: 0, z: 18}, {x: 12, z: 18}
     ];
 
     for(let i=0; i<state.patronsTotal; i++) {
         const pos = tableGrid[i % tableGrid.length];
         const mesh = createBillboard(materials.table, 4.5);
         
-        // Add a tiny visual offset so the grid doesn't look perfectly rigid
         const x = pos.x + (Math.random()-0.5);
         const z = pos.z + (Math.random()-0.5);
         
@@ -280,7 +278,7 @@ function spawnLevelEntities() {
         scene.add(mesh);
         
         const body = Matter.Bodies.circle(x, z, 2.0, { 
-            mass: 80, frictionAir: 0.9, restitution: 0.1 // Heavy, slides slowly
+            mass: 80, frictionAir: 0.9, restitution: 0.1 
         });
         Matter.World.add(world, body);
         state.patrons.push({ mesh, body, served: false });
@@ -302,7 +300,7 @@ function spawnLevelEntities() {
         });
         Matter.World.add(world, body);
 
-        state.enemies.push({ mesh, body, hp: 3, speed: 0.08 + (state.level * 0.02) });
+        state.enemies.push({ mesh, body, hp: 3, speed: ENEMY_SPEED + (state.level * 0.5) });
     }
 
     const obsCount = state.level * 3;
@@ -313,7 +311,6 @@ function spawnLevelEntities() {
         mesh.position.y = 0.05;
         mesh.position.x = (Math.random() - 0.5) * 26;
         mesh.position.z = (Math.random() - 0.5) * 20;
-        mesh.receiveShadow = true;
         scene.add(mesh);
         state.obstacles.push({ mesh });
     }
@@ -341,7 +338,6 @@ function setupControls() {
     const handleTouch = (e) => {
         if(e.cancelable) e.preventDefault();
         
-        // CRITICAL FIX: Bulletproof coordinate extraction prevents NaN Joystick inputs
         let clientX, clientY;
         if (e.touches && e.touches.length > 0) {
             clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
@@ -399,7 +395,6 @@ function loadLevel(level) {
     state.timeLeft = 40 + (level * 10);
     state.annoyance = 0;
     state.isPlaying = true;
-    state.physicsAccumulator = 0;
     
     Matter.Body.setPosition(playerBody, { x: PLAYER_START.x, y: PLAYER_START.z });
     Matter.Body.setVelocity(playerBody, { x: 0, y: 0 });
@@ -427,11 +422,13 @@ function showMessage(txt, color='#fff') {
     el.style.color = color;
     
     const pos = playerMesh.position.clone();
-    pos.y += 3; pos.project(camera);
+    pos.y += 3;
+    pos.project(camera);
     const x = (pos.x * .5 + .5) * window.innerWidth;
     const y = (pos.y * -.5 + .5) * window.innerHeight;
     
-    el.style.left = `${x}px`; el.style.top = `${y}px`;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 800);
 }
@@ -445,18 +442,18 @@ function performSlap() {
 
     for(let i=state.enemies.length-1; i>=0; i--) {
         const e = state.enemies[i];
-        let sub = Matter.Vector.sub(e.body.position, playerBody.position);
         
-        // Prevent NaN logic crashes if bodies are exactly perfectly aligned
-        if (Matter.Vector.magnitude(sub) < 0.001) { sub = { x: 0.1, y: 0.1 }; } 
-
-        const dist = Matter.Vector.magnitude(sub);
+        let dx = e.body.position.x - playerBody.position.x;
+        let dy = e.body.position.y - playerBody.position.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1; // NEVER zero
+        
         if(dist < 7.0) { 
             e.hp--;
-            const forceDir = Matter.Vector.normalise(sub);
+            let nx = dx / dist;
+            let ny = dy / dist;
             
-            // Send enemy flying smoothly
-            Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(forceDir, 2.5));
+            // CRITICAL FIX: Safely set velocity instead of applying atomic forces
+            Matter.Body.setVelocity(e.body, { x: nx * 20, y: ny * 20 });
             
             createParticleSystem(e.body.position.x, e.body.position.y, 'hit', 12);
             showMessage("BAM!", "#ff0055");
@@ -476,7 +473,10 @@ function performSlap() {
 function performPour() {
     if(!state.isPlaying) return;
     for(let p of state.patrons) {
-        const dist = Matter.Vector.magnitude(Matter.Vector.sub(p.body.position, playerBody.position));
+        let dx = p.body.position.x - playerBody.position.x;
+        let dy = p.body.position.y - playerBody.position.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        
         if(!p.served && dist < 7.0) {
             p.served = true;
             p.mesh.material = materials.tableServed; 
@@ -513,79 +513,66 @@ function updateUI() {
 }
 
 function animate(time) {
-    // CRITICAL FIX: Cap max delta to prevent Physics Explosions if the tab is backgrounded
     const dt = Math.min(clock.getDelta(), 0.05); 
     
     if (state.isPlaying) {
         state.timeLeft -= dt;
         if(state.timeLeft <= 0) state.annoyance = 100;
-        
-        state.annoyance += 2.5 * dt;
 
-        // CRITICAL FIX: Fixed Time Step Physics ensures 100% engine stability
-        state.physicsAccumulator += dt;
-        const fixedStep = 1 / 60;
+        Matter.Engine.update(engine, dt * 1000);
 
-        while (state.physicsAccumulator >= fixedStep) {
-            // Apply Joystick Forces
-            if (joystick.active) {
-                Matter.Body.applyForce(playerBody, playerBody.position, {
-                    x: joystick.x * 0.08,
-                    y: joystick.y * 0.08
-                });
-            }
-
-            // Apply Enemy AI Forces
-            state.enemies.forEach(e => {
-                let sub = Matter.Vector.sub(playerBody.position, e.body.position);
-                if (Matter.Vector.magnitude(sub) < 0.001) { sub = { x: 0.1, y: 0.1 }; } 
-                
-                const dir = Matter.Vector.normalise(sub);
-                Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, e.speed));
-                
-                if(Matter.Vector.magnitude(sub) < 3.0) {
-                    state.annoyance += 30 * fixedStep; 
-                    Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, -0.4));
-                    if(Math.random() < 0.1) AudioSys.sfxCrash();
-                }
+        // CRITICAL FIX: Directly set velocity for crisp arcade player control (No floating/vibrating)
+        if (joystick.active) {
+            Matter.Body.setVelocity(playerBody, {
+                x: joystick.x * PLAYER_SPEED,
+                y: joystick.y * PLAYER_SPEED
             });
-
-            // Annoyance from moving tables (crashing)
-            state.patrons.forEach(p => {
-                if(Matter.Vector.magnitude(p.body.velocity) > 0.8) {
-                    state.annoyance += 10 * fixedStep;
-                    if(Math.random() < 0.05) AudioSys.sfxCrash();
-                }
-            });
-
-            Matter.Engine.update(engine, fixedStep * 1000);
-            state.physicsAccumulator -= fixedStep;
+            playerMesh.position.y = 2.0 + Math.abs(Math.sin(time*0.015))*0.4;
+        } else {
+            Matter.Body.setVelocity(playerBody, { x: 0, y: 0 }); 
+            playerMesh.position.y = 2.0;
         }
 
-        // --- Render Sync ---
         playerMesh.position.x = playerBody.position.x;
         playerMesh.position.z = playerBody.position.y;
-        playerMesh.position.y = 2.0 + (joystick.active ? Math.abs(Math.sin(time*0.015))*0.4 : 0);
 
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
         camera.position.z += ((playerMesh.position.z + 16) - camera.position.z) * 0.1;
         
         camera.lookAt(playerMesh.position);
-        
-        const camQuat = camera.quaternion;
-        playerMesh.quaternion.copy(camQuat);
+        playerMesh.lookAt(camera.position); // Always face the camera exactly
 
         state.patrons.forEach(p => {
             p.mesh.position.x = p.body.position.x;
             p.mesh.position.z = p.body.position.y;
-            p.mesh.quaternion.copy(camQuat);
+            p.mesh.lookAt(camera.position);
+            
+            if(Matter.Vector.magnitude(p.body.velocity) > 0.8) {
+                state.annoyance += 2 * dt;
+                if(Math.random() < 0.05) AudioSys.sfxCrash();
+            }
         });
 
         state.enemies.forEach(e => {
+            let dx = playerBody.position.x - e.body.position.x;
+            let dy = playerBody.position.y - e.body.position.y;
+            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            let nx = dx / dist;
+            let ny = dy / dist;
+            
+            // CRITICAL FIX: Safe, constant velocity stalking AI
+            Matter.Body.setVelocity(e.body, { x: nx * e.speed, y: ny * e.speed });
+            
             e.mesh.position.x = e.body.position.x;
             e.mesh.position.z = e.body.position.y;
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
-            e.mesh.quaternion.copy(camQuat);
+            e.mesh.lookAt(camera.position);
+
+            if(dist < 3.0) {
+                state.annoyance += 25 * dt; 
+                Matter.Body.setVelocity(e.body, { x: -nx * 15, y: -ny * 15 }); // bounce back safely
+                AudioSys.sfxCrash();
+            }
         });
 
         state.obstacles.forEach(o => {
@@ -594,7 +581,6 @@ function animate(time) {
             }
         });
 
-        // 3D Particles
         for(let i=state.particles.length-1; i>=0; i--) {
             let p = state.particles[i];
             p.life -= dt * 2;
@@ -609,6 +595,7 @@ function animate(time) {
             }
         }
 
+        state.annoyance += 2.5 * dt;
         updateUI();
 
         if(state.annoyance >= 100) {
