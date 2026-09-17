@@ -50,7 +50,7 @@ let players = [];
 let deck = [];
 let discardPile = [];
 let currentPlayerIndex = 0;
- 
+let shiftStarterIndex = 0;
 const WIN_TARGET = 3;
 
 let gameState = "IDLE"; 
@@ -98,6 +98,7 @@ function safeDraw(player) {
     if (deck.length > 0) player.hand.push(deck.pop());
 }
 function startNewMatch() {
+    shiftStarterIndex = 0;
     showScreen('game-screen');
     if (audio.bgm.paused) {
         audio.bgm.play().catch(e => console.log("Waiting for interaction"));
@@ -148,7 +149,7 @@ function startShift() {
     log(`Shift Started. First to ${WIN_TARGET} wins.`);
     
     renderGame();
-    startTurn(0); 
+    startTurn(shiftStarterIndex);; 
 }
 
 function startTurn(pIdx) {
@@ -274,7 +275,7 @@ window.cardAction = function(loc, uid) {
 }
 
 function handlePatron(c, handIdx) {
-    playSound('slide');
+    if(c.r === 'Q' || c.r === 'A') playSound('slide'); // Only slide for Q and A
     let playedCard = players[0].hand.splice(handIdx, 1)[0];
     addToDiscard(playedCard); // 🗑️ Dump played patron
 
@@ -473,7 +474,6 @@ async function cpuAI(pid) {
             }
         }
         else {
-             playSound('slide');
              if(pCard.r === 'J') {
                  safeDraw(cpu); safeDraw(cpu);
                  let trash = cpu.hand.shift();
@@ -646,6 +646,7 @@ function endShift() {
         // NEXT ROUND
         setTimeout(() => { 
             alert(msg + "\n\nClick OK for next shift."); 
+            shiftStarterIndex = (shiftStarterIndex + 1) % players.length;
             startShift(); 
         }, 200);
     }
