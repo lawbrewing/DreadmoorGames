@@ -1,6 +1,5 @@
-const LEVELS = 3;
-const ROOM_SIZE = 34; 
-const PLAYER_SPEED = 18;
+const LEVELS = 5;
+const ROOM_SIZE = 30;
 const PLAYER_START = { x: 0, z: 12 };
 
 // Custom Tap List
@@ -19,25 +18,31 @@ const BEER_CATALOG = [
     { name: 'Angels With Filthy Souls', type: 'Other', desc: 'Winter Ale. Complex holiday warmer.' }
 ];
 
-// Custom Arcade Physics State
+// --- Custom Arcade Physics State ---
 let state = {
     level: 1, isPlaying: false, annoyance: 0,
-    patronsTotal: 5, patronsServed: 0, timeLeft: 45,
-    player: { x: PLAYER_START.x, z: PLAYER_START.z, vx: 0, vz: 0, radius: 1.5 },
-    enemies: [], patrons: [], obstacles: [], particles: [],
-    flight: [null, null, null, null]
+    patronsTotal: 6, patronsServed: 0, timeLeft: 60, maxTime: 60,
+    
+    // Physical entities with custom kinematics
+    player: { x: PLAYER_START.x, z: PLAYER_START.z, vx: 0, vz: 0, radius: 1.5, speed: 20 },
+    enemies: [], patrons: [], obstacles: [], spills: [], particles: [],
+    
+    flight: [null, null, null, null],
+    enemySpawnTimer: 0, animState: { slap: 0, pour: 0 },
+    safeSpawnGrid: [], spawnedPositions: []
 };
 
-let scene, camera, renderer, clock, playerMesh;
+let scene, camera, renderer, clock;
+let playerGroup, playerSprite, beerSprite, spoonSprite;
 let joystick = { x: 0, y: 0, active: false };
 const textures = {};
 const materials = {};
 const geometries = {};
 
-// Simple Web Audio Synthesizer
+// --- AUDIO SYSTEM ---
 const AudioSys = {
     ctx: null,
-    init: function() { try { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); } catch(e) { console.warn("Audio disabled"); } },
+    init: function() { try { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); } catch(e) {} },
     playTone: function(freq, type, duration, vol=0.2) {
         if(!this.ctx || this.ctx.state !== 'running') return;
         try {
@@ -60,36 +65,24 @@ window.onload = init;
 function init() {
     try {
         const container = document.getElementById('game-container');
-        
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x2a1a14);
+        scene.background = new THREE.Color(0x2a1a14); 
 
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
-        camera.position.set(0, 26, 32);
-        camera.lookAt(0, 0, 0); 
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+        camera.position.set(0, 32, 26);
+        camera.lookAt(0, 0, 4);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambient);
         
-        const dirLight = new THREE.DirectionalLight(0xffddaa, 1.0);
-        dirLight.position.set(15, 40, 20);
-        dirLight.castShadow = true;
-        dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
-        dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
-        dirLight.shadow.mapSize.width = 1024; dirLight.shadow.mapSize.height = 1024;
-        scene.add(dirLight);
-
         clock = new THREE.Clock();
-        generateNativeCanvasTextures(); 
+        generateTokens();
         setupControls();
         setupButtons();
-        buildEnvironment();
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -104,79 +97,57 @@ function init() {
     }
 }
 
-function createTexture(drawFn) {
-    const c = document.createElement('canvas'); 
-    c.width = 256; c.height = 256;
-    const ctx = c.getContext('2d');
-    drawFn(ctx);
-    const tex = new THREE.CanvasTexture(c);
-    tex.minFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    return tex;
-}
+// Generates Canvas "Tokens" so we don't rely on raw emojis or external assets
+function generateTokens() {
+    function createTokenTexture(emoji, bgColor) {
+        const c = document.createElement('canvas'); c.width=256; c.height=256;
+        const ctx = c.getContext('2d');
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.arc(128, 135, 110, 0, Math.PI*2); ctx.fill();
+        
+        ctx.fillStyle = bgColor;
+        ctx.beginPath(); ctx.arc(128, 120, 110, 0, Math.PI*2); ctx.fill();
+        
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.arc(128, 120, 105, 0, Math.PI*2); ctx.stroke();
+        
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = '120px Arial'; ctx.fillText(emoji, 128, 130);
+        
+        const tex = new THREE.CanvasTexture(c);
+        tex.minFilter = THREE.LinearFilter;
+        return tex;
+    }
 
-function generateNativeCanvasTextures() {
-    textures.player = createTexture((ctx) => {
-        ctx.fillStyle = '#b71c1c'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#3e2723'; ctx.fillRect(88, 150, 80, 106);
-        ctx.fillStyle = '#ffccbc'; ctx.beginPath(); ctx.arc(128, 100, 50, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#4e342e'; ctx.beginPath(); ctx.arc(128, 115, 45, 0, Math.PI); ctx.fill();
-        ctx.fillStyle = '#000'; ctx.fillRect(105, 90, 10, 10); ctx.fillRect(141, 90, 10, 10);
-    });
+    textures.player = createTokenTexture('🧔🏼‍♂️', '#c62828'); 
+    textures.beer = createTokenTexture('🍺', '#fbc02d');
+    textures.spoon = createTokenTexture('🥄', '#9e9e9e');
+    textures.patron = createTokenTexture('😐', '#cfd8dc');
+    textures.patronServed = createTokenTexture('😋', '#81c784');
+    textures.villain = createTokenTexture('😠', '#ff0055');
+    textures.plant = createTokenTexture('🪴', '#4caf50');
 
-    textures.villain = createTexture((ctx) => {
-        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.moveTo(108, 60); ctx.lineTo(128, 10); ctx.lineTo(148, 60); ctx.fill();
-        ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.arc(128, 120, 50, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#ff0055'; ctx.fillRect(90, 100, 76, 20);
-    });
-
-    textures.table = createTexture((ctx) => {
-        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
-        ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    });
-
-    textures.tableServed = createTexture((ctx) => {
-        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
-        ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#fbc02d'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-        ctx.fillRect(90, 80, 20, 30); ctx.strokeRect(90, 80, 20, 30);
-        ctx.fillRect(146, 120, 20, 30); ctx.strokeRect(146, 120, 20, 30);
-    });
-
-    textures.spill = createTexture((ctx) => {
-        ctx.fillStyle = 'rgba(251, 192, 45, 0.9)';
-        ctx.beginPath(); ctx.arc(128, 128, 80, 0, Math.PI*2); ctx.arc(80, 80, 40, 0, Math.PI*2); ctx.arc(180, 150, 50, 0, Math.PI*2); ctx.fill();
-    });
+    // Spills and Floor
+    const sc = document.createElement('canvas'); sc.width=128; sc.height=128;
+    const sctx = sc.getContext('2d');
+    sctx.fillStyle = "rgba(255, 235, 59, 0.8)"; sctx.beginPath(); sctx.arc(64, 64, 60, 0, Math.PI*2); sctx.fill();
+    textures.spill = new THREE.CanvasTexture(sc);
 
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512; const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#6d4c41'; fctx.fillRect(0,0,512,512);
-    fctx.strokeStyle = '#4e342e'; fctx.lineWidth = 4;
+    fctx.fillStyle = '#4e342e'; fctx.fillRect(0,0,512,512);
+    fctx.strokeStyle = '#3e2723'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
-    textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping; textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
+    textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping; textures.floor.repeat.set(4, 4);
 
-    // MeshBasicMaterial ensures objects are perfectly visible and colored, NEVER black shadows
-    materials.player = new THREE.MeshBasicMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.villain = new THREE.MeshBasicMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.table = new THREE.MeshBasicMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    materials.tableServed = new THREE.MeshBasicMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
-    
-    materials.particleHit = new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide });
-    materials.particlePour = new THREE.MeshBasicMaterial({ color: 0xfbc02d, side: THREE.DoubleSide });
-    geometries.particle = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    // Reusable Materials
+    materials.particleHit = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+    materials.particlePour = new THREE.MeshBasicMaterial({ color: 0xfbc02d });
+    geometries.particle = new THREE.PlaneGeometry(0.8, 0.8);
 }
 
-function createBillboard(material, size) {
-    const geo = new THREE.PlaneGeometry(size, size);
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.castShadow = true;
-    return mesh;
-}
-
-function createParticleSystem(x, z, type, count=12) {
+function spawnParticleBurst(x, z, type, count=12) {
     const mat = type === 'hit' ? materials.particleHit : materials.particlePour;
     for(let i=0; i<count; i++) {
         const p = new THREE.Mesh(geometries.particle, mat);
@@ -188,486 +159,474 @@ function createParticleSystem(x, z, type, count=12) {
     }
 }
 
-function buildEnvironment() {
-    const floorGeo = new THREE.PlaneGeometry(ROOM_SIZE*2, ROOM_SIZE*2);
-    const floorMat = new THREE.MeshLambertMaterial({ map: textures.floor });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    const barW = 24, barH = 4, barD = 6, barZ = -12;
-    const barGeo = new THREE.BoxGeometry(barW, barH, barD);
-    const barMat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
-    const bar = new THREE.Mesh(barGeo, barMat);
-    bar.position.set(0, barH/2, barZ);
-    bar.castShadow = true; bar.receiveShadow = true;
-    scene.add(bar);
-
-    playerMesh = createBillboard(materials.player, 4);
-    scene.add(playerMesh);
-}
-
-function spawnLevelEntities() {
-    state.patrons.forEach(p => scene.remove(p.mesh));
-    state.enemies.forEach(e => scene.remove(e.mesh));
-    state.obstacles.forEach(o => scene.remove(o.mesh));
-
-    state.patrons = []; state.enemies = []; state.obstacles = [];
-    state.player.x = PLAYER_START.x; state.player.z = PLAYER_START.z;
-
-    const tableGrid = [
-        {x: -12, z: -2}, {x: 0, z: -2}, {x: 12, z: -2},
-        {x: -12, z: 8},  {x: 0, z: 8},  {x: 12, z: 8},
-        {x: -12, z: 18}, {x: 0, z: 18}, {x: 12, z: 18}
-    ];
-
-    for(let i=0; i<state.patronsTotal; i++) {
-        const pos = tableGrid[i % tableGrid.length];
-        const mesh = createBillboard(materials.table, 4.5);
-        const x = pos.x + (Math.random()-0.5);
-        const z = pos.z + (Math.random()-0.5);
-        mesh.position.set(x, 2.25, z);
-        scene.add(mesh);
-        
-        // Push to custom collision array
-        state.patrons.push({ mesh, x: x, z: z, radius: 2.5, served: false });
-    }
-
-    const enemyCount = state.level * 2;
-    const edgeSpawns = [{x: -26, z: 10}, {x: 26, z: 10}, {x: 0, z: 26}];
-    for(let i=0; i<enemyCount; i++) {
-        const edge = edgeSpawns[i % edgeSpawns.length];
-        const x = edge.x + (Math.random()-0.5)*4;
-        const z = edge.z + (Math.random()-0.5)*4;
-        
-        const mesh = createBillboard(materials.villain, 3.5);
-        mesh.position.set(x, 1.75, z);
-        scene.add(mesh);
-        
-        state.enemies.push({ 
-            mesh, x: x, z: z, vx: 0, vz: 0, radius: 1.5, 
-            hp: 3, speed: 6.0 + (state.level * 1.5) 
-        });
-    }
-
-    const obsCount = state.level * 3;
-    for(let i=0; i<obsCount; i++) {
-        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), mat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = 0.05;
-        
-        const x = (Math.random() - 0.5) * 26;
-        const z = (Math.random() - 0.5) * 20;
-        mesh.position.x = x; mesh.position.z = z;
-        mesh.receiveShadow = true;
-        scene.add(mesh);
-        state.obstacles.push({ mesh, x: x, z: z, radius: 2.0 });
-    }
-}
-
 function setupButtons() {
     const bind = (id, fn) => {
         const el = document.getElementById(id);
-        if(el) { el.addEventListener('click', fn); el.addEventListener('touchstart', (e)=>{ if(e.cancelable) e.preventDefault(); fn();}, {passive:false}); }
+        if(el) { el.addEventListener('click', fn); el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, {passive:false}); }
     };
     bind('btn-start', startGame);
     bind('btn-next-level', nextLevel);
     bind('btn-restart', () => location.reload());
     bind('btn-play-again', () => location.reload());
-    bind('btn-pour', performPour);
-    bind('btn-slap', performSlap);
     bind('btn-clear-flight', clearFlight);
     bind('btn-submit-flight', submitFlight);
-}
-
-function setupControls() {
-    const zone = document.getElementById('joystick-zone');
-    const knob = document.getElementById('joystick-knob');
-    
-    const handleTouch = (e) => {
-        if(e.cancelable) e.preventDefault();
-        
-        let clientX, clientY;
-        if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
-        else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
-        else if (e.clientX !== undefined) { clientX = e.clientX; clientY = e.clientY; }
-        
-        if (clientX === undefined) return;
-        
-        const rect = zone.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        let dx = clientX - centerX;
-        let dy = clientY - centerY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const maxDist = rect.width / 2;
-        
-        if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-        
-        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-        joystick.x = dx / maxDist;
-        joystick.y = dy / maxDist;
-        joystick.active = true;
-    };
-
-    const resetJoystick = () => {
-        knob.style.transform = `translate(-50%, -50%)`;
-        joystick.x = 0; joystick.y = 0; joystick.active = false;
-    };
-
-    zone.addEventListener('touchstart', handleTouch, {passive: false});
-    zone.addEventListener('touchmove', handleTouch, {passive: false});
-    zone.addEventListener('touchend', resetJoystick);
-    
-    let isDragging = false;
-    zone.addEventListener('mousedown', (e)=>{ isDragging=true; handleTouch(e); });
-    window.addEventListener('mousemove', (e)=>{ if(isDragging) handleTouch(e); });
-    window.addEventListener('mouseup', ()=>{ isDragging=false; resetJoystick(); });
 }
 
 function startGame() {
     AudioSys.init();
     if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume();
     document.getElementById('start-screen').classList.add('hidden');
+    state.level = 1;
     loadLevel(1);
-}
-
-function loadLevel(level) {
-    state.level = level;
-    state.patronsTotal = 4 + (level * 2);
-    state.patronsServed = 0;
-    state.timeLeft = 40 + (level * 10);
-    state.annoyance = 0;
-    state.isPlaying = true;
-    
-    clock.start(); 
-    spawnLevelEntities();
-    updateUI();
 }
 
 function nextLevel() {
     document.getElementById('level-screen').classList.add('hidden');
     if (state.level >= LEVELS) {
-        setupFlightUI();
         document.getElementById('flight-screen').classList.remove('hidden');
+        setupFlightUI();
         state.isPlaying = false;
     } else {
-        loadLevel(state.level + 1);
+        state.level++;
+        loadLevel(state.level);
     }
 }
 
-function showMessage(txt, color='#fff') {
-    const el = document.createElement('div');
-    el.className = 'floating-text';
-    el.innerText = txt;
-    el.style.color = color;
-    
-    const pos = playerMesh.position.clone();
-    pos.y += 3; pos.project(camera);
-    const x = (pos.x * .5 + .5) * window.innerWidth;
-    const y = (pos.y * -.5 + .5) * window.innerHeight;
-    
-    el.style.left = `${x}px`; el.style.top = `${y}px`;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 800);
-}
-
-function performSlap() {
-    if(!state.isPlaying) return;
-    AudioSys.sfxSlap();
-    
-    playerMesh.scale.x = 4.8;
-    setTimeout(()=>playerMesh.scale.x = 4.0, 150);
-
-    for(let i=state.enemies.length-1; i>=0; i--) {
-        const e = state.enemies[i];
-        let dx = e.x - state.player.x;
-        let dz = e.z - state.player.z;
-        let dist = Math.sqrt(dx*dx + dz*dz) || 1; 
-
-        if(dist < 7.0) { 
-            e.hp--;
-            
-            // Custom physics knockback! Safe and predictable.
-            e.vx = (dx / dist) * 45; 
-            e.vz = (dz / dist) * 45;
-            
-            createParticleSystem(e.x, e.y, 'hit', 12);
-            showMessage("BAM!", "#ff0055");
-            
-            if(e.hp <= 0) {
-                scene.remove(e.mesh);
-                state.enemies.splice(i, 1);
-                state.annoyance = Math.max(0, state.annoyance - 15); 
-            }
-            break; 
+// --- SAFE GRID SPAWNER ---
+function getSafeSpawns() {
+    let points = [];
+    for(let x = -14; x <= 14; x += 4.5) {
+        for(let z = -8; z <= 18; z += 4.5) {
+            // Keep center aisle somewhat clear
+            if(Math.abs(x) < 4 && z < 10) continue;
+            points.push(new THREE.Vector3(x, 0, z));
         }
     }
-    updateUI();
+    return points.sort(() => Math.random() - 0.5); 
 }
 
-function performPour() {
-    if(!state.isPlaying) return;
-    for(let p of state.patrons) {
-        let dx = p.x - state.player.x;
-        let dz = p.z - state.player.z;
-        let dist = Math.sqrt(dx*dx + dz*dz) || 1;
+function loadLevel(lvl) {
+    while(scene.children.length > 0){ scene.remove(scene.children[0]); }
+    const ambient = new THREE.AmbientLight(0xffffff, 0.9); scene.add(ambient);
+    
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SIZE+15, ROOM_SIZE+15), new THREE.MeshBasicMaterial({map: textures.floor}));
+    floor.rotation.x = -Math.PI/2; scene.add(floor);
+
+    const barGeo = new THREE.BoxGeometry(24, 4, 4);
+    const barMat = new THREE.MeshBasicMaterial({ color: 0x3e2723 });
+    const bar = new THREE.Mesh(barGeo, barMat); bar.position.set(0, 2, -12); scene.add(bar);
+
+    state.obstacles = [
+        { x: 0, z: -12, radius: 12, isBox: true, w: 24, d: 4 }, // Bar Collision
+    ]; 
+    state.spills = []; state.particles = [];
+    
+    // Player Setup
+    state.player.x = PLAYER_START.x; state.player.z = PLAYER_START.z;
+    state.player.vx = 0; state.player.vz = 0;
+
+    playerGroup = new THREE.Group();
+    scene.add(playerGroup);
+    
+    playerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.player })); 
+    playerSprite.position.set(0, 1.5, 0); playerSprite.scale.set(3.5, 3.5, 1);
+    playerGroup.add(playerSprite);
+    
+    beerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.beer })); 
+    beerSprite.position.set(-1.2, 1.2, 0.5); beerSprite.scale.set(1.5,1.5,1);
+    playerGroup.add(beerSprite);
+    
+    spoonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.spoon })); 
+    spoonSprite.position.set(1.2, 1.2, 0.5); spoonSprite.scale.set(1.5,1.5,1);
+    playerGroup.add(spoonSprite);
+
+    camera.position.set(0, 32, 26); camera.lookAt(0, 0, 4);
+    state.timeLeft = 50 + (lvl * 10); 
+    state.maxTime = state.timeLeft;
+
+    state.safeSpawnGrid = getSafeSpawns();
+    state.patrons = []; state.enemies = []; state.annoyance = 0; 
+    state.patronsServed = 0; state.patronsTotal = 4 + lvl; updateUI();
+
+    // Spawn Tables
+    for(let i=0; i<state.patronsTotal; i++) {
+        let pos = state.safeSpawnGrid.pop();
+        if(!pos) break;
         
-        if(!p.served && dist < 7.0) {
-            p.served = true;
-            p.mesh.material = materials.tableServed; 
-            state.patronsServed++;
-            AudioSys.sfxPour();
-            createParticleSystem(p.x, p.z, 'pour', 10);
-            showMessage("+SERVED", "#4caf50");
-            updateUI();
-            checkLevelClear();
-            return;
+        const t = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,2,16), new THREE.MeshBasicMaterial({color:0x5d4037}));
+        t.position.set(pos.x, 1, pos.z); scene.add(t);
+        
+        const p = new THREE.Sprite(new THREE.SpriteMaterial({map:textures.patron}));
+        p.position.set(pos.x, 2.8, pos.z); p.scale.set(3,3,1);
+        scene.add(p); 
+
+        state.patrons.push({ mesh: p, tableMesh: t, x: pos.x, z: pos.z, radius: 2.2, served: false });
+    }
+
+    // Spawn Decor/Obstacles
+    for(let i=0; i<2+lvl; i++) {
+        let pos = state.safeSpawnGrid.pop();
+        if(pos) {
+            const p = new THREE.Sprite(new THREE.SpriteMaterial({map:textures.plant}));
+            p.position.set(pos.x, 2.5, pos.z); p.scale.set(4,4,1); scene.add(p);
+            state.obstacles.push({ x: pos.x, z: pos.z, radius: 1.5 });
         }
     }
-}
-
-function checkLevelClear() {
-    if(state.patronsServed >= state.patronsTotal) {
-        state.isPlaying = false;
-        AudioSys.sfxWin();
-        document.getElementById('level-screen').classList.remove('hidden');
+    
+    // Spills
+    for(let i=0; i<2+lvl; i++) {
+        let pos = state.safeSpawnGrid.pop();
+        if(pos) {
+            const s = new THREE.Mesh(new THREE.PlaneGeometry(4,4), new THREE.MeshBasicMaterial({map:textures.spill, transparent:true}));
+            s.rotation.x = -Math.PI/2; s.position.copy(pos); s.position.y = 0.05; scene.add(s); 
+            state.spills.push({ x: pos.x, z: pos.z });
+        }
     }
+
+    state.enemySpawnTimer = 3.0;
+    document.getElementById('level-indicator').innerText = `LEVEL ${lvl}`;
+    showMessage(`TAPROOM OPEN!`);
+    
+    clock.start();
+    state.isPlaying = true;
 }
 
-function updateUI() {
-    document.getElementById('patron-counter').innerText = `SERVED: ${state.patronsServed}/${state.patronsTotal}`;
-    document.getElementById('level-indicator').innerText = `LEVEL ${state.level}`;
-    
-    const fill = document.getElementById('meter-fill');
-    fill.style.width = `${Math.min(100, state.annoyance)}%`;
-    document.getElementById('meter-label').innerText = `ANNOYANCE: ${Math.floor(state.annoyance)}%`;
-    
-    document.getElementById('timer-display').innerText = `00:${Math.max(0, Math.ceil(state.timeLeft)).toString().padStart(2, '0')}`;
-    if(state.timeLeft <= 10) document.getElementById('timer-display').classList.add('timer-low');
-    else document.getElementById('timer-display').classList.remove('timer-low');
+function spawnEnemy() {
+    let edgeX = Math.random() > 0.5 ? -18 : 18;
+    let edgeZ = (Math.random() * 20) - 5;
+
+    const eMesh = new THREE.Sprite(new THREE.SpriteMaterial({map:textures.villain}));
+    eMesh.position.set(edgeX, 2, edgeZ); eMesh.scale.set(3.5,3.5,1);
+    scene.add(eMesh); 
+
+    state.enemies.push({ 
+        mesh: eMesh, x: edgeX, z: edgeZ, vx: 0, vz: 0, 
+        radius: 1.5, hp: 3, speed: 6.0 + state.level*1.0 
+    });
 }
 
-// Custom Circle Collision Resolver
-function resolveCircleCollision(dynamicObj, staticObj) {
-    let dx = dynamicObj.x - staticObj.x;
-    let dz = dynamicObj.z - staticObj.z;
+// --- CUSTOM ARCADE COLLISION RESOLVER ---
+// Pushes circle A away from circle B if they overlap
+function resolveCollision(a, b) {
+    let dx = a.x - b.x;
+    let dz = a.z - b.z;
     let dist = Math.sqrt(dx*dx + dz*dz);
-    let minDist = dynamicObj.radius + staticObj.radius;
+    let minDist = a.radius + b.radius;
     
     if (dist > 0 && dist < minDist) {
         let overlap = minDist - dist;
-        dynamicObj.x += (dx / dist) * overlap;
-        dynamicObj.z += (dz / dist) * overlap;
+        a.x += (dx / dist) * overlap;
+        a.z += (dz / dist) * overlap;
     }
 }
 
-// Custom Box Collision Resolver (For the Bar and Walls)
-function resolveBoxCollision(circle, box) {
-    let closestX = Math.max(box.minX, Math.min(circle.x, box.maxX));
-    let closestZ = Math.max(box.minZ, Math.min(circle.z, box.maxZ));
-    let dx = circle.x - closestX;
-    let dz = circle.z - closestZ;
-    let dist = Math.sqrt(dx*dx + dz*dz);
+function animate() {
+    if(!state.isPlaying) { renderer.render(scene, camera); return; }
     
-    if (dist > 0 && dist < circle.radius) {
-        let overlap = circle.radius - dist;
-        circle.x += (dx / dist) * overlap;
-        circle.z += (dz / dist) * overlap;
-    }
-}
-
-function animate(time) {
+    // Clamp delta time to prevent physics explosions if tab is backgrounded
     const dt = Math.min(clock.getDelta(), 0.05); 
+    const time = clock.getElapsedTime();
+
+    state.timeLeft -= dt;
+    if(state.timeLeft <= 0) {
+        state.isPlaying = false; AudioSys.playSFX('lose');
+        document.getElementById('game-over-title').innerText = "TIME'S UP!";
+        document.getElementById('game-over-screen').classList.remove('hidden');
+    }
+
+    // Determine target speed based on spills
+    let currentSpeed = state.player.speed;
+    for(let s of state.spills) {
+        let dx = state.player.x - s.x; let dz = state.player.z - s.z;
+        if(Math.sqrt(dx*dx + dz*dz) < 2.5) currentSpeed = 6.0; // Slow down in spill
+    }
+
+    // --- 1. PLAYER MOVEMENT & KINEMATICS ---
+    if(joystick.active) {
+        state.player.vx += joystick.x * currentSpeed * dt * 10;
+        state.player.vz += joystick.y * currentSpeed * dt * 10;
+    }
     
-    if (state.isPlaying) {
-        state.timeLeft -= dt;
-        if(state.timeLeft <= 0) state.annoyance = 100;
+    // Friction
+    state.player.vx *= 0.85;
+    state.player.vz *= 0.85;
+    
+    state.player.x += state.player.vx * dt;
+    state.player.z += state.player.vz * dt;
 
-        // --- 1. MOVE PLAYER ---
-        if (joystick.active) {
-            state.player.x += joystick.x * PLAYER_SPEED * dt;
-            state.player.z += joystick.y * PLAYER_SPEED * dt;
-            playerMesh.position.y = 2.0 + Math.abs(Math.sin(time*0.015))*0.4;
-        } else {
-            playerMesh.position.y = 2.0;
-        }
+    // --- 2. ENEMY AI & KINEMATICS ---
+    state.enemySpawnTimer -= dt;
+    if(state.enemySpawnTimer <= 0 && state.enemies.length < 2) { spawnEnemy(); state.enemySpawnTimer = 4.0; }
 
-        // --- 2. MOVE ENEMIES ---
-        state.enemies.forEach(e => {
-            let dx = state.player.x - e.x;
-            let dz = state.player.z - e.z;
-            let dist = Math.sqrt(dx*dx + dz*dz) || 1;
-            
-            // Stalking AI Acceleration
-            e.vx += (dx / dist) * e.speed * dt * 10;
-            e.vz += (dz / dist) * e.speed * dt * 10;
-            
-            // Friction (Smooths out movement & slap knockbacks)
-            e.vx *= 0.90;
-            e.vz *= 0.90;
-            
-            e.x += e.vx * dt;
-            e.z += e.vz * dt;
-            
-            // Hit Player check
-            if(dist < 3.0) {
-                state.annoyance += 25 * dt; 
-                e.vx = -(dx / dist) * 10; // Bounce off player safely
-                e.vz = -(dz / dist) * 10;
-                AudioSys.sfxCrash();
-            }
-        });
-
-        // --- 3. RESOLVE COLLISIONS ---
-        const barBox = { minX: -12, maxX: 12, minZ: -15, maxZ: -9 };
-        const wallsBox = { minX: -ROOM_SIZE+2, maxX: ROOM_SIZE-2, minZ: -ROOM_SIZE+2, maxZ: ROOM_SIZE-2 };
-
-        // Keep player in bounds and out of the bar
-        state.player.x = Math.max(wallsBox.minX, Math.min(wallsBox.maxX, state.player.x));
-        state.player.z = Math.max(wallsBox.minZ, Math.min(wallsBox.maxZ, state.player.z));
-        resolveBoxCollision(state.player, barBox);
-        state.patrons.forEach(p => resolveCircleCollision(state.player, p));
-
-        // Keep enemies in bounds and out of tables
-        state.enemies.forEach(e => {
-            e.x = Math.max(wallsBox.minX, Math.min(wallsBox.maxX, e.x));
-            e.z = Math.max(wallsBox.minZ, Math.min(wallsBox.maxZ, e.z));
-            resolveBoxCollision(e, barBox);
-            state.patrons.forEach(p => resolveCircleCollision(e, p));
-        });
-
-        // --- 4. GAMEPLAY LOGIC (Obstacles & Spills) ---
-        state.obstacles.forEach(o => {
-            let dx = state.player.x - o.x;
-            let dz = state.player.z - o.z;
-            if(Math.sqrt(dx*dx + dz*dz) < 3.5) {
-                state.annoyance += 8 * dt;
-            }
-        });
-
-        // --- 5. RENDER SYNC ---
-        playerMesh.position.x = state.player.x;
-        playerMesh.position.z = state.player.z;
-
-        camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
-        camera.position.z += ((playerMesh.position.z + 16) - camera.position.z) * 0.1;
+    for(let i=state.enemies.length-1; i>=0; i--) {
+        const e = state.enemies[i];
         
-        camera.lookAt(playerMesh.position);
-        playerMesh.lookAt(camera.position); // Always face the camera exactly
-
-        state.patrons.forEach(p => {
-            p.mesh.lookAt(camera.position);
-        });
-
-        state.enemies.forEach(e => {
-            e.mesh.position.x = e.x;
-            e.mesh.position.z = e.z;
-            e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
-            e.mesh.lookAt(camera.position);
-        });
-
-        for(let i=state.particles.length-1; i>=0; i--) {
-            let p = state.particles[i];
-            p.life -= dt * 2;
-            if(p.life <= 0) {
-                scene.remove(p);
-                state.particles.splice(i, 1);
-            } else {
-                p.position.addScaledVector(p.velocity, dt);
-                p.velocity.y -= 30 * dt; 
-                p.scale.setScalar(p.life);
-                p.rotation.x += 10 * dt; p.rotation.y += 10 * dt;
-            }
-        }
-
-        state.annoyance += 2.5 * dt;
-        updateUI();
-
-        if(state.annoyance >= 100) {
-            state.annoyance = 100;
-            state.isPlaying = false;
+        let dx = state.player.x - e.x;
+        let dz = state.player.z - e.z;
+        let dist = Math.sqrt(dx*dx + dz*dz) || 0.001;
+        
+        // Chase Acceleration
+        e.vx += (dx / dist) * e.speed * dt * 10;
+        e.vz += (dz / dist) * e.speed * dt * 10;
+        
+        // Friction (allows smooth sliding after knockback)
+        e.vx *= 0.90;
+        e.vz *= 0.90;
+        
+        e.x += e.vx * dt;
+        e.z += e.vz * dt;
+        
+        // Hit Player Check
+        if(dist < 3.0) {
+            state.annoyance += 30 * dt;
+            // Bounce enemy off player
+            e.vx = -(dx / dist) * 15; 
+            e.vz = -(dz / dist) * 15;
             AudioSys.sfxCrash();
-            document.getElementById('game-over-screen').classList.remove('hidden');
+            updateUI();
         }
+    }
+
+    // --- 3. RESOLVE ALL COLLISIONS ---
+    // Boundaries
+    const limit = ROOM_SIZE/2 - 2;
+    state.player.x = Math.max(-limit, Math.min(limit, state.player.x));
+    state.player.z = Math.max(-limit, Math.min(limit, state.player.z));
+
+    // Player vs Tables & Obstacles
+    state.patrons.forEach(p => resolveCollision(state.player, p));
+    state.obstacles.forEach(o => {
+        if(o.isBox) { // Bar Box logic
+            if(state.player.z < -8) { state.player.z = -8; state.player.vz = 0; }
+        } else resolveCollision(state.player, o);
+    });
+
+    // Enemies vs Everything
+    state.enemies.forEach(e => {
+        e.x = Math.max(-limit, Math.min(limit, e.x));
+        e.z = Math.max(-limit, Math.min(limit, e.z));
+        if(e.z < -8) e.z = -8; // Bar boundary
+        
+        state.patrons.forEach(p => resolveCollision(e, p));
+        state.obstacles.forEach(o => { if(!o.isBox) resolveCollision(e, o); });
+        
+        // Enemies against each other
+        state.enemies.forEach(otherE => {
+            if(e !== otherE) resolveCollision(e, otherE);
+        });
+    });
+
+    // --- 4. VISUAL RENDER SYNC ---
+    playerGroup.position.set(state.player.x, 2.0 + (joystick.active ? Math.abs(Math.sin(time*10))*0.3 : 0), state.player.z);
+    
+    // Smooth camera follow
+    camera.position.x += (state.player.x * 0.5 - camera.position.x) * 0.1;
+    camera.position.z += ((state.player.z + 18) - camera.position.z) * 0.1;
+
+    // Sprite Animations (No scale ballooning!)
+    if(state.animState.slap > 0) {
+        state.animState.slap -= dt*5;
+        spoonSprite.material.rotation = Math.sin(state.animState.slap*10)*1.5;
+    } else spoonSprite.material.rotation = 0;
+
+    if(state.animState.pour > 0) {
+        state.animState.pour -= dt*3;
+        beerSprite.material.rotation = -0.5;
+    } else beerSprite.material.rotation = 0;
+
+    // Sync Enemies
+    state.enemies.forEach(e => {
+        e.mesh.position.set(e.x, 2 + Math.abs(Math.sin(time*10 + e.hp))*0.2, e.z);
+    });
+
+    // Sync Particles
+    for(let i=state.particles.length-1; i>=0; i--) {
+        let p = state.particles[i];
+        p.life -= dt * 2;
+        if(p.life <= 0) {
+            scene.remove(p);
+            state.particles.splice(i, 1);
+        } else {
+            p.position.addScaledVector(p.velocity, dt);
+            p.velocity.y -= 25 * dt; // Gravity
+            p.scale.setScalar(Math.max(0.01, p.life)); // Shrink safely
+            p.lookAt(camera.position); // Always face camera
+        }
+    }
+
+    state.annoyance += 2 * dt;
+    updateUI();
+
+    if(state.annoyance >= 100) {
+        state.isPlaying = false; AudioSys.playSFX('lose');
+        document.getElementById('game-over-screen').classList.remove('hidden');
     }
 
     renderer.render(scene, camera);
 }
 
-// --- FLIGHT PUZZLE LOGIC ---
-function setupFlightUI() {
-    const choices = document.getElementById('beer-choices');
-    const infoBox = document.getElementById('beer-info-box');
-    choices.innerHTML = '';
+function setupControls() {
+    const joy = document.getElementById('joystick-zone');
+    const knob = document.getElementById('joystick-knob');
     
-    BEER_CATALOG.forEach(beer => {
-        const btn = document.createElement('button');
-        btn.className = 'choice-btn';
-        btn.innerText = beer.name;
-        btn.onmouseover = () => infoBox.innerHTML = `<strong>${beer.name}</strong> - ${beer.desc}`;
-        btn.onclick = () => { infoBox.innerHTML = `<strong>${beer.name}</strong> - ${beer.desc}`; addBeerToFlight(beer); };
-        choices.appendChild(btn);
-    });
+    const handleTouch = (e) => {
+        if(e.cancelable) e.preventDefault();
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
+        else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
+        else if (e.clientX !== undefined) { clientX = e.clientX; clientY = e.clientY; }
+        if (clientX === undefined) return;
+        
+        const rect = joy.getBoundingClientRect();
+        const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
+        let dx = clientX - cx; let dy = clientY - cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist > 50) { dx = (dx/dist)*50; dy = (dy/dist)*50; }
+        
+        knob.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px)`;
+        joystick.x = dx/50; joystick.y = dy/50;
+        joystick.active = true;
+    };
+    const end = () => { joystick.active=false; joystick.x=0; joystick.y=0; knob.style.transform=`translate(-50%, -50%)`; };
 
-    const slots = document.querySelectorAll('.slot');
-    slots.forEach(slot => {
-        slot.onclick = () => {
-            const idx = slot.getAttribute('data-index');
-            if (state.flight[idx]) { state.flight[idx] = null; renderFlight(); }
-        };
-    });
-    renderFlight();
-}
+    joy.addEventListener('mousedown', e => { joystick.active=true; handleTouch(e); });
+    window.addEventListener('mousemove', e => { if(joystick.active) handleTouch(e); });
+    window.addEventListener('mouseup', end);
+    
+    joy.addEventListener('touchstart', handleTouch, {passive: false});
+    joy.addEventListener('touchmove', handleTouch, {passive: false});
+    joy.addEventListener('touchend', end);
 
-function addBeerToFlight(beerObj) {
-    const emptyIdx = state.flight.findIndex(b => b === null);
-    if(emptyIdx !== -1) { state.flight[emptyIdx] = beerObj; renderFlight(); }
-}
+    document.getElementById('btn-slap').addEventListener('mousedown', ()=>performAction('slap'));
+    document.getElementById('btn-pour').addEventListener('mousedown', ()=>performAction('pour'));
+    document.getElementById('btn-slap').addEventListener('touchstart', (e)=>{ e.preventDefault(); performAction('slap'); }, {passive:false});
+    document.getElementById('btn-pour').addEventListener('touchstart', (e)=>{ e.preventDefault(); performAction('pour'); }, {passive:false});
 
-function clearFlight() {
-    state.flight = [null, null, null, null];
-    document.getElementById('flight-msg').innerText = '';
-    renderFlight();
-}
-
-function renderFlight() {
-    const slots = document.querySelectorAll('.slot');
-    slots.forEach((slot, idx) => {
-        const b = state.flight[idx];
-        if(b) {
-            slot.innerHTML = `<span>${b.name}</span>`;
-            slot.classList.add('filled');
-        } else {
-            slot.innerHTML = 'Empty';
-            slot.classList.remove('filled');
+    window.addEventListener('keydown', e => {
+        if(['w','a','s','d'].includes(e.key)) {
+            joystick.active=true;
+            if(e.key==='w') joystick.y=-1; if(e.key==='s') joystick.y=1;
+            if(e.key==='a') joystick.x=-1; if(e.key==='d') joystick.x=1;
         }
+        if(e.key===' ') performAction('slap');
+        if(e.key==='e') performAction('pour');
+    });
+    window.addEventListener('keyup', () => { joystick.active=false; joystick.x=0; joystick.y=0; });
+}
+
+function performAction(type) {
+    if(!state.isPlaying) return;
+    
+    if(type==='slap') {
+        state.animState.slap = 1.0; AudioSys.playSFX('slap'); 
+        spawnParticleBurst(state.player.x, state.player.z, 'hit', 5);
+        
+        for(let i=state.enemies.length-1; i>=0; i--) {
+            let e = state.enemies[i];
+            let dx = e.x - state.player.x; let dz = e.z - state.player.z;
+            let dist = Math.sqrt(dx*dx + dz*dz) || 0.001;
+
+            if(dist < 7.0) { 
+                e.hp--;
+                // CUSTOM ARCADE KNOCKBACK: Instant velocity spike
+                e.vx = (dx / dist) * 40; 
+                e.vz = (dz / dist) * 40;
+                
+                spawnParticleBurst(e.x, e.z, 'hit', 15);
+                showMessage("BAM!", "#ff0055");
+                
+                if(e.hp <= 0) {
+                    scene.remove(e.mesh); state.enemies.splice(i, 1);
+                    state.annoyance = Math.max(0, state.annoyance - 15); 
+                    updateUI();
+                }
+                break; // Only hit one per slap
+            }
+        }
+    } else if(type==='pour') {
+        state.animState.pour = 1.0; AudioSys.playSFX('pour');
+        
+        for(let p of state.patrons) {
+            let dx = p.x - state.player.x; let dz = p.z - state.player.z;
+            let dist = Math.sqrt(dx*dx + dz*dz);
+            
+            if(!p.served && dist < 6.0) {
+                p.served = true;
+                p.mesh.material.map = textures.patronServed; 
+                state.patronsServed++;
+                spawnParticleBurst(p.x, p.z, 'pour', 15);
+                showMessage("+SERVED", "#4caf50");
+                updateUI();
+                
+                if(state.patronsServed >= state.patronsTotal) {
+                    state.isPlaying = false; AudioSys.playSFX('win');
+                    setTimeout(() => document.getElementById('level-screen').classList.remove('hidden'), 1000);
+                }
+                return; // Only pour one per tap
+            }
+        }
+    }
+}
+
+function updateUI() {
+    document.getElementById('patron-counter').innerText = `SERVED: ${state.patronsServed}/${state.patronsTotal}`;
+    document.getElementById('meter-fill').style.width = Math.min(100, state.annoyance) + '%';
+    document.getElementById('meter-label').innerText = `ANNOYANCE: ${Math.floor(state.annoyance)}%`;
+    document.getElementById('timer-display').innerText = `TIME: ${Math.max(0, Math.ceil(state.timeLeft))}`;
+}
+
+function showMessage(txt) {
+    const el = document.getElementById('msg-area'); 
+    el.innerText = txt; el.style.opacity = 1;
+    setTimeout(()=>el.style.opacity = 0, 1500);
+}
+
+// --- CUSTOM LAW BREWING FLIGHT PUZZLE ---
+function clearFlight() { state.flight=[null,null,null,null]; setupFlightUI(); document.getElementById('flight-msg').innerText=''; }
+
+function setupFlightUI() {
+    const grid = document.getElementById('beer-slots'); grid.innerHTML = '';
+    state.flight.forEach(b => {
+        const d = document.createElement('div'); d.className = b ? 'slot filled' : 'slot';
+        d.innerText = b || 'Empty'; grid.appendChild(d);
+    });
+    
+    const infoBox = document.getElementById('beer-info-box');
+    const opts = document.getElementById('beer-choices'); opts.innerHTML='';
+    BEERS.forEach(b => {
+        const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.innerText = b;
+        
+        // Find matching catalog entry for description
+        const catalogEntry = BEER_CATALOG.find(c => c.name === b);
+        
+        btn.onmouseover = () => { if(catalogEntry) infoBox.innerHTML = `<strong>${catalogEntry.name}</strong> - ${catalogEntry.desc}`; };
+        btn.onclick = () => {
+            if(catalogEntry) infoBox.innerHTML = `<strong>${catalogEntry.name}</strong> - ${catalogEntry.desc}`;
+            const idx = state.flight.indexOf(null);
+            if (idx!==-1) { state.flight[idx]=b; setupFlightUI(); }
+        };
+        opts.appendChild(btn);
     });
 }
 
 function submitFlight() {
-    if(state.flight.includes(null)) {
-        document.getElementById('flight-msg').innerText = "Fill all 4 slots!";
-        return;
-    }
-
-    const types = state.flight.map(b => b.type);
-    const required = ['IPA', 'Stout', 'Sour', 'Milkshake'];
+    if(state.flight.includes(null)) { document.getElementById('flight-msg').innerText="Fill all slots!"; return; }
+    let hasIPA=false, hasSour=false, hasStout=false, hasMilkshake=false, hasOther=false;
+    state.flight.forEach(b => {
+        const t = BEER_MAP[b];
+        if(t==='IPA') hasIPA=true; if(t==='Sour') hasSour=true; 
+        if(t==='Stout') hasStout=true; if(t==='Milkshake') hasMilkshake=true;
+        if(t==='Other') hasOther=true;
+    });
     
-    let success = true;
-    for(let req of required) {
-        if(!types.includes(req)) { success = false; break; }
-    }
-
-    if(success) {
+    if(hasIPA && hasSour && hasStout && hasMilkshake && !hasOther) {
+        AudioSys.playSFX('win');
         document.getElementById('flight-screen').classList.add('hidden');
         document.getElementById('win-screen').classList.remove('hidden');
-        AudioSys.sfxWin();
     } else {
-        document.getElementById('flight-msg').innerText = "Incorrect Flight! Read the prompt carefully.";
-        AudioSys.sfxCrash();
+        AudioSys.playSFX('lose');
+        document.getElementById('flight-msg').style.color = "#d32f2f";
+        document.getElementById('flight-msg').innerText = "Incorrect Flight! Read the prompt.";
+        setTimeout(() => { document.getElementById('flight-msg').innerText=""; clearFlight(); }, 1500);
     }
 }
