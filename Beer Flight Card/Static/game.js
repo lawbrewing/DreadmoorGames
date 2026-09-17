@@ -21,7 +21,7 @@ audio.bgm.volume = 0.4;
 function playSound(soundName) {
     // Clones the audio so rapid clicks don't interrupt each other
     let sound = audio[soundName].cloneNode();
-    sound.volume = 0.8;
+    sound.volume = 0.5;
     sound.play().catch(e => console.log("Audio not ready"));
 }
 
