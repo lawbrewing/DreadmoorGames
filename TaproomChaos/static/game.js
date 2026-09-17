@@ -1,7 +1,6 @@
 const LEVELS = 3;
 const ROOM_SIZE = 34; 
 const PLAYER_SPEED = 18;
-const ENEMY_SPEED = 4.5;
 const PLAYER_START = { x: 0, z: 12 };
 
 // Custom Tap List
@@ -20,17 +19,16 @@ const BEER_CATALOG = [
     { name: 'Angels With Filthy Souls', type: 'Other', desc: 'Winter Ale. Complex holiday warmer.' }
 ];
 
+// Custom Arcade Physics State
 let state = {
     level: 1, isPlaying: false, annoyance: 0,
     patronsTotal: 5, patronsServed: 0, timeLeft: 45,
+    player: { x: PLAYER_START.x, z: PLAYER_START.z, vx: 0, vz: 0, radius: 1.5 },
     enemies: [], patrons: [], obstacles: [], particles: [],
     flight: [null, null, null, null]
 };
 
-// Three & Matter Globals
-let scene, camera, renderer, clock;
-let engine, world;
-let playerBody, playerMesh;
+let scene, camera, renderer, clock, playerMesh;
 let joystick = { x: 0, y: 0, active: false };
 const textures = {};
 const materials = {};
@@ -63,12 +61,6 @@ function init() {
     try {
         const container = document.getElementById('game-container');
         
-        // --- Matter.js Setup ---
-        engine = Matter.Engine.create();
-        world = engine.world;
-        engine.gravity.y = 0; // Top down 2D physics
-
-        // --- Three.js Setup ---
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x2a1a14);
 
@@ -88,13 +80,9 @@ function init() {
         const dirLight = new THREE.DirectionalLight(0xffddaa, 1.0);
         dirLight.position.set(15, 40, 20);
         dirLight.castShadow = true;
-        
-        dirLight.shadow.camera.left = -40;
-        dirLight.shadow.camera.right = 40;
-        dirLight.shadow.camera.top = 40;
-        dirLight.shadow.camera.bottom = -40;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
+        dirLight.shadow.mapSize.width = 1024; dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
 
         clock = new THREE.Clock();
@@ -116,7 +104,6 @@ function init() {
     }
 }
 
-// 100% Synchronous, crash-proof texture generation
 function createTexture(drawFn) {
     const c = document.createElement('canvas'); 
     c.width = 256; c.height = 256;
@@ -130,43 +117,30 @@ function createTexture(drawFn) {
 
 function generateNativeCanvasTextures() {
     textures.player = createTexture((ctx) => {
-        // Flannel Body
         ctx.fillStyle = '#b71c1c'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
-        // Apron
         ctx.fillStyle = '#3e2723'; ctx.fillRect(88, 150, 80, 106);
-        // Head
         ctx.fillStyle = '#ffccbc'; ctx.beginPath(); ctx.arc(128, 100, 50, 0, Math.PI*2); ctx.fill();
-        // Beard
         ctx.fillStyle = '#4e342e'; ctx.beginPath(); ctx.arc(128, 115, 45, 0, Math.PI); ctx.fill();
-        // Eyes
         ctx.fillStyle = '#000'; ctx.fillRect(105, 90, 10, 10); ctx.fillRect(141, 90, 10, 10);
     });
 
     textures.villain = createTexture((ctx) => {
-        // Jacket
         ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(128, 180, 70, 0, Math.PI*2); ctx.fill();
-        // Mohawk
         ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.moveTo(108, 60); ctx.lineTo(128, 10); ctx.lineTo(148, 60); ctx.fill();
-        // Head
         ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.arc(128, 120, 50, 0, Math.PI*2); ctx.fill();
-        // Neon Shades
         ctx.fillStyle = '#ff0055'; ctx.fillRect(90, 100, 76, 20);
     });
 
     textures.table = createTexture((ctx) => {
-        // Stools
         ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
-        // Table Top
         ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
         ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     });
 
     textures.tableServed = createTexture((ctx) => {
-        // Base Table
         ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(60, 128, 25, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(196, 128, 25, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 10;
         ctx.beginPath(); ctx.arc(128, 128, 90, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        // Pints
         ctx.fillStyle = '#fbc02d'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
         ctx.fillRect(90, 80, 20, 30); ctx.strokeRect(90, 80, 20, 30);
         ctx.fillRect(146, 120, 20, 30); ctx.strokeRect(146, 120, 20, 30);
@@ -177,24 +151,21 @@ function generateNativeCanvasTextures() {
         ctx.beginPath(); ctx.arc(128, 128, 80, 0, Math.PI*2); ctx.arc(80, 80, 40, 0, Math.PI*2); ctx.arc(180, 150, 50, 0, Math.PI*2); ctx.fill();
     });
 
-    // Floor
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512; const fctx = fc.getContext('2d');
     fctx.fillStyle = '#6d4c41'; fctx.fillRect(0,0,512,512);
     fctx.strokeStyle = '#4e342e'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
     textures.floor = new THREE.CanvasTexture(fc);
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping; textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
-    textures.floor.needsUpdate = true;
 
-    // CRITICAL FIX: MeshBasicMaterial completely ignores lighting. These characters will NEVER be dark shadows.
-    materials.player = new THREE.MeshBasicMaterial({ map: textures.player, transparent: true, alphaTest: 0.1 });
-    materials.villain = new THREE.MeshBasicMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1 });
-    materials.table = new THREE.MeshBasicMaterial({ map: textures.table, transparent: true, alphaTest: 0.1 });
-    materials.tableServed = new THREE.MeshBasicMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1 });
+    // MeshBasicMaterial ensures objects are perfectly visible and colored, NEVER black shadows
+    materials.player = new THREE.MeshBasicMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.villain = new THREE.MeshBasicMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.table = new THREE.MeshBasicMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
+    materials.tableServed = new THREE.MeshBasicMaterial({ map: textures.tableServed, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
     
-    // Shared Particle Materials (Fixes GPU Memory Leak)
-    materials.particleHit = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-    materials.particlePour = new THREE.MeshBasicMaterial({ color: 0xfbc02d });
+    materials.particleHit = new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide });
+    materials.particlePour = new THREE.MeshBasicMaterial({ color: 0xfbc02d, side: THREE.DoubleSide });
     geometries.particle = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 }
 
@@ -232,35 +203,19 @@ function buildEnvironment() {
     bar.position.set(0, barH/2, barZ);
     bar.castShadow = true; bar.receiveShadow = true;
     scene.add(bar);
-    
-    Matter.World.add(world, Matter.Bodies.rectangle(0, barZ, barW, barD, { isStatic: true }));
-
-    // Boundary Walls
-    const wOpts = { isStatic: true };
-    Matter.World.add(world, [
-        Matter.Bodies.rectangle(0, -ROOM_SIZE, ROOM_SIZE*2, 2, wOpts),
-        Matter.Bodies.rectangle(0, ROOM_SIZE, ROOM_SIZE*2, 2, wOpts),
-        Matter.Bodies.rectangle(-ROOM_SIZE, 0, 2, ROOM_SIZE*2, wOpts),
-        Matter.Bodies.rectangle(ROOM_SIZE, 0, 2, ROOM_SIZE*2, wOpts)
-    ]);
 
     playerMesh = createBillboard(materials.player, 4);
     scene.add(playerMesh);
-
-    playerBody = Matter.Bodies.circle(PLAYER_START.x, PLAYER_START.z, 1.5, { 
-        frictionAir: 0.8, restitution: 0.1, mass: 20 
-    });
-    Matter.World.add(world, playerBody);
 }
 
 function spawnLevelEntities() {
-    state.patrons.forEach(p => { scene.remove(p.mesh); Matter.World.remove(world, p.body); });
-    state.enemies.forEach(e => { scene.remove(e.mesh); Matter.World.remove(world, e.body); });
-    state.obstacles.forEach(o => { scene.remove(o.mesh); });
+    state.patrons.forEach(p => scene.remove(p.mesh));
+    state.enemies.forEach(e => scene.remove(e.mesh));
+    state.obstacles.forEach(o => scene.remove(o.mesh));
 
     state.patrons = []; state.enemies = []; state.obstacles = [];
+    state.player.x = PLAYER_START.x; state.player.z = PLAYER_START.z;
 
-    // CRITICAL FIX: Structured Grid Spawning guarantees tables NEVER spawn inside each other
     const tableGrid = [
         {x: -12, z: -2}, {x: 0, z: -2}, {x: 12, z: -2},
         {x: -12, z: 8},  {x: 0, z: 8},  {x: 12, z: 8},
@@ -270,18 +225,13 @@ function spawnLevelEntities() {
     for(let i=0; i<state.patronsTotal; i++) {
         const pos = tableGrid[i % tableGrid.length];
         const mesh = createBillboard(materials.table, 4.5);
-        
         const x = pos.x + (Math.random()-0.5);
         const z = pos.z + (Math.random()-0.5);
-        
         mesh.position.set(x, 2.25, z);
         scene.add(mesh);
         
-        const body = Matter.Bodies.circle(x, z, 2.0, { 
-            mass: 80, frictionAir: 0.9, restitution: 0.1 
-        });
-        Matter.World.add(world, body);
-        state.patrons.push({ mesh, body, served: false });
+        // Push to custom collision array
+        state.patrons.push({ mesh, x: x, z: z, radius: 2.5, served: false });
     }
 
     const enemyCount = state.level * 2;
@@ -295,24 +245,25 @@ function spawnLevelEntities() {
         mesh.position.set(x, 1.75, z);
         scene.add(mesh);
         
-        const body = Matter.Bodies.circle(x, z, 1.5, {
-            mass: 15, frictionAir: 0.8, restitution: 0.3
+        state.enemies.push({ 
+            mesh, x: x, z: z, vx: 0, vz: 0, radius: 1.5, 
+            hp: 3, speed: 6.0 + (state.level * 1.5) 
         });
-        Matter.World.add(world, body);
-
-        state.enemies.push({ mesh, body, hp: 3, speed: ENEMY_SPEED + (state.level * 0.5) });
     }
 
     const obsCount = state.level * 3;
     for(let i=0; i<obsCount; i++) {
-        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true });
+        const mat = new THREE.MeshBasicMaterial({ map: textures.spill, transparent:true, side: THREE.DoubleSide });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), mat);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.y = 0.05;
-        mesh.position.x = (Math.random() - 0.5) * 26;
-        mesh.position.z = (Math.random() - 0.5) * 20;
+        
+        const x = (Math.random() - 0.5) * 26;
+        const z = (Math.random() - 0.5) * 20;
+        mesh.position.x = x; mesh.position.z = z;
+        mesh.receiveShadow = true;
         scene.add(mesh);
-        state.obstacles.push({ mesh });
+        state.obstacles.push({ mesh, x: x, z: z, radius: 2.0 });
     }
 }
 
@@ -339,13 +290,9 @@ function setupControls() {
         if(e.cancelable) e.preventDefault();
         
         let clientX, clientY;
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
-        } else if (e.changedTouches && e.changedTouches.length > 0) {
-            clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
-        } else if (e.clientX !== undefined) {
-            clientX = e.clientX; clientY = e.clientY;
-        }
+        if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
+        else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
+        else if (e.clientX !== undefined) { clientX = e.clientX; clientY = e.clientY; }
         
         if (clientX === undefined) return;
         
@@ -396,9 +343,6 @@ function loadLevel(level) {
     state.annoyance = 0;
     state.isPlaying = true;
     
-    Matter.Body.setPosition(playerBody, { x: PLAYER_START.x, y: PLAYER_START.z });
-    Matter.Body.setVelocity(playerBody, { x: 0, y: 0 });
-    
     clock.start(); 
     spawnLevelEntities();
     updateUI();
@@ -422,13 +366,11 @@ function showMessage(txt, color='#fff') {
     el.style.color = color;
     
     const pos = playerMesh.position.clone();
-    pos.y += 3;
-    pos.project(camera);
+    pos.y += 3; pos.project(camera);
     const x = (pos.x * .5 + .5) * window.innerWidth;
     const y = (pos.y * -.5 + .5) * window.innerHeight;
     
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    el.style.left = `${x}px`; el.style.top = `${y}px`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 800);
 }
@@ -442,25 +384,22 @@ function performSlap() {
 
     for(let i=state.enemies.length-1; i>=0; i--) {
         const e = state.enemies[i];
-        
-        let dx = e.body.position.x - playerBody.position.x;
-        let dy = e.body.position.y - playerBody.position.y;
-        let dist = Math.sqrt(dx*dx + dy*dy) || 1; // NEVER zero
-        
+        let dx = e.x - state.player.x;
+        let dz = e.z - state.player.z;
+        let dist = Math.sqrt(dx*dx + dz*dz) || 1; 
+
         if(dist < 7.0) { 
             e.hp--;
-            let nx = dx / dist;
-            let ny = dy / dist;
             
-            // CRITICAL FIX: Safely set velocity instead of applying atomic forces
-            Matter.Body.setVelocity(e.body, { x: nx * 20, y: ny * 20 });
+            // Custom physics knockback! Safe and predictable.
+            e.vx = (dx / dist) * 45; 
+            e.vz = (dz / dist) * 45;
             
-            createParticleSystem(e.body.position.x, e.body.position.y, 'hit', 12);
+            createParticleSystem(e.x, e.y, 'hit', 12);
             showMessage("BAM!", "#ff0055");
             
             if(e.hp <= 0) {
                 scene.remove(e.mesh);
-                Matter.World.remove(world, e.body);
                 state.enemies.splice(i, 1);
                 state.annoyance = Math.max(0, state.annoyance - 15); 
             }
@@ -473,16 +412,16 @@ function performSlap() {
 function performPour() {
     if(!state.isPlaying) return;
     for(let p of state.patrons) {
-        let dx = p.body.position.x - playerBody.position.x;
-        let dy = p.body.position.y - playerBody.position.y;
-        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let dx = p.x - state.player.x;
+        let dz = p.z - state.player.z;
+        let dist = Math.sqrt(dx*dx + dz*dz) || 1;
         
         if(!p.served && dist < 7.0) {
             p.served = true;
             p.mesh.material = materials.tableServed; 
             state.patronsServed++;
             AudioSys.sfxPour();
-            createParticleSystem(p.body.position.x, p.body.position.y, 'pour', 10);
+            createParticleSystem(p.x, p.z, 'pour', 10);
             showMessage("+SERVED", "#4caf50");
             updateUI();
             checkLevelClear();
@@ -512,6 +451,35 @@ function updateUI() {
     else document.getElementById('timer-display').classList.remove('timer-low');
 }
 
+// Custom Circle Collision Resolver
+function resolveCircleCollision(dynamicObj, staticObj) {
+    let dx = dynamicObj.x - staticObj.x;
+    let dz = dynamicObj.z - staticObj.z;
+    let dist = Math.sqrt(dx*dx + dz*dz);
+    let minDist = dynamicObj.radius + staticObj.radius;
+    
+    if (dist > 0 && dist < minDist) {
+        let overlap = minDist - dist;
+        dynamicObj.x += (dx / dist) * overlap;
+        dynamicObj.z += (dz / dist) * overlap;
+    }
+}
+
+// Custom Box Collision Resolver (For the Bar and Walls)
+function resolveBoxCollision(circle, box) {
+    let closestX = Math.max(box.minX, Math.min(circle.x, box.maxX));
+    let closestZ = Math.max(box.minZ, Math.min(circle.z, box.maxZ));
+    let dx = circle.x - closestX;
+    let dz = circle.z - closestZ;
+    let dist = Math.sqrt(dx*dx + dz*dz);
+    
+    if (dist > 0 && dist < circle.radius) {
+        let overlap = circle.radius - dist;
+        circle.x += (dx / dist) * overlap;
+        circle.z += (dz / dist) * overlap;
+    }
+}
+
 function animate(time) {
     const dt = Math.min(clock.getDelta(), 0.05); 
     
@@ -519,22 +487,71 @@ function animate(time) {
         state.timeLeft -= dt;
         if(state.timeLeft <= 0) state.annoyance = 100;
 
-        Matter.Engine.update(engine, dt * 1000);
-
-        // CRITICAL FIX: Directly set velocity for crisp arcade player control (No floating/vibrating)
+        // --- 1. MOVE PLAYER ---
         if (joystick.active) {
-            Matter.Body.setVelocity(playerBody, {
-                x: joystick.x * PLAYER_SPEED,
-                y: joystick.y * PLAYER_SPEED
-            });
+            state.player.x += joystick.x * PLAYER_SPEED * dt;
+            state.player.z += joystick.y * PLAYER_SPEED * dt;
             playerMesh.position.y = 2.0 + Math.abs(Math.sin(time*0.015))*0.4;
         } else {
-            Matter.Body.setVelocity(playerBody, { x: 0, y: 0 }); 
             playerMesh.position.y = 2.0;
         }
 
-        playerMesh.position.x = playerBody.position.x;
-        playerMesh.position.z = playerBody.position.y;
+        // --- 2. MOVE ENEMIES ---
+        state.enemies.forEach(e => {
+            let dx = state.player.x - e.x;
+            let dz = state.player.z - e.z;
+            let dist = Math.sqrt(dx*dx + dz*dz) || 1;
+            
+            // Stalking AI Acceleration
+            e.vx += (dx / dist) * e.speed * dt * 10;
+            e.vz += (dz / dist) * e.speed * dt * 10;
+            
+            // Friction (Smooths out movement & slap knockbacks)
+            e.vx *= 0.90;
+            e.vz *= 0.90;
+            
+            e.x += e.vx * dt;
+            e.z += e.vz * dt;
+            
+            // Hit Player check
+            if(dist < 3.0) {
+                state.annoyance += 25 * dt; 
+                e.vx = -(dx / dist) * 10; // Bounce off player safely
+                e.vz = -(dz / dist) * 10;
+                AudioSys.sfxCrash();
+            }
+        });
+
+        // --- 3. RESOLVE COLLISIONS ---
+        const barBox = { minX: -12, maxX: 12, minZ: -15, maxZ: -9 };
+        const wallsBox = { minX: -ROOM_SIZE+2, maxX: ROOM_SIZE-2, minZ: -ROOM_SIZE+2, maxZ: ROOM_SIZE-2 };
+
+        // Keep player in bounds and out of the bar
+        state.player.x = Math.max(wallsBox.minX, Math.min(wallsBox.maxX, state.player.x));
+        state.player.z = Math.max(wallsBox.minZ, Math.min(wallsBox.maxZ, state.player.z));
+        resolveBoxCollision(state.player, barBox);
+        state.patrons.forEach(p => resolveCircleCollision(state.player, p));
+
+        // Keep enemies in bounds and out of tables
+        state.enemies.forEach(e => {
+            e.x = Math.max(wallsBox.minX, Math.min(wallsBox.maxX, e.x));
+            e.z = Math.max(wallsBox.minZ, Math.min(wallsBox.maxZ, e.z));
+            resolveBoxCollision(e, barBox);
+            state.patrons.forEach(p => resolveCircleCollision(e, p));
+        });
+
+        // --- 4. GAMEPLAY LOGIC (Obstacles & Spills) ---
+        state.obstacles.forEach(o => {
+            let dx = state.player.x - o.x;
+            let dz = state.player.z - o.z;
+            if(Math.sqrt(dx*dx + dz*dz) < 3.5) {
+                state.annoyance += 8 * dt;
+            }
+        });
+
+        // --- 5. RENDER SYNC ---
+        playerMesh.position.x = state.player.x;
+        playerMesh.position.z = state.player.z;
 
         camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
         camera.position.z += ((playerMesh.position.z + 16) - camera.position.z) * 0.1;
@@ -543,42 +560,14 @@ function animate(time) {
         playerMesh.lookAt(camera.position); // Always face the camera exactly
 
         state.patrons.forEach(p => {
-            p.mesh.position.x = p.body.position.x;
-            p.mesh.position.z = p.body.position.y;
             p.mesh.lookAt(camera.position);
-            
-            if(Matter.Vector.magnitude(p.body.velocity) > 0.8) {
-                state.annoyance += 2 * dt;
-                if(Math.random() < 0.05) AudioSys.sfxCrash();
-            }
         });
 
         state.enemies.forEach(e => {
-            let dx = playerBody.position.x - e.body.position.x;
-            let dy = playerBody.position.y - e.body.position.y;
-            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-            let nx = dx / dist;
-            let ny = dy / dist;
-            
-            // CRITICAL FIX: Safe, constant velocity stalking AI
-            Matter.Body.setVelocity(e.body, { x: nx * e.speed, y: ny * e.speed });
-            
-            e.mesh.position.x = e.body.position.x;
-            e.mesh.position.z = e.body.position.y;
+            e.mesh.position.x = e.x;
+            e.mesh.position.z = e.z;
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
             e.mesh.lookAt(camera.position);
-
-            if(dist < 3.0) {
-                state.annoyance += 25 * dt; 
-                Matter.Body.setVelocity(e.body, { x: -nx * 15, y: -ny * 15 }); // bounce back safely
-                AudioSys.sfxCrash();
-            }
-        });
-
-        state.obstacles.forEach(o => {
-            if(playerMesh.position.distanceTo(o.mesh.position) < 3.5) {
-                state.annoyance += 8 * dt;
-            }
         });
 
         for(let i=state.particles.length-1; i>=0; i--) {
