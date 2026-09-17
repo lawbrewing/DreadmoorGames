@@ -70,7 +70,7 @@ function init() {
 
         // --- Three.js Setup ---
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x2a1a14); // Brighter background
+        scene.background = new THREE.Color(0x2a1a14);
 
         camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
         camera.position.set(0, 26, 32);
@@ -82,7 +82,6 @@ function init() {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // Max out ambient light so nothing is ever pitch black
         const ambient = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambient);
         
@@ -127,57 +126,11 @@ function createSVGTexture(svgString) {
 }
 
 function generateDetailedTextures() {
-    // 1. Player
-    const svgPlayer = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-        <defs><radialGradient id="gradPlayer" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ddd"/></radialGradient></defs>
-        <circle cx="128" cy="128" r="110" fill="url(#gradPlayer)" stroke="#333" stroke-width="8"/>
-        <path d="M 40 180 Q 128 260 216 180 L 230 256 L 26 256 Z" fill="#c62828"/>
-        <path d="M 60 180 L 60 256 M 100 200 L 100 256 M 156 200 L 156 256 M 196 180 L 196 256" stroke="#000" stroke-width="6" opacity="0.4"/>
-        <rect x="88" y="190" width="80" height="70" fill="#4e342e" rx="10"/>
-        <circle cx="128" cy="110" r="50" fill="#ffccbc"/>
-        <path d="M 78 110 Q 128 200 178 110 Q 170 170 128 170 Q 86 170 78 110" fill="#5d4037"/>
-        <rect x="100" y="90" width="15" height="15" fill="#333" rx="5"/>
-        <rect x="140" y="90" width="15" height="15" fill="#333" rx="5"/>
-        <path d="M 115 130 Q 128 145 141 130" stroke="#fff" stroke-width="4" fill="none"/>
-    </svg>`;
-    
-    // 2. Villain
-    const svgVillain = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-        <defs><radialGradient id="gradV" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#333"/><stop offset="100%" stop-color="#111"/></radialGradient></defs>
-        <circle cx="128" cy="128" r="110" fill="url(#gradV)" stroke="#ff0055" stroke-width="8"/>
-        <path d="M 108 40 L 128 10 L 148 40 Z M 98 60 L 128 20 L 158 60 Z" fill="#00ffcc"/>
-        <circle cx="128" cy="130" r="55" fill="#e0e0e0"/>
-        <path d="M 90 110 L 115 125 M 166 110 L 141 125" stroke="#ff0055" stroke-width="8" stroke-linecap="round"/>
-        <circle cx="105" cy="135" r="8" fill="#ff0055"/>
-        <circle cx="151" cy="135" r="8" fill="#ff0055"/>
-        <path d="M 110 160 Q 128 145 146 160" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/>
-    </svg>`;
-
-    // 3. Table
-    const svgTable = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-        <circle cx="128" cy="128" r="120" fill="#5d4037" stroke="#3e2723" stroke-width="12"/>
-        <circle cx="128" cy="128" r="100" fill="none" stroke="#4e342e" stroke-width="4"/>
-        <circle cx="80" cy="80" r="15" fill="#e0e0e0"/>
-        <circle cx="176" cy="100" r="15" fill="#e0e0e0"/>
-        <circle cx="128" cy="176" r="15" fill="#e0e0e0"/>
-        <circle cx="40" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/>
-        <circle cx="216" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/>
-    </svg>`;
-
-    // 4. Table Served
-    const svgTableServed = svgTable.replace('</svg>', `
-        <rect x="70" y="60" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
-        <rect x="166" y="80" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
-        <rect x="118" y="156" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/>
-        <circle cx="80" cy="60" r="12" fill="#fff"/><circle cx="176" cy="80" r="12" fill="#fff"/><circle cx="128" cy="156" r="12" fill="#fff"/>
-    </svg>`);
-
-    // 5. Spill
-    const svgSpill = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-        <path d="M 128 30 C 180 30 220 80 200 140 C 180 200 150 230 100 210 C 50 190 30 140 60 90 C 80 50 90 30 128 30 Z" fill="rgba(251, 192, 45, 0.8)"/>
-        <circle cx="180" cy="80" r="15" fill="rgba(251, 192, 45, 0.8)"/>
-        <circle cx="70" cy="180" r="20" fill="rgba(251, 192, 45, 0.8)"/>
-    </svg>`;
+    const svgPlayer = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><radialGradient id="gradPlayer" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ddd"/></radialGradient></defs><circle cx="128" cy="128" r="110" fill="url(#gradPlayer)" stroke="#333" stroke-width="8"/><path d="M 40 180 Q 128 260 216 180 L 230 256 L 26 256 Z" fill="#c62828"/><path d="M 60 180 L 60 256 M 100 200 L 100 256 M 156 200 L 156 256 M 196 180 L 196 256" stroke="#000" stroke-width="6" opacity="0.4"/><rect x="88" y="190" width="80" height="70" fill="#4e342e" rx="10"/><circle cx="128" cy="110" r="50" fill="#ffccbc"/><path d="M 78 110 Q 128 200 178 110 Q 170 170 128 170 Q 86 170 78 110" fill="#5d4037"/><rect x="100" y="90" width="15" height="15" fill="#333" rx="5"/><rect x="140" y="90" width="15" height="15" fill="#333" rx="5"/><path d="M 115 130 Q 128 145 141 130" stroke="#fff" stroke-width="4" fill="none"/></svg>`;
+    const svgVillain = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><radialGradient id="gradV" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#333"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><circle cx="128" cy="128" r="110" fill="url(#gradV)" stroke="#ff0055" stroke-width="8"/><path d="M 108 40 L 128 10 L 148 40 Z M 98 60 L 128 20 L 158 60 Z" fill="#00ffcc"/><circle cx="128" cy="130" r="55" fill="#e0e0e0"/><path d="M 90 110 L 115 125 M 166 110 L 141 125" stroke="#ff0055" stroke-width="8" stroke-linecap="round"/><circle cx="105" cy="135" r="8" fill="#ff0055"/><circle cx="151" cy="135" r="8" fill="#ff0055"/><path d="M 110 160 Q 128 145 146 160" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`;
+    const svgTable = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><circle cx="128" cy="128" r="120" fill="#5d4037" stroke="#3e2723" stroke-width="12"/><circle cx="128" cy="128" r="100" fill="none" stroke="#4e342e" stroke-width="4"/><circle cx="80" cy="80" r="15" fill="#e0e0e0"/><circle cx="176" cy="100" r="15" fill="#e0e0e0"/><circle cx="128" cy="176" r="15" fill="#e0e0e0"/><circle cx="40" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/><circle cx="216" cy="128" r="25" fill="#222" stroke="#111" stroke-width="4"/></svg>`;
+    const svgTableServed = svgTable.replace('</svg>', `<rect x="70" y="60" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><rect x="166" y="80" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><rect x="118" y="156" width="20" height="30" fill="#fbc02d" rx="2" stroke="#fff" stroke-width="3"/><circle cx="80" cy="60" r="12" fill="#fff"/><circle cx="176" cy="80" r="12" fill="#fff"/><circle cx="128" cy="156" r="12" fill="#fff"/></svg>`);
+    const svgSpill = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><path d="M 128 30 C 180 30 220 80 200 140 C 180 200 150 230 100 210 C 50 190 30 140 60 90 C 80 50 90 30 128 30 Z" fill="rgba(251, 192, 45, 0.8)"/><circle cx="180" cy="80" r="15" fill="rgba(251, 192, 45, 0.8)"/><circle cx="70" cy="180" r="20" fill="rgba(251, 192, 45, 0.8)"/></svg>`;
 
     textures.player = createSVGTexture(svgPlayer);
     textures.villain = createSVGTexture(svgVillain);
@@ -185,10 +138,9 @@ function generateDetailedTextures() {
     textures.tableServed = createSVGTexture(svgTableServed);
     textures.spill = createSVGTexture(svgSpill);
 
-    // Brightened Floor Canvas
     const fc = document.createElement('canvas'); fc.width=512; fc.height=512;
     const fctx = fc.getContext('2d');
-    fctx.fillStyle = '#6d4c41'; // Light wood
+    fctx.fillStyle = '#6d4c41'; 
     fctx.fillRect(0,0,512,512);
     fctx.strokeStyle = '#4e342e'; fctx.lineWidth = 4;
     for(let i=0; i<512; i+=64) { fctx.strokeRect(i, 0, 64, 512); fctx.strokeRect(0, i, 512, 64); }
@@ -196,7 +148,6 @@ function generateDetailedTextures() {
     textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
     textures.floor.repeat.set(ROOM_SIZE/4, ROOM_SIZE/4);
 
-    // CRITICAL FIX: DoubleSide ensures billboards are never invisible from behind
     materials.player = new THREE.MeshLambertMaterial({ map: textures.player, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
     materials.villain = new THREE.MeshLambertMaterial({ map: textures.villain, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
     materials.table = new THREE.MeshLambertMaterial({ map: textures.table, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide });
@@ -389,6 +340,9 @@ function loadLevel(level) {
     Matter.Body.setPosition(playerBody, { x: PLAYER_START.x, y: PLAYER_START.z });
     Matter.Body.setVelocity(playerBody, { x: 0, y: 0 });
     
+    // CRITICAL FIX: Restart the clock so dt doesn't explode and cause NaN coordinates
+    clock.start(); 
+
     spawnLevelEntities();
     updateUI();
 }
@@ -431,11 +385,16 @@ function performSlap() {
 
     for(let i=state.enemies.length-1; i>=0; i--) {
         const e = state.enemies[i];
-        const dist = Matter.Vector.magnitude(Matter.Vector.sub(e.body.position, playerBody.position));
+        let sub = Matter.Vector.sub(e.body.position, playerBody.position);
+        
+        // Prevent NaN if they overlap exactly
+        if (sub.x === 0 && sub.y === 0) { sub = { x: 0.1, y: 0.1 }; } 
+
+        const dist = Matter.Vector.magnitude(sub);
         
         if(dist < 6.0) { 
             e.hp--;
-            const forceDir = Matter.Vector.normalise(Matter.Vector.sub(e.body.position, playerBody.position));
+            const forceDir = Matter.Vector.normalise(sub);
             Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(forceDir, HIT_FORCE));
             
             createParticleSystem(e.body.position.x, e.body.position.y, 0xff0055, 15);
@@ -493,7 +452,8 @@ function updateUI() {
 }
 
 function animate(time) {
-    const dt = clock.getDelta();
+    // CRITICAL FIX: Clamp dt so it never jumps beyond 50ms, protecting physics
+    const dt = Math.min(clock.getDelta(), 0.05); 
     
     if (state.isPlaying) {
         state.timeLeft -= dt;
@@ -519,8 +479,6 @@ function animate(time) {
         camera.position.z += ((playerMesh.position.z + 14) - camera.position.z) * 0.1;
         
         camera.lookAt(playerMesh.position);
-
-        // CRITICAL FIX: Make sure the sprite faces the camera so it is never backface-culled
         playerMesh.lookAt(camera.position);
 
         state.patrons.forEach(p => {
@@ -535,7 +493,10 @@ function animate(time) {
         });
 
         state.enemies.forEach(e => {
-            const dir = Matter.Vector.normalise(Matter.Vector.sub(playerBody.position, e.body.position));
+            let sub = Matter.Vector.sub(playerBody.position, e.body.position);
+            if (sub.x === 0 && sub.y === 0) { sub = { x: 0.1, y: 0.1 }; } // NaN protection
+            
+            const dir = Matter.Vector.normalise(sub);
             Matter.Body.applyForce(e.body, e.body.position, Matter.Vector.mult(dir, e.speed));
             
             e.mesh.position.x = e.body.position.x;
@@ -543,7 +504,7 @@ function animate(time) {
             e.mesh.position.y = 1.75 + Math.abs(Math.sin(time*0.01 + e.hp))*0.3;
             e.mesh.lookAt(camera.position);
 
-            if(Matter.Vector.magnitude(Matter.Vector.sub(playerBody.position, e.body.position)) < 3.0) {
+            if(Matter.Vector.magnitude(sub) < 3.0) {
                 state.annoyance += 25 * dt; 
                 Matter.Body.setVelocity(e.body, Matter.Vector.mult(dir, -5));
                 AudioSys.sfxCrash();
