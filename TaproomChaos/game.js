@@ -109,64 +109,99 @@ function setupButtons() {
     bind('btn-restart', () => location.reload()); bind('btn-play-again', () => location.reload()); bind('btn-clear-flight', clearFlight); bind('btn-submit-flight', submitFlight);
 }
 
-// --- UPGRADED PROCEDURAL 3D MODELS ---
+// --- UPGRADED MAX-DETAIL MEEPLE GENERATOR ---
 function createCharacterModel(type) {
     const group = new THREE.Group();
     let bodyColor = 0x555555; let headColor = 0xffccaa; 
+    let isSlim = false; let isBurly = false;
+
+    // Archetype Base Rules
+    if(type === 'player') { bodyColor = 0x2980b9; }
+    if(type === 'brewmaster') { bodyColor = 0x2c3e50; isBurly = true; }
+    if(type === 'vip_hottie') { bodyColor = 0x000000; isSlim = true; }
+    if(type === 'hippie') { bodyColor = 0x8e44ad; }
+    if(type === 'beer_snob') { bodyColor = 0x2c3e50; }
+    if(type === 'old_timer') { bodyColor = 0x7f8c8d; }
+    if(type === 'douche') { bodyColor = 0xffffff; } 
+    if(type === 'annoying_girl') { bodyColor = 0xff69b4; isSlim = true; }
+    if(type === 'karen') { bodyColor = 0xe74c3c; headColor = 0xff9999; } // Angry red flush
+    if(type === 'viking') { bodyColor = 0x8b4513; isBurly = true; }
+    if(type === 'served') { bodyColor = 0x27ae60; headColor = 0xa9dfbf; }
+    if(type === 'alien') { bodyColor = 0x2ecc71; headColor = 0x00ff00; }
     
-    if (type === 'player') { bodyColor = 0x2980b9; headColor = 0xffccaa; }
-    else if (type === 'bartender') { bodyColor = 0x111111; headColor = 0xffccaa; }
-    else if (type === 'patron') { const colors = [0x34495e, 0x8e44ad, 0x16a085, 0xd35400, 0xc0392b]; bodyColor = colors[Math.floor(Math.random()*colors.length)]; }
-    else if (type === 'served') { bodyColor = 0x27ae60; headColor = 0xa9dfbf; }
-    else if (type === 'dancer') { bodyColor = 0xe91e63; headColor = 0xf8bbd0; }
-    else if (type === 'oldman') { bodyColor = 0x7f8c8d; headColor = 0xecf0f1; }
-    else if (type === 'police') { bodyColor = 0x154360; headColor = 0xf1c40f; }
-    else if (type === 'dj') { bodyColor = 0x111111; headColor = 0x9b59b6; }
-    else if (type === 'alien') { bodyColor = 0x2ecc71; headColor = 0x00ff00; }
-    else if (type === 'dog') { 
+    if (type === 'dog') { 
         const b = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.2), new THREE.MeshStandardMaterial({color: 0x8d6e63})); b.position.y = 0.5;
         const h = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({color: 0x5d4037})); h.position.set(0, 0.8, 0.6);
         group.add(b); group.add(h); return group;
     }
 
-    const bodyGeo = new THREE.CylinderGeometry(0.25, 0.4, 1.2, 16);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.8 });
-    const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 0.6;
+    // Dynamic Proportions
+    let bTop = isSlim ? 0.2 : (isBurly ? 0.35 : 0.25);
+    let bBot = isSlim ? 0.25 : (isBurly ? 0.5 : 0.4);
+
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(bTop, bBot, 1.2, 16), new THREE.MeshStandardMaterial({color: bodyColor, roughness: 0.8}));
+    body.position.y = 0.6;
     
-    const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
-    const headMat = new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.5 });
-    const head = new THREE.Mesh(headGeo, headMat); head.position.y = 1.45;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({color: headColor, roughness: 0.5}));
+    head.position.y = 1.45;
+    
     group.add(body); group.add(head);
 
-    // Character Detail Accessories
-    if(type === 'player') { 
-        // Backwards cap
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.4), new THREE.MeshStandardMaterial({color:0x222222})); cap.position.set(0, 1.65, -0.15); group.add(cap);
+    // --- ACCESSORY ATTACHMENT HELPER ---
+    const addMesh = (geo, color, x, y, z, rotX=0, rotY=0, rotZ=0) => {
+        const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: color, roughness: 0.7}));
+        m.position.set(x, y, z); m.rotation.set(rotX, rotY, rotZ); group.add(m); return m;
+    };
+
+    // --- ARCHETYPE DETAILING ---
+    if(type === 'brewmaster') {
+        addMesh(new THREE.BoxGeometry(0.55, 0.8, 0.05), 0x3e2723, 0, 0.7, 0.36); // Leather apron
+        addMesh(new THREE.BoxGeometry(0.45, 0.5, 0.4), 0x5d4037, 0, 1.2, 0.25); // Majestic Beard
+        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.15), 0x111111, 0, 1.6, 0); // Beanie/Cap
     }
-    if(type === 'bartender') { 
-        // Beard & Apron
-        const beard = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), new THREE.MeshStandardMaterial({color:0x333333})); beard.position.set(0, 1.35, 0.25); group.add(beard);
-        const apron = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.1), new THREE.MeshStandardMaterial({color:0x5d4037})); apron.position.set(0, 0.7, 0.3); group.add(apron);
+    else if(type === 'beer_snob') {
+        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x7f8c8d, 0, 1.45, 0); // Beanie
+        addMesh(new THREE.BoxGeometry(0.6, 0.15, 0.1), 0x111111, 0, 1.48, 0.31); // Thick hipster glasses
+        addMesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), 0x5d4037, 0, 1.3, 0.3); // Neat beard
+        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.2), 0xffffff, 0.3, 0.9, 0.3); // Tasting snifter
     }
-    if(type === 'police') { 
-        // Police Hat
-        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.2, 16), new THREE.MeshStandardMaterial({color: 0x154360})); hat.position.y = 1.7;
-        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.05, 16), new THREE.MeshStandardMaterial({color: 0x111111})); brim.position.set(0, 1.6, 0.1);
-        group.add(hat); group.add(brim);
+    else if(type === 'vip_hottie') {
+        addMesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), 0xf1c40f, 0, 1.3, -0.2); // Long blonde hair
+        addMesh(new THREE.BoxGeometry(0.55, 0.12, 0.1), 0x111111, 0, 1.5, 0.31); // Designer shades
+        addMesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16), 0xffffff, 0, 1.25, 0, Math.PI/2, 0, 0); // Pearl Choker
     }
-    if(type === 'oldman') { 
-        // Bald rim
-        const hairRim = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.08, 8, 16), new THREE.MeshStandardMaterial({color: 0xcccccc})); hairRim.position.y = 1.45; hairRim.rotation.x = Math.PI / 2; group.add(hairRim);
+    else if(type === 'hippie') {
+        addMesh(new THREE.TorusGeometry(0.36, 0.04, 8, 16), 0xc0392b, 0, 1.5, 0, Math.PI/2, 0, 0); // Headband
+        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, 0.15, 1.45, 0.3); // Round glasses L
+        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, -0.15, 1.45, 0.3); // Round glasses R
+        addMesh(new THREE.CylinderGeometry(0.38, 0.45, 0.6, 16), 0x795548, 0, 1.2, -0.1); // Long hair
     }
-    if(type === 'patron') {
-        // Random Accessory (Glasses, Tophat, or Hair tuft)
-        const rand = Math.random();
-        if(rand > 0.6) { const glasses = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.1), new THREE.MeshStandardMaterial({color:0x111})); glasses.position.set(0, 1.5, 0.32); group.add(glasses); }
-        else if (rand > 0.3) { const tophat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.5), new THREE.MeshStandardMaterial({color:0x111})); tophat.position.y = 1.9; group.add(tophat); }
+    else if(type === 'old_timer') {
+        addMesh(new THREE.TorusGeometry(0.32, 0.08, 8, 16), 0xbdc3c7, 0, 1.45, 0, Math.PI/2, 0, 0); // Bald rim
+        addMesh(new THREE.BoxGeometry(0.05, 1.2, 0.45), 0x111111, 0.15, 0.6, 0); // Suspenders
+        addMesh(new THREE.BoxGeometry(0.05, 1.2, 0.45), 0x111111, -0.15, 0.6, 0);
     }
-    if(type === 'dj') { 
-        // Headphones
-        const headphones = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.4), new THREE.MeshStandardMaterial({color:0x222})); headphones.position.y=1.5; group.add(headphones); 
+    else if(type === 'douche') {
+        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, 0.25, 1.2, -0.1, 0, 0, -0.5); // Popped collar L
+        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, -0.25, 1.2, -0.1, 0, 0, 0.5); // Popped collar R
+        addMesh(new THREE.TorusGeometry(0.22, 0.03, 8, 16), 0xf1c40f, 0, 1.15, 0.15, Math.PI/4, 0, 0); // Gold Chain
+        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1), 0x222222, 0, 1.6, 0); // Backwards visor
+        addMesh(new THREE.BoxGeometry(0.3, 0.05, 0.4), 0x222222, 0, 1.58, -0.2); 
+    }
+    else if(type === 'annoying_girl') {
+        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.5), 0x111111, 0, 1.7, -0.3, Math.PI/4, 0, 0); // High ponytail
+        const phone = addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0xffffff, 0, 1.4, 0.5); // Selfie pose
+        phone.material.emissive.setHex(0xffffff); // Glowing screen
+    }
+    else if(type === 'karen') {
+        addMesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), 0xf1c40f, 0.1, 1.55, 0.1, 0, 0, -0.2); // Asymmetrical haircut
+        const phone = addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0x222, 0, 1.0, 0.4); // Demanding manager on phone
+    }
+    else if(type === 'viking') {
+        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x95a5a6, 0, 1.45, 0); // Iron helmet
+        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, 0.35, 1.6, 0, 0, 0, -Math.PI/4); // Horn L
+        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, -0.35, 1.6, 0, 0, 0, Math.PI/4); // Horn R
+        addMesh(new THREE.BoxGeometry(0.55, 0.5, 0.35), 0xd35400, 0, 1.25, 0.25); // Massive red beard
     }
     
     return group;
@@ -195,19 +230,22 @@ function createBeerGlassModel() {
 }
 
 function createSpoonModel() {
-    // Upgraded Spoon logic: elongated twisting handle + angled concave bowl
+    // Upgraded proper spoon geometry
     const group = new THREE.Group();
     const mat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.2});
+    
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 8), mat);
     handle.position.y = 0.8;
-    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), mat); 
+    
+    // Half-sphere for a concave spoon bowl
+    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16, 0, Math.PI*2, 0, Math.PI/2), mat); 
     bowl.scale.set(1.2, 0.2, 1.6); 
     bowl.position.y = 1.7; 
-    bowl.rotation.x = Math.PI / 8; // Slight angle
-    group.add(handle); group.add(bowl); 
+    bowl.rotation.x = Math.PI / 8; 
     
-    // Shift group down so pivot is at the base
-    group.position.y = -0.8;
+    group.add(handle); group.add(bowl); 
+    group.position.y = -0.8; // Pivot at base
+    
     const pivot = new THREE.Group();
     pivot.add(group);
     return pivot;
@@ -237,9 +275,6 @@ function generateTextures() {
     const dc = document.createElement('canvas'); dc.width=256; dc.height=256; const dctx = dc.getContext('2d');
     dctx.fillStyle = '#111111'; dctx.fillRect(0,0,256,256); dctx.fillStyle = '#181818'; dctx.fillRect(0,0,128,128); dctx.fillRect(128,128,128,128);
     textures.danceFloor = new THREE.CanvasTexture(dc); textures.danceFloor.wrapS = THREE.RepeatWrapping; textures.danceFloor.wrapT = THREE.RepeatWrapping; textures.danceFloor.repeat.set(4, 4);
-
-    const c = document.createElement('canvas'); c.width=128; c.height=128; const ctx=c.getContext('2d');
-    ctx.font='100px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🎶',64,64); textures.musicNote = new THREE.CanvasTexture(c);
 }
 
 function createPlayer(pos) {
@@ -259,8 +294,9 @@ function createDecorations() {
     const neon = new THREE.Sprite(neonMat); neon.position.set(0, 6, -15.2); neon.scale.set(16, 2, 1); scene.add(neon);
     
     for(let i=0; i<10; i++) { const tap = createTapModel(); tap.position.set(-8 + (i*1.8), 2.5, -15); scene.add(tap); }
-    const bartender = createCharacterModel('bartender'); bartender.position.set(0, 0, -13.5); scene.add(bartender);
-    for(let i=0; i<6; i++) { const p = createCharacterModel('patron'); p.position.set(-9 + (i*3.5), 0, -10.5); scene.add(p); }
+    
+    // Spawn Brewmaster Bartender
+    const bartender = createCharacterModel('brewmaster'); bartender.position.set(0, 0, -13.5); scene.add(bartender);
 
     const poolGeo = new THREE.BoxGeometry(5, 2, 8); const poolMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
     const poolTable = new THREE.Mesh(poolGeo, [barMat, barMat, poolMat, barMat, barMat, barMat]); poolTable.position.set(-12, 1, 8); scene.add(poolTable); state.obstacles.push(poolTable);
@@ -269,16 +305,7 @@ function createDecorations() {
     const ballGeo = new THREE.SphereGeometry(0.15, 8, 8);
     for(let i=0; i<10; i++) { const b = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({color:Math.random()*0xffffff})); b.position.set(-12+(Math.random()-0.5)*4, 2.15, 8+(Math.random()-0.5)*7); scene.add(b); }
     
-    [ {x: -15, z: 8}, {x: -9, z: 8}, {x: -12, z: 3.5}, {x: -12, z: 12.5} ].forEach(pos => { const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData={type:'npc'}; scene.add(p); state.npcs.push(p); });
-
-    const djBox = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 2), new THREE.MeshStandardMaterial({color:0x111})); djBox.position.set(10, 1, 4); scene.add(djBox); state.obstacles.push(djBox);
-    const dj = createCharacterModel('dj'); dj.position.set(10, 0, 3.5); scene.add(dj);
-
     const df = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshBasicMaterial({ map: textures.danceFloor })); df.rotation.x = -Math.PI/2; df.position.set(10, 0.02, 8); scene.add(df);
-    [ {x: 8, z: 6}, {x: 12, z: 6}, {x: 8, z: 10}, {x: 12, z: 10} ].forEach(pos => { const d = createCharacterModel('dancer'); d.position.set(pos.x, 0, pos.z); d.userData = { type: 'dancer', isTransformed: false }; scene.add(d); state.npcs.push(d); });
-
-    state.notes = [];
-    for(let i=0; i<6; i++) { const n = new THREE.Sprite(new THREE.SpriteMaterial({map: textures.musicNote, transparent: true})); n.scale.set(1.5, 1.5, 1); n.position.set(6 + Math.random()*8, 3, 4 + Math.random()*8); scene.add(n); state.notes.push(n); }
 }
 
 function calculateSafeGrid() {
@@ -309,7 +336,7 @@ function loadLevel(lvl) {
     
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SIZE+10, ROOM_SIZE+10), new THREE.MeshStandardMaterial({color:0x221a15, roughness:0.8})); floor.rotation.x = -Math.PI/2; scene.add(floor);
 
-    state.obstacles = []; state.spills = []; state.npcs = []; state.notes = []; state.spawnedPositions = []; state.particles = []; state.enemies = [];
+    state.obstacles = []; state.spills = []; state.npcs = []; state.spawnedPositions = []; state.particles = []; state.enemies = [];
     createPlayer(new THREE.Vector3(PLAYER_START.x, 0, PLAYER_START.z)); createDecorations();
     camera.position.set(0, 32, 26); camera.lookAt(0, 0, 4);
     state.timeLeft = 60; state.maxTime = 60; state.safeSpawnGrid = calculateSafeGrid();
@@ -321,12 +348,15 @@ function loadLevel(lvl) {
 
     state.patrons = []; state.annoyance = 0; state.patronsServed = 0; state.patronsTotal = 6; updateUI();
 
+    const patronTypes = ['vip_hottie', 'hippie', 'beer_snob', 'douche', 'old_timer', 'annoying_girl'];
+
     let tablesSpawned = 0; let spacing = 4.5; let loop = 0;
     while(tablesSpawned < 6 && loop < 500) {
         let pos = getSafeSpot(spacing);
         if(pos) {
             const t = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,1,16), new THREE.MeshLambertMaterial({color:0x2c1e16})); t.position.set(pos.x, 0.5, pos.z); scene.add(t); state.obstacles.push(t);
-            const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData = { isServed: false, type: 'patron', tablePos: t.position.clone() }; scene.add(p); state.patrons.push(p);
+            const pType = patronTypes[Math.floor(Math.random() * patronTypes.length)];
+            const p = createCharacterModel(pType); p.position.set(pos.x, 0, pos.z); p.userData = { isServed: false, type: pType, tablePos: t.position.clone() }; scene.add(p); state.patrons.push(p);
             tablesSpawned++;
         } else { spacing -= 0.5; if(spacing < 2.0) spacing = 2.0; state.safeSpawnGrid = calculateSafeGrid(); }
         loop++;
@@ -350,9 +380,10 @@ function checkCollision(pos) {
 }
 
 function spawnEnemy() {
-    const types = ['dancer', 'oldman', 'police']; const t = types[Math.floor(Math.random()*3)]; 
+    const types = ['karen', 'viking', 'douche', 'annoying_girl']; 
+    const t = types[Math.floor(Math.random()*types.length)]; 
     
-    // Explicit Edge Spawns to guarantee villains don't get blocked by the internal grid
+    // Edge Spawns to guarantee villains don't get blocked by the internal grid
     const edgeSpawns = [ new THREE.Vector3(-14, 0, 14), new THREE.Vector3(14, 0, 14), new THREE.Vector3(14, 0, -14), new THREE.Vector3(-14, 0, -14) ];
     const pos = edgeSpawns[Math.floor(Math.random() * edgeSpawns.length)];
     
@@ -376,9 +407,6 @@ function animate() {
 
     state.timeLeft -= dt; document.getElementById('timer-display').innerText = `TIME: ${Math.max(0, Math.ceil(state.timeLeft))}`;
     if(state.timeLeft <= 0) { state.isPlaying = false; AudioSys.playSFX('lose'); document.getElementById('game-over-title').innerText = "TIME'S UP!"; document.getElementById('game-over-screen').classList.remove('hidden'); }
-
-    state.npcs.forEach((d,i) => { if(!d.userData.isTransformed) d.position.y = (d.userData.type==='dancer' ? Math.abs(Math.sin(time*5+i))*0.4 : Math.sin(time*2+i)*0.1); });
-    state.notes.forEach((n,i) => { n.position.y = 4 + Math.sin(time*3+i)*0.5; n.position.x += Math.sin(time+i)*0.02; n.position.z += Math.cos(time+i)*0.02; });
 
     let moveSpeed = 7.0; for(let s of state.spills) if(playerGroup.position.distanceTo(s.position) < 2.5) moveSpeed = 2.0;
 
@@ -434,7 +462,7 @@ function performAction(type) {
     if(!state.isPlaying) return;
     if(type==='slap') {
         state.animState.slap = 1.0; AudioSys.playSFX('slap'); createParticleBurst(playerGroup.position, 0xff5500); 
-        state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 6.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'dog'); createEffect(d.position, '🐶'); } });
+        
         for(let i=state.enemies.length-1; i>=0; i--) {
             if(playerGroup.position.distanceTo(state.enemies[i].position) < 6.0) {
                 state.enemies[i].userData.hp--; createParticleBurst(state.enemies[i].position, 0xff0000); 
@@ -443,7 +471,7 @@ function performAction(type) {
         }
     } else if(type==='pour') {
         state.animState.pour = 1.0; AudioSys.playSFX('pour'); createParticleBurst(playerGroup.position, 0xffb300); 
-        state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 5.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'alien'); createEffect(d.position, '👽'); } });
+        
         state.patrons.forEach(p => {
             if(!p.userData.isServed && playerGroup.position.distanceTo(p.userData.tablePos) < 5.0) {
                 p.userData.isServed = true; swapModel(p, 'served'); createParticleBurst(p.position, 0x00ff55); 
