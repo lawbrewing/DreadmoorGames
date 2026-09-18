@@ -86,16 +86,16 @@
         .choice-btn:hover { background: #b87333; color: #111; }
     </style>
 
-   <!-- Core Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.147.0/three.min.js"></script>
+    <!-- Core Three.js (Rollback to stable r128) -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
     
     <!-- Post-Processing Dependencies for Bloom -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 </head>
 <body>
     <div id="game-container"></div>
@@ -230,7 +230,6 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            // Required for high-fidelity Bloom
             renderer.toneMapping = THREE.ReinhardToneMapping;
             document.getElementById('game-container').appendChild(renderer.domElement);
 
@@ -253,13 +252,29 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            renderer.setAnimationLoop(animate);
+            // Start main loop
+            animate();
         }
 
         function setupButtons() {
             const bind = (id, fn) => { const el = document.getElementById(id); if(el) { el.onclick = null; el.addEventListener('click', fn); el.addEventListener('touchend', (e) => { e.preventDefault(); fn(); }); } };
-            bind('btn-start', () => { AudioSys.init(); if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume(); document.getElementById('start-screen').classList.add('hidden'); state.level=1; state.isPlaying=true; loadLevel(1); });
-            bind('btn-next-level', () => { document.getElementById('level-screen').classList.add('hidden'); if(state.level>=LEVELS){ document.getElementById('flight-screen').classList.remove('hidden'); setupFlightUI(); state.isPlaying=false; }else{ state.level++; state.isPlaying=true; loadLevel(state.level); }});
+            bind('btn-start', () => { 
+                AudioSys.init(); if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume(); 
+                document.getElementById('start-screen').classList.add('hidden'); 
+                state.level=1; state.isPlaying=true; 
+                clock.getDelta(); // Flush initial delta to prevent instant time-outs
+                loadLevel(1); 
+            });
+            bind('btn-next-level', () => { 
+                document.getElementById('level-screen').classList.add('hidden'); 
+                if(state.level>=LEVELS){ 
+                    document.getElementById('flight-screen').classList.remove('hidden'); setupFlightUI(); state.isPlaying=false; 
+                } else { 
+                    state.level++; state.isPlaying=true; 
+                    clock.getDelta(); // Flush delta
+                    loadLevel(state.level); 
+                }
+            });
             bind('btn-restart', () => location.reload()); bind('btn-play-again', () => location.reload()); bind('btn-clear-flight', clearFlight); bind('btn-submit-flight', submitFlight);
         }
 
@@ -489,11 +504,14 @@
         }
 
         function swapModel(targetObj, newType) {
-            targetObj.clear(); const newParts = createCharacterModel(newType);
-            while(newParts.children.length > 0) targetObj.add(newParts.children[0]);
+            // Updated to be fail-safe in older Three.js versions
+            while(targetObj.children.length > 0) { targetObj.remove(targetObj.children[0]); }
+            const newParts = createCharacterModel(newType);
+            while(newParts.children.length > 0) { targetObj.add(newParts.children[0]); }
         }
 
         function animate() {
+            requestAnimationFrame(animate);
             if(!state.isPlaying) { composer.render(); return; }
             const dt = clock.getDelta(); const time = clock.getElapsedTime();
 
@@ -595,7 +613,6 @@
             }
         }
 
-        // Retained strictly for UI status indicators (skulls, beers, etc) floating up the screen
         function createEffect(pos, emoji) {
             const d = document.createElement('div'); d.innerText=emoji;
             d.style.position='absolute'; d.style.left='50%'; d.style.top='50%'; d.style.fontSize='40px'; d.style.color='white'; d.style.textShadow = '0 0 15px rgba(255,100,0,1)';
