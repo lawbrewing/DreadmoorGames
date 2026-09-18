@@ -62,8 +62,9 @@ const AudioSys = {
 
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x111111); 
-    scene.fog = new THREE.Fog(0x111111, 15, 50);
+    // Slightly lighter background so the room feels populated
+    scene.background = new THREE.Color(0x1a1a1a); 
+    scene.fog = new THREE.Fog(0x1a1a1a, 15, 50);
 
     camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
     camera.position.set(0, 32, 26); camera.lookAt(0, 0, 4);
@@ -71,12 +72,14 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ReinhardToneMapping;
+    // Bumping exposure prevents tone mapping from making the room too dark
+    renderer.toneMappingExposure = 1.5; 
     document.getElementById('game-container').appendChild(renderer.domElement);
 
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0.3;  
-    bloomPass.strength = 1.6;   
+    bloomPass.strength = 1.4;   
     bloomPass.radius = 0.5;     
     composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
@@ -109,13 +112,12 @@ function setupButtons() {
     bind('btn-restart', () => location.reload()); bind('btn-play-again', () => location.reload()); bind('btn-clear-flight', clearFlight); bind('btn-submit-flight', submitFlight);
 }
 
-// --- UPGRADED MAX-DETAIL MEEPLE GENERATOR ---
+// --- MAX-DETAIL MEEPLE GENERATOR ---
 function createCharacterModel(type) {
     const group = new THREE.Group();
     let bodyColor = 0x555555; let headColor = 0xffccaa; 
     let isSlim = false; let isBurly = false;
 
-    // Archetype Base Rules
     if(type === 'player') { bodyColor = 0x2980b9; }
     if(type === 'brewmaster') { bodyColor = 0x2c3e50; isBurly = true; }
     if(type === 'vip_hottie') { bodyColor = 0x000000; isSlim = true; }
@@ -124,7 +126,7 @@ function createCharacterModel(type) {
     if(type === 'old_timer') { bodyColor = 0x7f8c8d; }
     if(type === 'douche') { bodyColor = 0xffffff; } 
     if(type === 'annoying_girl') { bodyColor = 0xff69b4; isSlim = true; }
-    if(type === 'karen') { bodyColor = 0xe74c3c; headColor = 0xff9999; } // Angry red flush
+    if(type === 'karen') { bodyColor = 0xe74c3c; headColor = 0xff9999; } 
     if(type === 'viking') { bodyColor = 0x8b4513; isBurly = true; }
     if(type === 'served') { bodyColor = 0x27ae60; headColor = 0xa9dfbf; }
     if(type === 'alien') { bodyColor = 0x2ecc71; headColor = 0x00ff00; }
@@ -135,7 +137,6 @@ function createCharacterModel(type) {
         group.add(b); group.add(h); return group;
     }
 
-    // Dynamic Proportions
     let bTop = isSlim ? 0.2 : (isBurly ? 0.35 : 0.25);
     let bBot = isSlim ? 0.25 : (isBurly ? 0.5 : 0.4);
 
@@ -147,61 +148,59 @@ function createCharacterModel(type) {
     
     group.add(body); group.add(head);
 
-    // --- ACCESSORY ATTACHMENT HELPER ---
     const addMesh = (geo, color, x, y, z, rotX=0, rotY=0, rotZ=0) => {
         const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: color, roughness: 0.7}));
         m.position.set(x, y, z); m.rotation.set(rotX, rotY, rotZ); group.add(m); return m;
     };
 
-    // --- ARCHETYPE DETAILING ---
     if(type === 'brewmaster') {
-        addMesh(new THREE.BoxGeometry(0.55, 0.8, 0.05), 0x3e2723, 0, 0.7, 0.36); // Leather apron
-        addMesh(new THREE.BoxGeometry(0.45, 0.5, 0.4), 0x5d4037, 0, 1.2, 0.25); // Majestic Beard
-        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.15), 0x111111, 0, 1.6, 0); // Beanie/Cap
+        addMesh(new THREE.BoxGeometry(0.55, 0.8, 0.05), 0x3e2723, 0, 0.7, 0.36); 
+        addMesh(new THREE.BoxGeometry(0.45, 0.5, 0.4), 0x5d4037, 0, 1.2, 0.25); 
+        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.15), 0x111111, 0, 1.6, 0); 
     }
     else if(type === 'beer_snob') {
-        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x7f8c8d, 0, 1.45, 0); // Beanie
-        addMesh(new THREE.BoxGeometry(0.6, 0.15, 0.1), 0x111111, 0, 1.48, 0.31); // Thick hipster glasses
-        addMesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), 0x5d4037, 0, 1.3, 0.3); // Neat beard
-        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.2), 0xffffff, 0.3, 0.9, 0.3); // Tasting snifter
+        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x7f8c8d, 0, 1.45, 0); 
+        addMesh(new THREE.BoxGeometry(0.6, 0.15, 0.1), 0x111111, 0, 1.48, 0.31); 
+        addMesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), 0x5d4037, 0, 1.3, 0.3); 
+        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.2), 0xffffff, 0.3, 0.9, 0.3); 
     }
     else if(type === 'vip_hottie') {
-        addMesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), 0xf1c40f, 0, 1.3, -0.2); // Long blonde hair
-        addMesh(new THREE.BoxGeometry(0.55, 0.12, 0.1), 0x111111, 0, 1.5, 0.31); // Designer shades
-        addMesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16), 0xffffff, 0, 1.25, 0, Math.PI/2, 0, 0); // Pearl Choker
+        addMesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), 0xf1c40f, 0, 1.3, -0.2); 
+        addMesh(new THREE.BoxGeometry(0.55, 0.12, 0.1), 0x111111, 0, 1.5, 0.31); 
+        addMesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16), 0xffffff, 0, 1.25, 0, Math.PI/2, 0, 0); 
     }
     else if(type === 'hippie') {
-        addMesh(new THREE.TorusGeometry(0.36, 0.04, 8, 16), 0xc0392b, 0, 1.5, 0, Math.PI/2, 0, 0); // Headband
-        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, 0.15, 1.45, 0.3); // Round glasses L
-        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, -0.15, 1.45, 0.3); // Round glasses R
-        addMesh(new THREE.CylinderGeometry(0.38, 0.45, 0.6, 16), 0x795548, 0, 1.2, -0.1); // Long hair
+        addMesh(new THREE.TorusGeometry(0.36, 0.04, 8, 16), 0xc0392b, 0, 1.5, 0, Math.PI/2, 0, 0); 
+        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, 0.15, 1.45, 0.3); 
+        addMesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0x222222, -0.15, 1.45, 0.3); 
+        addMesh(new THREE.CylinderGeometry(0.38, 0.45, 0.6, 16), 0x795548, 0, 1.2, -0.1); 
     }
     else if(type === 'old_timer') {
-        addMesh(new THREE.TorusGeometry(0.32, 0.08, 8, 16), 0xbdc3c7, 0, 1.45, 0, Math.PI/2, 0, 0); // Bald rim
-        addMesh(new THREE.BoxGeometry(0.05, 1.2, 0.45), 0x111111, 0.15, 0.6, 0); // Suspenders
+        addMesh(new THREE.TorusGeometry(0.32, 0.08, 8, 16), 0xbdc3c7, 0, 1.45, 0, Math.PI/2, 0, 0); 
+        addMesh(new THREE.BoxGeometry(0.05, 1.2, 0.45), 0x111111, 0.15, 0.6, 0); 
         addMesh(new THREE.BoxGeometry(0.05, 1.2, 0.45), 0x111111, -0.15, 0.6, 0);
     }
     else if(type === 'douche') {
-        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, 0.25, 1.2, -0.1, 0, 0, -0.5); // Popped collar L
-        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, -0.25, 1.2, -0.1, 0, 0, 0.5); // Popped collar R
-        addMesh(new THREE.TorusGeometry(0.22, 0.03, 8, 16), 0xf1c40f, 0, 1.15, 0.15, Math.PI/4, 0, 0); // Gold Chain
-        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1), 0x222222, 0, 1.6, 0); // Backwards visor
+        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, 0.25, 1.2, -0.1, 0, 0, -0.5); 
+        addMesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), 0xffffff, -0.25, 1.2, -0.1, 0, 0, 0.5); 
+        addMesh(new THREE.TorusGeometry(0.22, 0.03, 8, 16), 0xf1c40f, 0, 1.15, 0.15, Math.PI/4, 0, 0); 
+        addMesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1), 0x222222, 0, 1.6, 0); 
         addMesh(new THREE.BoxGeometry(0.3, 0.05, 0.4), 0x222222, 0, 1.58, -0.2); 
     }
     else if(type === 'annoying_girl') {
-        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.5), 0x111111, 0, 1.7, -0.3, Math.PI/4, 0, 0); // High ponytail
-        const phone = addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0xffffff, 0, 1.4, 0.5); // Selfie pose
-        phone.material.emissive.setHex(0xffffff); // Glowing screen
+        addMesh(new THREE.CylinderGeometry(0.08, 0.05, 0.5), 0x111111, 0, 1.7, -0.3, Math.PI/4, 0, 0); 
+        const phone = addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0xffffff, 0, 1.4, 0.5); 
+        phone.material.emissive.setHex(0xffffff); 
     }
     else if(type === 'karen') {
-        addMesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), 0xf1c40f, 0.1, 1.55, 0.1, 0, 0, -0.2); // Asymmetrical haircut
-        const phone = addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0x222, 0, 1.0, 0.4); // Demanding manager on phone
+        addMesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), 0xf1c40f, 0.1, 1.55, 0.1, 0, 0, -0.2); 
+        addMesh(new THREE.BoxGeometry(0.15, 0.25, 0.02), 0x222, 0, 1.0, 0.4); 
     }
     else if(type === 'viking') {
-        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x95a5a6, 0, 1.45, 0); // Iron helmet
-        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, 0.35, 1.6, 0, 0, 0, -Math.PI/4); // Horn L
-        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, -0.35, 1.6, 0, 0, 0, Math.PI/4); // Horn R
-        addMesh(new THREE.BoxGeometry(0.55, 0.5, 0.35), 0xd35400, 0, 1.25, 0.25); // Massive red beard
+        addMesh(new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI*2, 0, Math.PI/2), 0x95a5a6, 0, 1.45, 0); 
+        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, 0.35, 1.6, 0, 0, 0, -Math.PI/4); 
+        addMesh(new THREE.ConeGeometry(0.08, 0.4, 8), 0xecf0f1, -0.35, 1.6, 0, 0, 0, Math.PI/4); 
+        addMesh(new THREE.BoxGeometry(0.55, 0.5, 0.35), 0xd35400, 0, 1.25, 0.25); 
     }
     
     return group;
@@ -230,21 +229,19 @@ function createBeerGlassModel() {
 }
 
 function createSpoonModel() {
-    // Upgraded proper spoon geometry
     const group = new THREE.Group();
     const mat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.2});
     
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 8), mat);
     handle.position.y = 0.8;
     
-    // Half-sphere for a concave spoon bowl
     const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16, 0, Math.PI*2, 0, Math.PI/2), mat); 
     bowl.scale.set(1.2, 0.2, 1.6); 
     bowl.position.y = 1.7; 
     bowl.rotation.x = Math.PI / 8; 
     
     group.add(handle); group.add(bowl); 
-    group.position.y = -0.8; // Pivot at base
+    group.position.y = -0.8; 
     
     const pivot = new THREE.Group();
     pivot.add(group);
@@ -279,7 +276,10 @@ function generateTextures() {
 
 function createPlayer(pos) {
     playerGroup = new THREE.Group(); playerGroup.position.copy(pos); scene.add(playerGroup);
-    const pl = new THREE.PointLight(0xffe0b2, 0.6, 15); pl.position.set(0, 5, 0); playerGroup.add(pl);
+    
+    // Brighten the player's personal light so navigating feels more visible
+    const pl = new THREE.PointLight(0xffe0b2, 1.2, 20); pl.position.set(0, 5, 0); playerGroup.add(pl);
+    
     const pModel = createCharacterModel('player'); playerGroup.add(pModel);
     playerBeerModel = createBeerGlassModel(); playerBeerModel.position.set(-0.8, 0.2, 0.5); playerGroup.add(playerBeerModel);
     playerSpoonModel = createSpoonModel(); playerSpoonModel.position.set(0.8, 0.5, 0.5); playerSpoonModel.rotation.z = Math.PI / 4; playerGroup.add(playerSpoonModel);
@@ -295,7 +295,6 @@ function createDecorations() {
     
     for(let i=0; i<10; i++) { const tap = createTapModel(); tap.position.set(-8 + (i*1.8), 2.5, -15); scene.add(tap); }
     
-    // Spawn Brewmaster Bartender
     const bartender = createCharacterModel('brewmaster'); bartender.position.set(0, 0, -13.5); scene.add(bartender);
 
     const poolGeo = new THREE.BoxGeometry(5, 2, 8); const poolMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
@@ -314,7 +313,7 @@ function calculateSafeGrid() {
         for(let z = -12; z <= 14; z += 2.5) {
             let pos = new THREE.Vector3(x, 0, z); let safe = true;
             for(let zone of RESTRICTED_ZONES) if(x > zone.minX && x < zone.maxX && z > zone.minZ && z < zone.maxZ) safe = false;
-            if(safe) for(let obs of state.obstacles) if(pos.distanceTo(obs.position) < 3.5) safe = false;
+            if(safe) for(let obs of state.obstacles) { if (!obs) continue; if(pos.distanceTo(obs.position) < 3.5) safe = false; }
             if(safe) points.push(pos);
         }
     } return points.sort(() => Math.random() - 0.5); 
@@ -331,8 +330,10 @@ function getSafeSpot(spacing) {
 
 function loadLevel(lvl) {
     while(scene.children.length > 0){ scene.remove(scene.children[0]); }
-    const ambient = new THREE.AmbientLight(0xffe0b2, 0.5); scene.add(ambient);
-    const spotLight = new THREE.SpotLight(0xffb300, 0.8); spotLight.position.set(0, 40, 0); spotLight.castShadow = true; scene.add(spotLight);
+    
+    // Increased Ambient light significantly so the room feels lit
+    const ambient = new THREE.AmbientLight(0xffe0b2, 1.2); scene.add(ambient);
+    const spotLight = new THREE.SpotLight(0xffb300, 1.5); spotLight.position.set(0, 40, 0); spotLight.castShadow = true; scene.add(spotLight);
     
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SIZE+10, ROOM_SIZE+10), new THREE.MeshStandardMaterial({color:0x221a15, roughness:0.8})); floor.rotation.x = -Math.PI/2; scene.add(floor);
 
@@ -383,13 +384,11 @@ function spawnEnemy() {
     const types = ['karen', 'viking', 'douche', 'annoying_girl']; 
     const t = types[Math.floor(Math.random()*types.length)]; 
     
-    // Edge Spawns to guarantee villains don't get blocked by the internal grid
     const edgeSpawns = [ new THREE.Vector3(-14, 0, 14), new THREE.Vector3(14, 0, 14), new THREE.Vector3(14, 0, -14), new THREE.Vector3(-14, 0, -14) ];
     const pos = edgeSpawns[Math.floor(Math.random() * edgeSpawns.length)];
     
     const e = createCharacterModel(t); e.position.copy(pos); e.userData = { hp: 3, speed: 4.0 + state.level*0.5 }; 
     
-    // Give villains an angry red aura
     const angryLight = new THREE.PointLight(0xff0000, 2, 5); angryLight.position.y = 2; e.add(angryLight);
     
     scene.add(e); state.enemies.push(e);
@@ -425,7 +424,12 @@ function animate() {
     for(let i=state.enemies.length-1; i>=0; i--) {
         const e = state.enemies[i]; if(!e) continue;
         let dir = new THREE.Vector3().subVectors(playerGroup.position, e.position).normalize();
-        state.obstacles.forEach(obs => { let diff = new THREE.Vector3().subVectors(e.position, obs.position); let dist = diff.length(); if(dist < 2.5) { diff.normalize().multiplyScalar(1.5/dist); dir.add(diff); } });
+        state.obstacles.forEach(obs => { 
+            if(!obs) return; 
+            let diff = new THREE.Vector3().subVectors(e.position, obs.position); 
+            let dist = diff.length(); 
+            if(dist < 2.5) { diff.normalize().multiplyScalar(1.5/dist); dir.add(diff); } 
+        });
         let nextPos = e.position.clone().addScaledVector(dir, e.userData.speed*dt); if(!checkCollision(nextPos)) e.position.copy(nextPos);
         e.position.y = Math.sin(time*10+i)*0.2;
         if(playerGroup.position.distanceTo(e.position) < 3.0) { state.annoyance += 80 * dt; updateUI(); }
@@ -463,10 +467,19 @@ function performAction(type) {
     if(type==='slap') {
         state.animState.slap = 1.0; AudioSys.playSFX('slap'); createParticleBurst(playerGroup.position, 0xff5500); 
         
+        // BUG FIX: Isolate the element to safely remove it from the array without crashing the position lookup
         for(let i=state.enemies.length-1; i>=0; i--) {
-            if(playerGroup.position.distanceTo(state.enemies[i].position) < 6.0) {
-                state.enemies[i].userData.hp--; createParticleBurst(state.enemies[i].position, 0xff0000); 
-                if(state.enemies[i].userData.hp <= 0) { scene.remove(state.enemies[i]); state.enemies.splice(i, 1); state.annoyance = Math.max(0, state.annoyance - 10); createEffect(state.enemies[i].position, '💀'); updateUI(); }
+            const enemy = state.enemies[i];
+            if(playerGroup.position.distanceTo(enemy.position) < 6.0) {
+                enemy.userData.hp--; 
+                createParticleBurst(enemy.position, 0xff0000); 
+                if(enemy.userData.hp <= 0) { 
+                    scene.remove(enemy); 
+                    state.enemies.splice(i, 1); 
+                    state.annoyance = Math.max(0, state.annoyance - 10); 
+                    createEffect(enemy.position, '💀'); 
+                    updateUI(); 
+                }
             }
         }
     } else if(type==='pour') {
