@@ -84,20 +84,33 @@
         #beer-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
         .choice-btn { padding: 10px; background: #333; border: 1px solid #555; color: #eee; cursor: pointer; margin: 0; font-size: 11px; border-radius: 4px; }
         .choice-btn:hover { background: #b87333; color: #111; }
+
+        #error-log {
+            position: absolute; top: 0; left: 0; width: 100%; background: rgba(200, 0, 0, 0.9);
+            color: white; padding: 10px; z-index: 9999; display: none; font-family: monospace; pointer-events: none;
+        }
     </style>
 
-    <!-- Core Three.js (Rollback to stable r128) -->
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-    
-    <!-- Post-Processing Dependencies for Bloom -->
-    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <!-- Error Catcher -->
+    <script>
+        window.addEventListener('error', function(e) {
+            const err = document.getElementById('error-log');
+            if(err) { err.style.display = 'block'; err.innerHTML += 'ERROR: ' + e.message + '<br>'; }
+        });
+    </script>
+
+    <!-- ES Module Import Map (Modern, bulletproof loading) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
+    <div id="error-log"></div>
     <div id="game-container"></div>
 
     <div id="ui-layer">
@@ -160,7 +173,12 @@
         <button id="btn-play-again" class="main-btn">PLAY AGAIN</button>
     </div>
 
-    <script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
         const LEVELS = 5;
         const ROOM_SIZE = 30;
         const PLAYER_START = { x: 0, z: 12 };
@@ -174,7 +192,6 @@
             { minX: -16, maxX: 16, minZ: -1, maxZ: 2 }   
         ];
 
-        // Custom Law Brewing Menu
         const BEERS = [
             'nIPLy Cold IPA', 'subLime Milkshake IPA', 
             'Stolem Baltic Porter', 'Gutless Rusty Pumpkin',
@@ -194,8 +211,7 @@
             enemies: [], patrons: [], npcs: [], notes: [], 
             obstacles: [], spills: [], flight: [null, null, null, null],
             enemySpawnTimer: 0, animState: { slap: 0, pour: 0 },
-            safeSpawnGrid: [], spawnedPositions: [],
-            particles: [] // Track 3D Particle Bursts
+            safeSpawnGrid: [], spawnedPositions: [], particles: []
         };
 
         let scene, camera, renderer, clock, composer;
@@ -233,13 +249,13 @@
             renderer.toneMapping = THREE.ReinhardToneMapping;
             document.getElementById('game-container').appendChild(renderer.domElement);
 
-            // --- BLOOM PIPELINE ---
-            const renderScene = new THREE.RenderPass(scene, camera);
-            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            // --- BLOOM PIPELINE VIA MODULES ---
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
             bloomPass.threshold = 0.3;  
             bloomPass.strength = 1.6;   
             bloomPass.radius = 0.5;     
-            composer = new THREE.EffectComposer(renderer);
+            composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
 
@@ -252,8 +268,8 @@
                 composer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            // Start main loop
-            animate();
+            // Modern Main Loop
+            renderer.setAnimationLoop(animate);
         }
 
         function setupButtons() {
@@ -261,24 +277,16 @@
             bind('btn-start', () => { 
                 AudioSys.init(); if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume(); 
                 document.getElementById('start-screen').classList.add('hidden'); 
-                state.level=1; state.isPlaying=true; 
-                clock.getDelta(); // Flush initial delta to prevent instant time-outs
-                loadLevel(1); 
+                state.level=1; state.isPlaying=true; clock.getDelta(); loadLevel(1); 
             });
             bind('btn-next-level', () => { 
                 document.getElementById('level-screen').classList.add('hidden'); 
-                if(state.level>=LEVELS){ 
-                    document.getElementById('flight-screen').classList.remove('hidden'); setupFlightUI(); state.isPlaying=false; 
-                } else { 
-                    state.level++; state.isPlaying=true; 
-                    clock.getDelta(); // Flush delta
-                    loadLevel(state.level); 
-                }
+                if(state.level>=LEVELS){ document.getElementById('flight-screen').classList.remove('hidden'); setupFlightUI(); state.isPlaying=false; }
+                else { state.level++; state.isPlaying=true; clock.getDelta(); loadLevel(state.level); }
             });
             bind('btn-restart', () => location.reload()); bind('btn-play-again', () => location.reload()); bind('btn-clear-flight', clearFlight); bind('btn-submit-flight', submitFlight);
         }
 
-        // --- PROCEDURAL 3D MODELS ---
         function createCharacterModel(type) {
             const group = new THREE.Group();
             let bodyColor = 0x555555; let headColor = 0xffccaa; 
@@ -341,28 +349,15 @@
             group.add(handle); group.add(bowl); return group;
         }
 
-        // --- WEBGL PHYSICS PARTICLES ---
         function createParticleBurst(pos, colorHex) {
-            const particleCount = 30;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-            const velocities = [];
-
+            const particleCount = 30; const geometry = new THREE.BufferGeometry(); const positions = new Float32Array(particleCount * 3); const velocities = [];
             for (let i = 0; i < particleCount; i++) {
-                positions[i * 3] = pos.x;
-                positions[i * 3 + 1] = pos.y + 1.5; // Start at chest height
-                positions[i * 3 + 2] = pos.z;
+                positions[i * 3] = pos.x; positions[i * 3 + 1] = pos.y + 1.5; positions[i * 3 + 2] = pos.z;
                 velocities.push({ x: (Math.random() - 0.5) * 8, y: (Math.random() * 5) + 2, z: (Math.random() - 0.5) * 8 });
             }
-
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            
-            const material = new THREE.PointsMaterial({
-                color: colorHex, size: 0.3, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-
-            const particleSystem = new THREE.Points(geometry, material);
-            scene.add(particleSystem);
+            const material = new THREE.PointsMaterial({ color: colorHex, size: 0.3, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+            const particleSystem = new THREE.Points(geometry, material); scene.add(particleSystem);
             state.particles.push({ mesh: particleSystem, velocities: velocities, life: 1.0 });
         }
 
@@ -386,7 +381,6 @@
         function createPlayer(pos) {
             playerGroup = new THREE.Group(); playerGroup.position.copy(pos); scene.add(playerGroup);
             const pl = new THREE.PointLight(0xffe0b2, 0.6, 15); pl.position.set(0, 5, 0); playerGroup.add(pl);
-            
             const pModel = createCharacterModel('player'); playerGroup.add(pModel);
             playerBeerModel = createBeerGlassModel(); playerBeerModel.position.set(-0.8, 1.0, 0.5); playerGroup.add(playerBeerModel);
             playerSpoonModel = createSpoonModel(); playerSpoonModel.position.set(0.8, 1.0, 0.5); playerSpoonModel.rotation.z = Math.PI / 4; playerGroup.add(playerSpoonModel);
@@ -411,18 +405,13 @@
             const ballGeo = new THREE.SphereGeometry(0.15, 8, 8);
             for(let i=0; i<10; i++) { const b = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({color:Math.random()*0xffffff})); b.position.set(-12+(Math.random()-0.5)*4, 2.15, 8+(Math.random()-0.5)*7); scene.add(b); }
             
-            [ {x: -15, z: 8}, {x: -9, z: 8}, {x: -12, z: 3.5}, {x: -12, z: 12.5} ].forEach(pos => {
-                const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData={type:'npc'}; scene.add(p); state.npcs.push(p);
-            });
+            [ {x: -15, z: 8}, {x: -9, z: 8}, {x: -12, z: 3.5}, {x: -12, z: 12.5} ].forEach(pos => { const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData={type:'npc'}; scene.add(p); state.npcs.push(p); });
 
             const djBox = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 2), new THREE.MeshStandardMaterial({color:0x111})); djBox.position.set(10, 1, 4); scene.add(djBox); state.obstacles.push(djBox);
             const dj = createCharacterModel('dj'); dj.position.set(10, 1.5, 3.5); scene.add(dj);
 
             const df = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshBasicMaterial({ map: textures.danceFloor })); df.rotation.x = -Math.PI/2; df.position.set(10, 0.02, 8); scene.add(df);
-
-            [ {x: 8, z: 6}, {x: 12, z: 6}, {x: 8, z: 10}, {x: 12, z: 10} ].forEach(pos => {
-                const d = createCharacterModel('dancer'); d.position.set(pos.x, 0, pos.z); d.userData = { type: 'dancer', isTransformed: false }; scene.add(d); state.npcs.push(d);
-            });
+            [ {x: 8, z: 6}, {x: 12, z: 6}, {x: 8, z: 10}, {x: 12, z: 10} ].forEach(pos => { const d = createCharacterModel('dancer'); d.position.set(pos.x, 0, pos.z); d.userData = { type: 'dancer', isTransformed: false }; scene.add(d); state.npcs.push(d); });
 
             state.notes = [];
             for(let i=0; i<6; i++) { const n = new THREE.Sprite(new THREE.SpriteMaterial({map: textures.musicNote, transparent: true})); n.scale.set(1.5, 1.5, 1); n.position.set(6 + Math.random()*8, 3, 4 + Math.random()*8); scene.add(n); state.notes.push(n); }
@@ -495,23 +484,18 @@
         }
         
         function spawnEnemy() {
-            const types = ['dancer', 'oldman', 'police']; const t = types[Math.floor(Math.random()*3)];
-            let pos = new THREE.Vector3(0,0,0);
-            if(state.safeSpawnGrid.length > 0) {
-                for(let i=0; i<20; i++) { pos = state.safeSpawnGrid[Math.floor(Math.random()*state.safeSpawnGrid.length)].clone(); if(pos.distanceTo(playerGroup.position) > 10) break; }
-            }
+            const types = ['dancer', 'oldman', 'police']; const t = types[Math.floor(Math.random()*3)]; let pos = new THREE.Vector3(0,0,0);
+            if(state.safeSpawnGrid.length > 0) { for(let i=0; i<20; i++) { pos = state.safeSpawnGrid[Math.floor(Math.random()*state.safeSpawnGrid.length)].clone(); if(pos.distanceTo(playerGroup.position) > 10) break; } }
             const e = createCharacterModel(t); e.position.set(pos.x, 0, pos.z); e.userData = { hp: 3, speed: 6.0 + state.level*0.5 }; scene.add(e); state.enemies.push(e);
         }
 
         function swapModel(targetObj, newType) {
-            // Updated to be fail-safe in older Three.js versions
             while(targetObj.children.length > 0) { targetObj.remove(targetObj.children[0]); }
             const newParts = createCharacterModel(newType);
             while(newParts.children.length > 0) { targetObj.add(newParts.children[0]); }
         }
 
         function animate() {
-            requestAnimationFrame(animate);
             if(!state.isPlaying) { composer.render(); return; }
             const dt = clock.getDelta(); const time = clock.getElapsedTime();
 
@@ -544,26 +528,14 @@
                 if(playerGroup.position.distanceTo(e.position) < 3.0) { state.annoyance += 80 * dt; updateUI(); }
             }
 
-            // --- PARTICLE PHYSICS UPDATE ---
             for (let i = state.particles.length - 1; i >= 0; i--) {
-                let pSystem = state.particles[i];
-                pSystem.life -= dt * 1.5;
-                if (pSystem.life <= 0) {
-                    scene.remove(pSystem.mesh);
-                    pSystem.mesh.geometry.dispose();
-                    pSystem.mesh.material.dispose();
-                    state.particles.splice(i, 1);
-                    continue;
-                }
+                let pSystem = state.particles[i]; pSystem.life -= dt * 1.5;
+                if (pSystem.life <= 0) { scene.remove(pSystem.mesh); pSystem.mesh.geometry.dispose(); pSystem.mesh.material.dispose(); state.particles.splice(i, 1); continue; }
                 let positions = pSystem.mesh.geometry.attributes.position.array;
                 for (let j = 0; j < pSystem.velocities.length; j++) {
-                    positions[j * 3] += pSystem.velocities[j].x * dt;
-                    positions[j * 3 + 1] += pSystem.velocities[j].y * dt;
-                    positions[j * 3 + 2] += pSystem.velocities[j].z * dt;
-                    pSystem.velocities[j].y -= 15.0 * dt; // Gravity
+                    positions[j * 3] += pSystem.velocities[j].x * dt; positions[j * 3 + 1] += pSystem.velocities[j].y * dt; positions[j * 3 + 2] += pSystem.velocities[j].z * dt; pSystem.velocities[j].y -= 15.0 * dt; 
                 }
-                pSystem.mesh.geometry.attributes.position.needsUpdate = true;
-                pSystem.mesh.material.opacity = pSystem.life;
+                pSystem.mesh.geometry.attributes.position.needsUpdate = true; pSystem.mesh.material.opacity = pSystem.life;
             }
 
             if(state.annoyance >= 100) { state.isPlaying = false; AudioSys.playSFX('lose'); document.getElementById('game-over-screen').classList.remove('hidden'); }
@@ -586,26 +558,20 @@
         function performAction(type) {
             if(!state.isPlaying) return;
             if(type==='slap') {
-                state.animState.slap = 1.0; AudioSys.playSFX('slap'); 
-                createParticleBurst(playerGroup.position, 0xff5500); // Slap Sparks
-                
+                state.animState.slap = 1.0; AudioSys.playSFX('slap'); createParticleBurst(playerGroup.position, 0xff5500); 
                 state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 6.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'dog'); createEffect(d.position, '🐶'); } });
                 for(let i=state.enemies.length-1; i>=0; i--) {
                     if(playerGroup.position.distanceTo(state.enemies[i].position) < 6.0) {
-                        state.enemies[i].userData.hp--; 
-                        createParticleBurst(state.enemies[i].position, 0xff0000); // Hit Sparks
+                        state.enemies[i].userData.hp--; createParticleBurst(state.enemies[i].position, 0xff0000); 
                         if(state.enemies[i].userData.hp <= 0) { scene.remove(state.enemies[i]); state.enemies.splice(i, 1); state.annoyance = Math.max(0, state.annoyance - 10); createEffect(state.enemies[i].position, '💀'); updateUI(); }
                     }
                 }
             } else if(type==='pour') {
-                state.animState.pour = 1.0; AudioSys.playSFX('pour'); 
-                createParticleBurst(playerGroup.position, 0xffb300); // Beer Splash
-                
+                state.animState.pour = 1.0; AudioSys.playSFX('pour'); createParticleBurst(playerGroup.position, 0xffb300); 
                 state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 5.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'alien'); createEffect(d.position, '👽'); } });
                 state.patrons.forEach(p => {
                     if(!p.userData.isServed && playerGroup.position.distanceTo(p.userData.tablePos) < 5.0) {
-                        p.userData.isServed = true; swapModel(p, 'served'); 
-                        createParticleBurst(p.position, 0x00ff55); // Success Sparks
+                        p.userData.isServed = true; swapModel(p, 'served'); createParticleBurst(p.position, 0x00ff55); 
                         state.patronsServed++; createEffect(p.position, '🍻'); updateUI();
                         if(state.patronsServed >= state.patronsTotal) { state.isPlaying = false; AudioSys.playSFX('win'); setTimeout(() => document.getElementById('level-screen').classList.remove('hidden'), 1000); }
                     }
@@ -635,8 +601,8 @@
             else { AudioSys.playSFX('lose'); document.getElementById('flight-msg').style.color = "#c0392b"; document.getElementById('flight-msg').innerText = "Trash! Loser!"; setTimeout(() => { document.getElementById('flight-msg').innerText=""; clearFlight(); }, 1500); }
         }
 
-        window.startGame = startGame; window.nextLevel = nextLevel; window.clearFlight = clearFlight; window.submitFlight = submitFlight;
-        document.addEventListener('DOMContentLoaded', init);
+        // Fire everything up
+        init();
     </script>
 </body>
 </html>
