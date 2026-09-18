@@ -4,33 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Law Brewing: Taproom Chaos</title>
-    <link rel="stylesheet" href="static/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.1/three.min.js"></script>
+    
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Error Catcher -->
+    <script>
+        window.addEventListener('error', function(e) {
+            const err = document.getElementById('error-log');
+            if(err) { err.style.display = 'block'; err.innerHTML += 'ERROR: ' + e.message + '<br>'; }
+        });
+    </script>
+
+    <!-- ES Module Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
     <div id="error-log"></div>
     <div id="game-container"></div>
 
+    <!-- UI Layer -->
     <div id="ui-layer">
-        <div class="marquee">
-            <span>🎶 NOW PLAYING: Rob Zombie - Dragula 🎶 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🍻 SPECIAL ON TAP: NOT Burnt Marshmallow Pastry Stout 🍻</span>
-        </div>
         <div class="hud-top">
             <div>
-                <div id="timer-display">TIME: 60</div>
-                <div id="level-indicator">LEVEL 1</div>
+                <div id="timer-display">00:00</div>
+                <div id="level-indicator" style="font-size:18px; color:#aaa;">LEVEL 1</div>
             </div>
             <div>
-                <div id="meter-container">
-                    <div id="meter-fill"></div>
-                    <div id="meter-label">ANNOYANCE: 0%</div>
-                </div>
+                <div id="meter-container"><div id="meter-fill"></div><div id="meter-label">ANNOYANCE: 0%</div></div>
                 <div id="patron-counter">SERVED: 0/6</div>
             </div>
         </div>
-
         <div id="msg-area"></div>
-
         <div id="controls-layer">
             <div id="joystick-zone" class="control-zone"><div id="joystick-knob"></div></div>
             <div id="action-zone" class="control-zone">
@@ -40,56 +52,47 @@
         </div>
     </div>
 
-    <!-- Start Screen -->
+    <!-- Screens -->
     <div id="start-screen" class="screen">
-        <h3 class="studio-tag">Dreadmoor Games Presents</h3>
         <h1>LAW BREWING<br>TAPROOM</h1>
-        <p><b>Arcade Physics Service Sim</b></p>
-        <p>1. Navigate the busy taproom floor.<br>
-           2. <b>POUR</b> beer for sitting patrons.<br>
-           3. <b>SLAP</b> aggressive villains for knockback!<br>
-           4. Avoid <b>Spills</b> & <b>Plants</b>!<br>
-           5. Beat the <b>Timer</b>.</p>
-        <button id="btn-start" class="main-btn">OPEN TAB</button>
+        <p><b>Third-Person Service Sim</b></p>
+        <p>1. Navigate the upscale taproom.<br>2. <b>POUR</b> beer for sitting patrons.<br>3. <b>SLAP</b> aggressive villains.<br>4. Avoid <b>Spills</b> & <b>Plants</b>!<br>5. Beat the <b>Timer</b>.</p>
+        <button id="btn-start" class="main-btn">OPEN TAB (Sound On)</button>
     </div>
 
-    <!-- Level Complete -->
     <div id="level-screen" class="screen hidden">
-        <h1 style="color:#4caf50">ROUND CLEAR</h1>
+        <h1 style="color:#27ae60">ROUND CLEAR</h1>
         <p>Tables served in time. The taproom is buzzing.</p>
         <button id="btn-next-level" class="main-btn">NEXT ROUND</button>
     </div>
 
-    <!-- Game Over -->
     <div id="game-over-screen" class="screen hidden">
-        <h1 style="color:#d32f2f" id="game-over-title">MAX ANNOYANCE!</h1>
+        <h1 style="color:#c0392b" id="game-over-title">MAX ANNOYANCE!</h1>
         <p id="game-over-msg">You flipped a table and quit.</p>
         <button id="btn-restart" class="main-btn">RE-APPLY</button>
     </div>
 
-    <!-- Final Flight Puzzle -->
     <div id="flight-screen" class="screen hidden">
         <h1>THE FINAL FLIGHT</h1>
-        <p>Build the perfect Law Brewing flight: An <b>IPA</b>, a <b>Stout</b>, a <b>Sour</b>, and a <b>Milkshake</b> (in any order).</p>
+        <p>Create the Perfect Flight to clock out.</p>
         <div id="flight-ui">
             <div class="beer-grid" id="beer-slots"></div>
-            <div id="beer-info-box">Select a tap to view details...</div>
             <div id="beer-choices"></div>
-            <div class="flight-actions">
-                <button id="btn-clear-flight" class="choice-btn clear-btn">Reset</button>
-                <button id="btn-submit-flight" class="choice-btn submit-btn">SERVE</button>
+            <div style="margin-top:15px; display:flex; justify-content:center; gap:10px;">
+                <button id="btn-clear-flight" class="choice-btn" style="background:#c0392b; color:white;">Reset</button>
+                <button id="btn-submit-flight" class="choice-btn" style="background:#e67e22; color:#111; font-weight:bold;">SERVE</button>
             </div>
-            <p id="flight-msg"></p>
+            <p id="flight-msg" style="color:#ff4444; height:20px; font-size: 24px; margin-top: 10px; font-family:'Bangers'"></p>
         </div>
     </div>
 
-    <!-- Win Screen -->
     <div id="win-screen" class="screen hidden">
-        <h1 style="color:#4caf50">TAPROOM MASTER!</h1>
-        <p>You survived the chaos and served the perfect flight.</p>
+        <h1 style="color:#27ae60">Good Job!</h1>
+        <p>You're slick with the spoon and a maestro on the menu.<br>Keep Going...</p>
         <button id="btn-play-again" class="main-btn">PLAY AGAIN</button>
     </div>
 
-    <script src="static/game.js"></script>
+    <!-- Link to external game logic -->
+    <script type="module" src="game.js"></script>
 </body>
 </html>
