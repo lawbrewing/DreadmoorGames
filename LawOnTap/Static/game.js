@@ -48,63 +48,104 @@ let SPRITE_DATA = {
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
     menu: { x: 170, targetY: 215, s: 0.40, textX: 0, textY: 0 },
-    
+
     // Tap Hitboxes (Renamed to avoid conflict)
     taps_hitboxes: [
-        { x: 0.2, w: 0.1 }, 
-        { x: 0.5, w: 0.1 }, 
-        { x: 0.8, w: 0.1 }  
+        { x: 0.2, w: 0.1 },
+        { x: 0.5, w: 0.1 },
+        { x: 0.8, w: 0.1 }
     ],
-    
+
     // VISUAL DATA
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
     towers_visual: {
         s: 0.5, // Default scale for towers
         positions: [
-        { x: 388,  y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
-        { x: 1025,  y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
-        { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
-    ],
-},
-    // 3 INDEPENDENT TAPS
-    // 3 INDEPENDENT TAPS
-    taps_visual: { 
-        s: .5, 
-        positions: [
-            // Left Tap: 90 deg clockwise (Pushed down 40px to clear the top neighbor)
-            { x: 377,  y: 85,  openRotation: Math.PI / 2,   openOffset: { x: 263, y: 171 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
-            
-            // Middle Tap: 180 deg (Pushed down 35px to clear the top neighbor)
-            { x: 968,  y: 89,  openRotation: Math.PI,       openOffset: { x: 0, y: 446 },   openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }, 
-            
-            // Right Tap: 90 deg counter-clockwise (Pushed down 35px to clear the top neighbor)
-            { x: 1576, y: 83,  openRotation: -Math.PI / 2,  openOffset: { x: -265, y: 182 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }  
+            { x: 388, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
+            { x: 1025, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
+            { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
         ],
     },
-    
+    // 3 INDEPENDENT TAPS
+    // 3 INDEPENDENT TAPS
+    taps_visual: {
+        s: .5,
+        positions: [
+            // Left Tap: 
+            // Decrease X to pull left towards tower. Decrease Y to pull up.
+            { x: 377, y: 85, openScale: .4, openRotation: Math.PI / 2, openOffset: { x: 180, y: 215 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } },
+
+            // Middle Tap: 180 deg (Good!)
+            { x: 968, y: 89, openRotation: Math.PI, openOffset: { x: 0, y: 446 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } },
+
+            // Right Tap: 
+            // Make X a smaller negative number (closer to 0) to pull right towards tower. Decrease Y to pull up.
+            { x: 1576, y: 87, openScale: 0.4, openRotation: -Math.PI / 2, openOffset: { x: -182, y: 218 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }
+        ],
+    },
+
     // SPILLS (These are just offsets from the Tap Handle above them)
     // X: 0 means perfectly centered under the tap. Y: 300 means 300px below it.
     spills: [
-        { x: -20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 0,   y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { x: 20,  y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+        { x: -20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { x: 0, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { x: 20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
     ],
 
     paddles: [
-        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, 
-        { owner: 'vip',   x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
+        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+        { owner: 'vip', x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
     ],
 
     customers: [
-        { id: 'viking',  name: "Viking",  poses: [ {x:167, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'judge',   name: "Judge",   poses: [ {x:703, y:911, s:.39, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        // Added the missing cast:
-        { id: 'hipster', name: "Hipster", poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'regular', name: "Regular", poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'vip',     name: "VIP",     poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] },
-        { id: 'karen',   name: "Karen",   poses: [ {x:400, y:966, s:.48, clip:{sx:0, sy:0, sw:0, sh:0}} ] }
+        {
+            id: 'viking', name: "Viking",
+            poses: [{
+                x: 133, y: 960, s: .45, // Base properties
+                clip: { sx: 0, sy: 0, sw: 809, sh: 0 },
+                poseOffsets: [
+                    { x: 0, y: 0 }, // 1 Key: Idle (Uses base properties)
+
+                    // 2 Key: Happy (Smaller scale, custom slice width, custom starting pixel)
+                    { x: 0, y: 0, s: .45, sw: 950, sx: 810 },
+
+                    { x: 60, y: 0, s: .45, sw: 900, sx: 1850 }  // 3 Key: Angry 
+                ]
+            }]
+        },
+        { id: 'judge', name: "Judge", poses: [{ x: 692, y: 901, s: .39, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }] },
+        { id: 'hipster', name: "Hipster", poses: [{ x: 696, y: 1066, s: .48, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }] },
+        {
+            id: 'regular', name: "regular",
+            poses: [{
+                x: 1196, y: 1042, s: .48,
+                clip: { sx: 0, sy: 0, sw: 0, sh: 0 },
+                poseOffsets: [
+                    { x: 0, y: 0 },         // 1 Key: Idle (Explicit defaults)
+                    { x: 0, y:0 },         // 2 Key: Happy (Explicit defaults)
+                    { x: 0, y: 0, sw: 900, sx: 190023 }       // 3 Key: Angry (Clean width + sx offset)
+                ]
+            }]
+        },
+        {
+            id: 'vip', name: "VIP",
+            poses: [{
+                x: 1277, y: 939, s: .48,
+                clip: { sx: 0, sy: 0, sw: 0, sh: 0 },
+                poseOffsets: [
+                    { x: 0, y: 0 }, // 1 Key: Idle (Uses base properties)
+
+                    // 2 Key: Happy (No slice overrides, just pushed UP 20 pixels)
+                    { x: 0, y: -30 },
+
+                    // 3 Key: Angry (No slice overrides, pushed right 60px and UP 20px)
+                    { x: 20, y: -60 }
+                ]
+            }]
+        },
+        { id: 'karen', name: "Karen", poses: [{ x: 709, y: 1088, s: .48, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }] }
     ]
-};
+}
 
 const ASSETS_PATHS = {
     bg: 'assets/background.png', 
@@ -149,24 +190,33 @@ class Customer {
         const type = CUSTOMER_TYPES[typeKey];
         this.type = typeKey;
         this.spriteId = type.id;
-        
+
         const poseData = SPRITE_DATA.customers.find(c => c.id === this.spriteId).poses[0];
         this.targetX = poseData.x;
         this.y = poseData.y;
         this.scale = poseData.s;
-        this.clip = poseData.clip || {sx:0, sy:0, sw:0, sh:0};
-        
-        this.x = -300; 
-        this.state = 'walking_in'; 
+        this.clip = poseData.clip || { sx: 0, sy: 0, sw: 0, sh: 0 };
+        this.poseOffsets = poseData.poseOffsets || null;
+
+        // --- RANDOM SPAWN LOGIC ---
+        // 50% chance to spawn on the left or the right side of the screen
+        const spawnRight = Math.random() > 0.5;
+        this.startX = spawnRight ? WORLD.w + 300 : -300;
+        this.x = this.startX;
+
+        // When they leave, walk towards the closest edge of the screen
+        this.exitX = (this.targetX > WORLD.w / 2) ? WORLD.w + 300 : -300;
+
+        this.state = 'walking_in';
         this.patienceMax = type.patience;
         this.patience = this.patienceMax;
-        this.satisfaction = 100; 
+        this.satisfaction = 100;
         this.order = this.generateOrder(typeKey);
-        
-        this.currentOrderIndex = 0; 
-        this.currentDrinkProgress = 0; 
-        this.currentStepIndex = 0; 
-        this.poseIndex = 0; 
+
+        this.currentOrderIndex = 0;
+        this.currentDrinkProgress = 0;
+        this.currentStepIndex = 0;
+        this.poseIndex = 0;
     }
 
     generateOrder(typeKey) {
@@ -174,26 +224,52 @@ class Customer {
         if (typeKey === 'judge') {
             const keys = Object.keys(RECIPES);
             let flight = [];
-            for(let i=0; i<3; i++) flight.push(RECIPES[keys[Math.floor(Math.random()*keys.length)]]);
+            for (let i = 0; i < 3; i++) flight.push(RECIPES[keys[Math.floor(Math.random() * keys.length)]]);
             return flight;
         }
         const possible = CUSTOMER_TYPES[typeKey].orders;
-        if (possible[0] === 'all_pure') return [RECIPES[['stout','ipa','lager'][Math.floor(Math.random()*3)]]];
-        if (possible[0] === 'all_mixed') return [RECIPES[['black_tan','black_bitter','lawnmower'][Math.floor(Math.random()*3)]]];
+        if (possible[0] === 'all_pure') return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
+        if (possible[0] === 'all_mixed') return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
         return [RECIPES[possible[0]]];
     }
 
     update() {
+        const walkSpeed = 8; // Lower number = slower walk. Higher number = faster walk.
+
         if (this.state === 'walking_in') {
-            this.x += (this.targetX - this.x) * 0.05;
-            if (Math.abs(this.x - this.targetX) < 5) { this.state = 'waiting'; return 'arrived'; }
+            // Move steadily towards targetX regardless of which side they spawned on
+            if (this.x < this.targetX) {
+                this.x += walkSpeed;
+                if (this.x >= this.targetX) {
+                    this.x = this.targetX;
+                    this.state = 'waiting';
+                    return 'arrived';
+                }
+            } else {
+                this.x -= walkSpeed;
+                if (this.x <= this.targetX) {
+                    this.x = this.targetX;
+                    this.state = 'waiting';
+                    return 'arrived';
+                }
+            }
         } else if (this.state === 'walking_out') {
-            this.x += (-400 - this.x) * 0.05;
-            if (this.x < -300) return 'gone';
+            // Move steadily towards their exit side
+            if (this.x < this.exitX) {
+                this.x += walkSpeed;
+                if (this.x >= this.exitX) return 'gone';
+            } else {
+                this.x -= walkSpeed;
+                if (this.x <= this.exitX) return 'gone';
+            }
         }
+
         if (this.state === 'waiting') {
             this.patience -= 16;
-            if (this.patience <= 0) return 'timeout';
+            if (this.patience <= 0) {
+                this.poseIndex = 2; // Switch to Angry pose on timeout!
+                return 'timeout';
+            }
         }
         return null;
     }
@@ -392,8 +468,12 @@ class Game {
                 let finalFrameW = baseFrameW - trimW;
                 let finalFrameH = baseFrameH - trimH;
 
-                let drawW = finalFrameW * tapScale;
-                let drawH = finalFrameH * tapScale;
+                // ADDED: Check if we are pouring AND if a custom openScale exists
+                let activeScale = (isPouring && pos.openScale) ? pos.openScale : tapScale;
+
+                // Use the activeScale instead of the default tapScale
+                let drawW = finalFrameW * activeScale;
+                let drawH = finalFrameH * activeScale;
                 
                 ctx.drawImage(assets.taps, 
                     srcX, srcY, finalFrameW, finalFrameH, 
@@ -427,17 +507,23 @@ class Game {
             });
         }
     }
-    drawBeerLife(x, y, scale, isDead) {
+    drawBeerLife(x, y, scale, isDead, progress = 1.0) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
         const glassColor = "#2d2419";
+
+        // Change color to red when running low (< 30%)
         const beerGrad = ctx.createLinearGradient(0, -50, 0, 50);
-        beerGrad.addColorStop(0, "#FFD700"); beerGrad.addColorStop(1, "#FF8C00");
+        if (progress > 0.3) {
+            beerGrad.addColorStop(0, "#FFD700"); beerGrad.addColorStop(1, "#FF8C00");
+        } else {
+            beerGrad.addColorStop(0, "#ff3333"); beerGrad.addColorStop(1, "#990000");
+        }
 
         ctx.lineWidth = 12; ctx.strokeStyle = glassColor; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI/1.5, Math.PI/1.5); ctx.stroke(); 
+        ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI / 1.5, Math.PI / 1.5); ctx.stroke();
 
         ctx.lineWidth = 8; ctx.fillStyle = isDead ? "rgba(255,255,255,0.1)" : "#f9fafb";
-        ctx.beginPath(); ctx.moveTo(-50, -75); ctx.lineTo(50, -75); ctx.lineTo(45, 75); 
+        ctx.beginPath(); ctx.moveTo(-50, -75); ctx.lineTo(50, -75); ctx.lineTo(45, 75);
         ctx.quadraticCurveTo(45, 90, 30, 90); ctx.lineTo(-30, 90); ctx.quadraticCurveTo(-45, 90, -45, 75);
         ctx.closePath(); ctx.fill(); ctx.stroke();
 
@@ -445,8 +531,13 @@ class Game {
             ctx.save(); ctx.beginPath();
             ctx.moveTo(-45, -70); ctx.lineTo(45, -70); ctx.lineTo(40, 75); ctx.lineTo(-40, 75);
             ctx.closePath(); ctx.clip();
-            ctx.fillStyle = beerGrad; ctx.fillRect(-50, -70, 100, 150);
-            
+
+            // --- DRAIN BASED ON PROGRESS ---
+            let fillHeight = 150 * progress;
+            let fillY = 75 - fillHeight;
+            ctx.fillStyle = beerGrad;
+            ctx.fillRect(-50, fillY, 100, fillHeight);
+
             ctx.fillStyle = "rgba(255,255,255,0.6)";
             const bTime = (Date.now() % 3000) / 3000;
             [-25, 0, 25, -15, 15].forEach((bx, i) => {
@@ -455,7 +546,7 @@ class Game {
             });
             ctx.restore();
 
-            ctx.fillStyle = "white"; 
+            ctx.fillStyle = "white";
             ctx.beginPath(); ctx.arc(-35, -80, 35, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(0, -95, 45, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(35, -80, 35, 0, Math.PI * 2); ctx.fill();
@@ -524,6 +615,7 @@ class Game {
             if (status === 'timeout') {
                 this.lives--;
                 this.notifications.trigger("WALKED OUT!", "#f00");
+                this.customer.poseIndex = 2; // Ensure they stay angry while walking out
                 this.customer.state = 'walking_out';
             } else if (status === 'gone') {
                 // Customer has fully walked off screen
@@ -542,37 +634,86 @@ class Game {
         if (this.customer && assets[this.customer.spriteId]) {
             const img = assets[this.customer.spriteId];
             const s = this.customer.scale;
-            
-            // SLICING LOGIC
-            let frameW = (this.customer.clip.sw > 0) ? this.customer.clip.sw : (img.width / 3);
-            let frameH = (this.customer.clip.sh > 0) ? this.customer.clip.sh : img.height;
-            
-            // SAFETY CHECK: Ensure sx is not negative for SOURCE clip
-            let clipSX = this.customer.clip.sx;
-            let destOffsetX = 0;
 
-            // If sx is negative (from your calibration), use it as a destination offset instead of source clip
-            if (clipSX < 0) {
-                destOffsetX = clipSX;
-                clipSX = 0; 
+            // SLICING LOGIC
+            let tweakX = 0;
+            let tweakY = 0;
+            let customSW = null;
+            let customSX = null;
+            let customScale = s;
+
+            if (this.customer.poseOffsets && this.customer.poseOffsets[this.customer.poseIndex]) {
+                let pOffset = this.customer.poseOffsets[this.customer.poseIndex];
+                tweakX = pOffset.x || 0;
+                tweakY = pOffset.y || 0;
+                if (pOffset.sw !== undefined) customSW = pOffset.sw;
+                if (pOffset.sx !== undefined) customSX = pOffset.sx;
+                if (pOffset.s !== undefined) customScale = pOffset.s;
             }
 
-            let srcX = clipSX + (this.customer.poseIndex * frameW);
+            if (this.customer.state === 'walking_out') {
+                this.customer.poseIndex = 2;
+            }
+
+            let baseFrameW = (this.customer.clip.sw > 0) ? this.customer.clip.sw : Math.floor(img.width / 3);
+            let frameW = (customSW !== null) ? customSW : baseFrameW;
+            let frameH = (this.customer.clip.sh > 0) ? this.customer.clip.sh : img.height;
+
+            let srcX;
+            let destOffsetX = 0;
+
+            if (customSX !== null) {
+                srcX = customSX;
+            } else {
+                let clipSX = this.customer.clip.sx;
+                if (clipSX < 0) {
+                    destOffsetX = clipSX;
+                    clipSX = 0;
+                }
+                srcX = clipSX + (this.customer.poseIndex * baseFrameW);
+            }
             let srcY = this.customer.clip.sy;
 
-            ctx.drawImage(img, 
-                srcX, srcY, frameW, frameH, // Source
-                this.customer.x - (frameW*s)/2 + destOffsetX, this.customer.y - frameH*s, // Destination (With Offset)
-                frameW*s, frameH*s
+            // --- THE INDIE WADDLE & FLIP ---
+            ctx.save();
+
+            let yBob = 0;
+            let rotation = 0;
+            let isFlipped = false;
+
+            if (this.customer.state === 'walking_in') {
+                // If they spawned on the right, they are walking left (Flip needed!)
+                if (this.customer.startX > this.customer.targetX) isFlipped = true;
+                yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
+                rotation = Math.sin(Date.now() / 150) * 0.05;
+            } else if (this.customer.state === 'walking_out') {
+                // If their exit is to their left, flip them to face it
+                if (this.customer.exitX < this.customer.x) isFlipped = true;
+                yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
+                rotation = Math.sin(Date.now() / 150) * 0.05;
+            }
+
+            // Move the canvas directly to the character's feet
+            ctx.translate(this.customer.x, this.customer.y + yBob);
+            ctx.rotate(rotation);
+            if (isFlipped) ctx.scale(-1, 1);
+
+            // Draw the image relative to their feet!
+            ctx.drawImage(img,
+                srcX, srcY, frameW, frameH,
+                -(frameW * customScale) / 2 + destOffsetX + tweakX, // Shift left by half width
+                -frameH * customScale + tweakY,                     // Shift up by full height
+                frameW * customScale, frameH * customScale
             );
-            
+
+            ctx.restore();
+            // ---------------------------------
+
             if (this.customer.state === 'waiting') {
-                const pct = this.customer.patience / this.customer.patienceMax;
-                this.drawClock(this.customer.x, this.customer.y, pct);
-                
-                ctx.fillStyle = "white"; 
+                // Pour progress bar only (circle timer removed)
+                ctx.fillStyle = "white";
                 ctx.fillRect(this.customer.x + 120, this.customer.y - 200, 20, -200 * this.customer.currentDrinkProgress);
-                ctx.strokeStyle = "red"; 
+                ctx.strokeStyle = "red";
                 ctx.strokeRect(this.customer.x + 120, this.customer.y - 200, 20, -200);
             }
         }
@@ -587,7 +728,15 @@ class Game {
         ctx.restore();
 
         for (let i = 0; i < 3; i++) {
-            this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, i >= this.lives);
+            let isDead = i >= this.lives;
+            let patiencePct = 1.0;
+
+            // If this life slot is our current health point AND a customer is waiting, make it the timer!
+            if (!isDead && this.customer && this.customer.state === 'waiting' && i === this.lives - 1) {
+                patiencePct = this.customer.patience / this.customer.patienceMax;
+            }
+
+            this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, isDead, patiencePct);
         }
         
         this.notifications.draw();
@@ -665,3 +814,32 @@ function loadImages() {
 }
 // Start the engine!
 loadImages();
+
+// ==========================================
+// PINPOINT TOOL: VISUAL PLACEMENT CALIBRATOR
+// ==========================================
+let pinLocked = false;
+let pinPos = { x: 960, y: 540 };
+
+window.addEventListener('mousemove', (e) => {
+    if (pinLocked) return;
+    const rect = canvas.getBoundingClientRect();
+    pinPos.x = (e.clientX - rect.left - screenOffset.x) / screenScale;
+    pinPos.y = (e.clientY - rect.top - screenOffset.y) / screenScale;
+});
+
+window.addEventListener('mousedown', (e) => {
+    pinLocked = !pinLocked; // Click to freeze/unfreeze
+    if (pinLocked) {
+        console.log(`📍 PINPOINT LOCKED: x: ${Math.round(pinPos.x)}, y: ${Math.round(pinPos.y)}`);
+    }
+});
+
+// TEMPORARY POSE TESTING TOOL
+window.addEventListener('keydown', (e) => {
+    if (!window.game || !window.game.customer) return;
+
+    if (e.key === '1') window.game.customer.poseIndex = 0; // Idle
+    if (e.key === '2') window.game.customer.poseIndex = 1; // Happy
+    if (e.key === '3') window.game.customer.poseIndex = 2; // Angry
+});
