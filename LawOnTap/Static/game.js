@@ -123,7 +123,7 @@ let SPRITE_DATA = {
                 poseOffsets: [
                     { x: 0, y: 0 },         // 1 Key: Idle (Explicit defaults)
                     { x: 0, y:0 },         // 2 Key: Happy (Explicit defaults)
-                    { x: 0, y: 0, sw: 900, sx: 190023 }       // 3 Key: Angry (Clean width + sx offset)
+                    { x: 0, y: 0, sw: 900, sx: 1923 }       // 3 Key: Angry (Clean width + sx offset)
                 ]
             }]
         },
