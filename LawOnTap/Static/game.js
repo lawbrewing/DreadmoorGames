@@ -122,15 +122,12 @@ let SPRITE_DATA = {
     },
 
     paddles: {
-        // Universal position relative to the current customer
-        position: { x: 0, y: 900, s: .18 },
-
         // Physical slice data (sx, sy, sw, sh) and mini-glass X-offsets for each flight size
         boards: {
-            2: { clip: { sx: 0, sy: 0, sw: 2000, sh: 330 }, slotsX: [-25, 65], slotY: 35, miniScale: 0.12 },
-            3: { clip: { sx: 0, sy: 330, sw: 3000, sh: 500 }, slotsX: [-120, 0, 120], slotY: -10, miniScale: 0.12 },
-            4: { clip: { sx: 0, sy: 500, sw: 1200, sh: 250 }, slotsX: [-180, -60, 60, 180], slotY: -10, miniScale: 0.12 },
-            5: { clip: { sx: 0, sy: 750, sw: 1400, sh: 250 }, slotsX: [-240, -120, 0, 120, 240], slotY: -10, miniScale: 0.12 }
+            2: { x: -35, y: 900, s: .18, clip: { sx: 0, sy: 0, sw: 2000, sh: 330 }, slotsX: [-25, 65], slotY: 35, miniScale: 0.12 },
+            3: { x: 50, y: 900, s: .18, clip: { sx: 0, sy: 330, sw: 3000, sh: 500 }, slotsX: [-120, -25, 70], slotY: 20, miniScale: 0.12 },
+            4: { x: -10, y: 900, s: .18, clip: { sx: 0, sy: 500, sw: 2000, sh: 250 }, slotsX: [-50, 15, 80, 130], slotY: 15, miniScale: 0.1 },
+            5: { x: -30, y: 900, s: .18, clip: { sx: 0, sy: 750, sw: 2300, sh: 400 }, slotsX: [-75, -10, 55, 105, 170], slotY: 20, miniScale: 0.1 }
         }
     },
 
@@ -439,22 +436,30 @@ class Game {
         if (orderLen < 2) return;
 
         const clampedLen = Math.min(Math.max(orderLen, 2), 5);
-
-        // Grab the single, universal paddle position
-        const anchor = SPRITE_DATA.paddles.position;
         const board = SPRITE_DATA.paddles.boards[clampedLen];
         const clip = board.clip;
 
         ctx.save();
-        ctx.translate(this.customer.x + anchor.x, anchor.y);
 
-        let drawW = clip.sw * anchor.s;
-        let drawH = clip.sh * anchor.s;
+        // Pull x and y directly from the specific board size
+        ctx.translate(this.customer.x + board.x, board.y);
 
-        ctx.drawImage(assets.paddles,
-            clip.sx, clip.sy, clip.sw, clip.sh,
-            -drawW / 2, -drawH / 2, drawW, drawH
-        );
+        // Pull the scale directly from the specific board size
+        let drawW = clip.sw * board.s;
+        let drawH = clip.sh * board.s;
+
+        // 1. Draw the dynamically selected wooden paddle (WITH ANTI-CRASH MATH)
+        let sX = Math.max(0, clip.sx);
+        let sY = Math.max(0, clip.sy);
+        let sW = Math.min(clip.sw, assets.paddles.width - sX);
+        let sH = Math.min(clip.sh, assets.paddles.height - sY);
+
+        if (sW > 0 && sH > 0) {
+            ctx.drawImage(assets.paddles,
+                sX, sY, sW, sH,
+                -drawW / 2, -drawH / 2, drawW, drawH
+            );
+        }
 
         // 2. Draw the completed mini-glasses
         if (assets.fullpints) {
@@ -462,22 +467,42 @@ class Game {
             let fpBaseW = Math.floor(assets.fullpints.width / 4);
             let fpBaseH = assets.fullpints.height;
 
-            // 👇 Pull the scale and Y-offset directly from the board data
             let miniScale = board.miniScale || 0.12;
             let slotY = board.slotY || -10;
 
             for (let i = 0; i < completedCount; i++) {
                 const recipeObj = this.customer.order[i];
-                const lastStep = recipeObj.steps[recipeObj.steps.length - 1];
-                let frameIdx = lastStep.tap + 1;
+                const isMixed = recipeObj.steps && recipeObj.steps.length > 1;
 
-                ctx.drawImage(assets.fullpints,
-                    frameIdx * fpBaseW, 0, fpBaseW, fpBaseH,
-                    board.slotsX[i] - (fpBaseW * miniScale) / 2,
-                    slotY - (fpBaseH * miniScale),
-                    fpBaseW * miniScale,
-                    fpBaseH * miniScale
-                );
+                // Calculate the final bounding box for this specific slot
+                let drawX = board.slotsX[i] - (fpBaseW * miniScale) / 2;
+                let drawY = slotY - (fpBaseH * miniScale);
+                let drawW = fpBaseW * miniScale;
+                let drawH = fpBaseH * miniScale;
+
+                if (!isMixed) {
+                    // Standard single pour: Grab from fullpints
+                    let frameIdx = recipeObj.steps[0].tap + 1;
+                    ctx.drawImage(assets.fullpints,
+                        frameIdx * fpBaseW, 0, fpBaseW, fpBaseH,
+                        drawX, drawY, drawW, drawH
+                    );
+                } else if (assets.mixpour) {
+                    // Mixed pour: Grab the fully assembled graphic directly from mixpour
+                    const recipeKey = Object.keys(RECIPES).find(key => RECIPES[key].name === recipeObj.name);
+                    let mpBaseW = Math.floor(assets.mixpour.width / 3);
+                    let mpBaseH = assets.mixpour.height;
+
+                    let mixIdx = 0;
+                    if (recipeKey === 'black_tan') mixIdx = 0;
+                    else if (recipeKey === 'black_bitter') mixIdx = 1;
+                    else if (recipeKey === 'lawnmower') mixIdx = 2;
+
+                    ctx.drawImage(assets.mixpour,
+                        mixIdx * mpBaseW, 0, mpBaseW, mpBaseH,
+                        drawX, drawY, drawW, drawH
+                    );
+                }
             }
         }
         ctx.restore();
@@ -592,8 +617,98 @@ class Game {
                     -drawW / 2, 0, drawW, drawH
                 );
 
+                // ... [End of Tap Handle Drawing] ...
                 ctx.restore();
+
+                // --- PROCEDURAL LIQUID POUR STREAM ---
+                if (isPouring) {
+                    ctx.save();
+
+                    // 1. Fluid Colors for Stout (0), IPA (1), Lager (2)
+                    const fluidColors = [
+                        { fill: "#1a0f0a", edge: "#000000", highlight: "rgba(255,255,255,0.08)" }, // Black
+                        { fill: "#d97b29", edge: "#8c3b0a", highlight: "rgba(255,255,255,0.2)" },  // Amber
+                        { fill: "#fbd341", edge: "#d48e15", highlight: "rgba(255,255,255,0.4)" }   // Yellow
+                    ];
+                    const colors = fluidColors[idx];
+
+                    // 2. Tweak these to align the start of the stream to your metal nozzles
+                    // 'drop' controls how far down the screen the liquid falls before clipping into the glass
+                    const nozzleOffsets = [
+                        { x: 28, y: 530, drop: 300 }, // Tap 0 (Left)
+                        { x: 0, y: 530, drop: 300 }, // Tap 1 (Middle)
+                        { x: -35, y: 528, drop: 300 }  // Tap 2 (Right)
+                    ];
+
+                    const nX = nozzleOffsets[idx].x;
+                    const nY = nozzleOffsets[idx].y;
+                    const dropDist = nozzleOffsets[idx].drop;
+
+                    // 3. Sine Wave Math (Makes the liquid wobble slightly as it pours)
+                    const time = Date.now() / 120;
+                    const w1 = Math.sin(time) * 3;
+                    const w2 = Math.cos(time * 1.5) * 4;
+
+                    ctx.beginPath();
+                    // Top of stream at the nozzle (slightly wider)
+                    ctx.moveTo(nX - 12, nY);
+
+                    // Left curving edge flowing down
+                    ctx.bezierCurveTo(
+                        nX - 9 + w1, nY + dropDist * 0.33,
+                        nX - 6 + w2, nY + dropDist * 0.66,
+                        nX - 6, nY + dropDist
+                    );
+
+                    // Flat bottom where it hits the glass/foam
+                    ctx.lineTo(nX + 6, nY + dropDist);
+
+                    // Right curving edge flowing back up to the nozzle
+                    ctx.bezierCurveTo(
+                        nX + 6 + w2, nY + dropDist * 0.66,
+                        nX + 9 + w1, nY + dropDist * 0.33,
+                        nX + 12, nY
+                    );
+                    ctx.closePath();
+
+                    // Draw the core liquid
+                    ctx.fillStyle = colors.fill;
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = colors.edge;
+                    ctx.stroke();
+
+                    // 4. Draw falling highlights to sell the motion illusion
+                    let speed1 = (Date.now() % 400) / 400; // Fast highlight
+                    let speed2 = ((Date.now() + 150) % 500) / 500; // Slower, staggered highlight
+
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = colors.highlight;
+                    ctx.lineCap = "round";
+
+                    // Highlight 1
+                    let h1Y = nY + (dropDist * speed1);
+                    if (h1Y < nY + dropDist - 30) {
+                        ctx.beginPath();
+                        ctx.moveTo(nX - 2, h1Y);
+                        ctx.lineTo(nX - 2, h1Y + 30);
+                        ctx.stroke();
+                    }
+
+                    // Highlight 2
+                    let h2Y = nY + (dropDist * speed2);
+                    if (h2Y < nY + dropDist - 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(nX + 3, h2Y);
+                        ctx.lineTo(nX + 3, h2Y + 20);
+                        ctx.stroke();
+                    }
+
+                    ctx.restore();
+                }
                 // -----------------------------
+
+                // --- 3D COUNTER PINT DROP-IN & FILLING ---
 
                 // --- 3D COUNTER PINT DROP-IN & FILLING ---
                 if (assets.fullpints && SPRITE_DATA.full_pints) {
