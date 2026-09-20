@@ -82,16 +82,16 @@ let SPRITE_DATA = {
 
     half_pours: {
         fillTweaks: [
-            { x: 0, y: 0 }, // Half Pour: Stout (Left Tap)
-            { x: 0, y: 0 }, // Half Pour: IPA (Middle Tap)
-            { x: 0, y: 0 }  // Half Pour: Lager (Right Tap)
+            { x: 62, y: -60 }, // Tap 0 (Left Tap) Location
+            { x: 62, y: -60 }, // Tap 1 (Middle Tap) Location
+            { x: 62, y: -60 }  // Tap 2 (Right Tap) Location
         ]
     },
     mix_pours: {
         fillTweaks: [
-            { x: 0, y: 0 }, // Mix Frame 0: Black & Tan (Lager bottom, Stout top)
-            { x: 0, y: 0 }, // Mix Frame 1: Black & Bitter (IPA bottom, Stout top)
-            { x: 0, y: 0 }  // Mix Frame 2: Lawnmower Hop (Lager bottom, IPA top)
+            { x: 70, y: -60 },    // Tap 0 (Left Tap) Location
+            { x: 122, y: -60 },    // Tap 1 (Middle Tap) Location
+            { x: 0, y: 0 }  // Tap 2 (Right Tap) Location
         ]
     },
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
@@ -121,18 +121,18 @@ let SPRITE_DATA = {
         ],
     },
 
-    // SPILLS (These are just offsets from the Tap Handle above them)
-    // X: 0 means perfectly centered under the tap. Y: 300 means 300px below it.
-    spills: [
-        { x: -20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-        { x: 0, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-        { x: 20, y: 350, s: .05, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
-    ],
+    paddles: {
+        // Universal position relative to the current customer
+        position: { x: 0, y: 900, s: .18 },
 
-    paddles: [
-        { owner: 'judge', x: -300, y: 408, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
-        { owner: 'vip', x: -270, y: 401, s: .16, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
-    ],
+        // Physical slice data (sx, sy, sw, sh) and mini-glass X-offsets for each flight size
+        boards: {
+            2: { clip: { sx: 0, sy: 0, sw: 2000, sh: 330 }, slotsX: [-25, 65], slotY: 35, miniScale: 0.12 },
+            3: { clip: { sx: 0, sy: 330, sw: 3000, sh: 500 }, slotsX: [-120, 0, 120], slotY: -10, miniScale: 0.12 },
+            4: { clip: { sx: 0, sy: 500, sw: 1200, sh: 250 }, slotsX: [-180, -60, 60, 180], slotY: -10, miniScale: 0.12 },
+            5: { clip: { sx: 0, sy: 750, sw: 1400, sh: 250 }, slotsX: [-240, -120, 0, 120, 240], slotY: -10, miniScale: 0.12 }
+        }
+    },
 
     customers: [
         {
@@ -196,7 +196,6 @@ const ASSETS_PATHS = {
     regular: 'assets/regular.png', // Added
     vip: 'assets/vip.png',         // Added
     karen: 'assets/karen.png',     // Added
-    spill: 'assets/spill.png', 
     paddles: 'assets/paddles.png',
     fullpints: 'assets/fullpints.png',
     mixpour: 'assets/mixpour.png',   // Added
@@ -321,7 +320,7 @@ class Game {
         this.customer = null; this.menuAnim = { y: -600 };
 
         // 👇 ADD slideProgress: 0 HERE
-        this.activePour = { active: false, tapIndex: -1, spillTimer: 0, slideProgress: 0 };
+        this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
 
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
@@ -362,7 +361,6 @@ class Game {
             this.activePour.tapIndex = tapIndex;
         } else {
             this.activePour.active = false;
-            this.activePour.spillTimer = 0;
             // 👇 REMOVED the slideProgress reset from here so it stays on the counter!
             this.evaluatePour();
         }
@@ -379,7 +377,6 @@ class Game {
         if (this.activePour.tapIndex === step.tap) {
             c.currentDrinkProgress += 0.008; 
             if (c.currentDrinkProgress > step.limit + 0.1) {
-                this.activePour.spillTimer = 20; 
                 c.satisfaction -= 1; c.poseIndex = 2; // Angry
                 if (c.satisfaction % 20 === 0) this.notifications.trigger("TRASH!", "#f00", 30);
             }
@@ -394,15 +391,24 @@ class Game {
         }
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
-        const lower = step.limit - 0.15; const upper = step.limit + 0.05; 
+        const lower = step.limit - 0.15; const upper = step.limit + 0.05;
 
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
             if (c.currentDrinkProgress >= step.limit - 0.02 && c.currentDrinkProgress <= step.limit + 0.02) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
-                this.score += 50; c.poseIndex = 1; // Happy
+                this.score += 50;
+
+                // FIX: Only change to the Happy pose if this is the final step of the drink
+                if (c.currentStepIndex === recipe.steps.length - 1) {
+                    c.poseIndex = 1;
+                }
             }
-            if (c.currentStepIndex < recipe.steps.length - 1) { c.currentStepIndex++; } 
-            else { this.finishDrink(true); }
+
+            if (c.currentStepIndex < recipe.steps.length - 1) {
+                c.currentStepIndex++;
+            } else {
+                this.finishDrink(true);
+            }
         }
     }
 
@@ -426,7 +432,56 @@ class Game {
             this.customer.state = 'walking_out';
         }
     }
+    drawFlightPaddle() {
+        if (!this.customer || !assets.paddles) return;
 
+        const orderLen = this.customer.order.length;
+        if (orderLen < 2) return;
+
+        const clampedLen = Math.min(Math.max(orderLen, 2), 5);
+
+        // Grab the single, universal paddle position
+        const anchor = SPRITE_DATA.paddles.position;
+        const board = SPRITE_DATA.paddles.boards[clampedLen];
+        const clip = board.clip;
+
+        ctx.save();
+        ctx.translate(this.customer.x + anchor.x, anchor.y);
+
+        let drawW = clip.sw * anchor.s;
+        let drawH = clip.sh * anchor.s;
+
+        ctx.drawImage(assets.paddles,
+            clip.sx, clip.sy, clip.sw, clip.sh,
+            -drawW / 2, -drawH / 2, drawW, drawH
+        );
+
+        // 2. Draw the completed mini-glasses
+        if (assets.fullpints) {
+            const completedCount = this.customer.currentOrderIndex;
+            let fpBaseW = Math.floor(assets.fullpints.width / 4);
+            let fpBaseH = assets.fullpints.height;
+
+            // 👇 Pull the scale and Y-offset directly from the board data
+            let miniScale = board.miniScale || 0.12;
+            let slotY = board.slotY || -10;
+
+            for (let i = 0; i < completedCount; i++) {
+                const recipeObj = this.customer.order[i];
+                const lastStep = recipeObj.steps[recipeObj.steps.length - 1];
+                let frameIdx = lastStep.tap + 1;
+
+                ctx.drawImage(assets.fullpints,
+                    frameIdx * fpBaseW, 0, fpBaseW, fpBaseH,
+                    board.slotsX[i] - (fpBaseW * miniScale) / 2,
+                    slotY - (fpBaseH * miniScale),
+                    fpBaseW * miniScale,
+                    fpBaseH * miniScale
+                );
+            }
+        }
+        ctx.restore();
+    }
     // --- DRAWING ---
     drawMenu() {
         const m = SPRITE_DATA.menu;
@@ -582,16 +637,33 @@ class Game {
                         let drawX = currentX - drawFPW / 2;
                         let drawY = currentY - drawFPH;
 
+                        // Calculate progress early so we can use it to mask the empty glass
+                        let drinkProgress = (this.customer) ? Math.min(this.customer.currentDrinkProgress, 1.0) : 0;
+
                         // 1. DRAW FRAME 0 (The 3D Sliding Empty Glass Base)
+                        ctx.save();
+                        ctx.beginPath();
+
+                        // We create a clipping mask that shrinks upwards as the drink fills.
+                        // Starts 50px higher/wider than the glass to ensure we don't cut off scaling edges.
+                        // We add a +5 pixel overlap downwards to prevent a 1px transparent seam where the liquid meets the empty glass.
+                        ctx.rect(
+                            drawX - 50,
+                            drawY - 50,
+                            drawFPW + 100,
+                            50 + (drawFPH * (1 - drinkProgress)) + 5
+                        );
+                        ctx.clip();
+
                         ctx.drawImage(assets.fullpints,
                             0, 0, baseFPW, baseFPH,
                             drawX, drawY, drawFPW, drawFPH
                         );
+                        ctx.restore();
 
                         // 2. DYNAMICALLY FILL THE LIQUID WITH NUDGE OFFSETS & MIXES
                         if (this.customer) {
-                            let drinkProgress = Math.min(this.customer.currentDrinkProgress, 1.0);
-
+                            
                             // Default to full pint logic
                             let activeLiquidAsset = assets.fullpints;
                             let liquidFrames = 4;
@@ -608,8 +680,9 @@ class Game {
                                 // Find the dictionary key for this recipe to easily map it
                                 const recipeKey = Object.keys(RECIPES).find(key => RECIPES[key].name === recipeObj.name);
 
-                                if (this.customer.currentStepIndex === 0) {
-                                    // STEP 1: Pouring the first half. Use halfpour sheet.
+                                // FIX: Check WHERE the glass physically is, rather than what step the math is on!
+                                if (this.activePour.tapIndex === recipeObj.steps[0].tap) {
+                            // STEP 1: Glass is at the first tap. Use halfpour sheet.
                                     if (assets.halfpour) {
                                         activeLiquidAsset = assets.halfpour;
                                         liquidFrames = 3;
@@ -618,7 +691,7 @@ class Game {
                                         // Swap to half_pours tweaks
                                         if (SPRITE_DATA.half_pours) {
                                             activeTweaks = SPRITE_DATA.half_pours.fillTweaks;
-                                            tweakIdx = targetFrameIdx;
+                                            tweakIdx = idx;
                                         }
                                     }
                                 } else {
@@ -633,7 +706,7 @@ class Game {
                                         // Swap to mix_pours tweaks
                                         if (SPRITE_DATA.mix_pours) {
                                             activeTweaks = SPRITE_DATA.mix_pours.fillTweaks;
-                                            tweakIdx = targetFrameIdx;
+                                            tweakIdx = idx;
                                         }
                                     }
                                 }
@@ -672,26 +745,7 @@ class Game {
                         ctx.restore();
                     }
                 }
-                // ----------------------------------------------
-
-                // --- DRAW THE SPILL ---
-                if (isPouring && this.activePour.spillTimer > 0) {
-                    if (assets.spill) {
-                        const sp = SPRITE_DATA.spills[idx];
-                        let spW = (sp.clip && sp.clip.sw > 0) ? sp.clip.sw : assets.spill.width;
-                        let spH = (sp.clip && sp.clip.sh > 0) ? sp.clip.sh : assets.spill.height;
-                        let spX = (sp.clip && sp.clip.sw > 0) ? sp.clip.sx : 0;
-
-                        let spillDrawW = spW * sp.s * tapScale;
-                        let spillDrawH = spH * sp.s * tapScale;
-
-                        ctx.drawImage(assets.spill,
-                            spX, 0, spW, spH,
-                            sp.x, sp.y,
-                            spillDrawW, spillDrawH
-                        );
-                    }
-                }
+              
                 // -----------------------------
 
                 ctx.restore(); // End global save for this tap station
@@ -905,7 +959,7 @@ class Game {
 
             
         }
-
+        this.drawFlightPaddle();
         this.drawTower();
         this.drawMenu();
 
@@ -988,7 +1042,33 @@ loadImages();
 // TEMPORARY TESTING TOOLS
 // ==========================================
 window.addEventListener('keydown', (e) => {
-    if (!window.game || !window.game.customer) return;
+    if (!window.game) return;
+
+    // 👇 MOVE THE INSTANT SPAWN OVERRIDE HERE (Above the customer check)
+    // --- VISUAL PADDLE CALIBRATION TOOLS ---
+    if (e.key === '7' || e.key === '8' || e.key === '9' || e.key === '0') {
+        let size = e.key === '7' ? 2 : e.key === '8' ? 3 : e.key === '9' ? 4 : 5;
+
+        window.game.customer = new Customer('judge');
+        window.game.customer.x = window.game.customer.targetX;
+        window.game.customer.state = 'waiting';
+        window.game.customer.patience = 999999; // Freeze the patience timer
+
+        let dummyOrder = [];
+        for (let i = 0; i < size; i++) {
+            dummyOrder.push(RECIPES[['stout', 'ipa', 'lager'][i % 3]]);
+        }
+        window.game.customer.order = dummyOrder;
+
+        // Force the order to appear fully completed so all glasses draw instantly
+        window.game.customer.currentOrderIndex = size;
+
+        console.log(`CALIBRATING: Flight of ${size}`);
+        return;
+    }
+
+    // --- CUSTOMER-SPECIFIC TOOLS (Requires a customer to be on screen) ---
+    if (!window.game.customer) return;
 
     // POSE OVERRIDES
     if (e.key === '1') window.game.customer.poseIndex = 0; // Idle
@@ -1017,4 +1097,5 @@ window.addEventListener('keydown', (e) => {
         window.game.customer.currentDrinkProgress = 0;
         console.log("TESTING: Black & Bitter (IPA bottom, Stout top)");
     }
+  
 });
