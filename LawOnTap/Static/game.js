@@ -80,6 +80,20 @@ let SPRITE_DATA = {
         ]
     },
 
+    half_pours: {
+        fillTweaks: [
+            { x: 0, y: 0 }, // Half Pour: Stout (Left Tap)
+            { x: 0, y: 0 }, // Half Pour: IPA (Middle Tap)
+            { x: 0, y: 0 }  // Half Pour: Lager (Right Tap)
+        ]
+    },
+    mix_pours: {
+        fillTweaks: [
+            { x: 0, y: 0 }, // Mix Frame 0: Black & Tan (Lager bottom, Stout top)
+            { x: 0, y: 0 }, // Mix Frame 1: Black & Bitter (IPA bottom, Stout top)
+            { x: 0, y: 0 }  // Mix Frame 2: Lawnmower Hop (Lager bottom, IPA top)
+        ]
+    },
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
     towers_visual: {
         s: 0.5, // Default scale for towers
@@ -184,7 +198,9 @@ const ASSETS_PATHS = {
     karen: 'assets/karen.png',     // Added
     spill: 'assets/spill.png', 
     paddles: 'assets/paddles.png',
-    fullpints: 'assets/fullpints.png'
+    fullpints: 'assets/fullpints.png',
+    mixpour: 'assets/mixpour.png',   // Added
+    halfpour: 'assets/halfpour.png'
 };
 const assets = {}; 
 
@@ -400,11 +416,15 @@ class Game {
 
     completeOrder(success) {
         if (success && this.customer.satisfaction > 0) {
-            this.score += 50 * this.customer.order.length; this.customer.state = 'walking_out';
+            this.score += 50 * this.customer.order.length;
+            this.customer.poseIndex = 1; // Force Happy Face
+            this.customer.state = 'walking_out';
         } else {
-            this.lives--; this.notifications.trigger("TRASH!", "#f00"); this.customer.state = 'walking_out'; 
+            this.lives--;
+            this.notifications.trigger("TRASH!", "#f00");
+            this.customer.poseIndex = 2; // Force Angry Face
+            this.customer.state = 'walking_out';
         }
-        
     }
 
     // --- DRAWING ---
@@ -568,16 +588,67 @@ class Game {
                             drawX, drawY, drawFPW, drawFPH
                         );
 
-                        // 2. DYNAMICALLY FILL THE LIQUID WITH NUDGE OFFSETS
+                        // 2. DYNAMICALLY FILL THE LIQUID WITH NUDGE OFFSETS & MIXES
                         if (this.customer) {
                             let drinkProgress = Math.min(this.customer.currentDrinkProgress, 1.0);
+
+                            // Default to full pint logic
+                            let activeLiquidAsset = assets.fullpints;
+                            let liquidFrames = 4;
+                            let targetFrameIdx = idx + 1; // 1=Stout, 2=IPA, 3=Lager
+
+                            // Default to the fullpints tweak array
+                            let activeTweaks = fpData.fillTweaks;
+                            let tweakIdx = idx;
+
+                            // Check if the current order is a multi-step mixed drink
+                            const recipeObj = this.customer.order[this.customer.currentOrderIndex];
+
+                            if (recipeObj && recipeObj.steps && recipeObj.steps.length > 1) {
+                                // Find the dictionary key for this recipe to easily map it
+                                const recipeKey = Object.keys(RECIPES).find(key => RECIPES[key].name === recipeObj.name);
+
+                                if (this.customer.currentStepIndex === 0) {
+                                    // STEP 1: Pouring the first half. Use halfpour sheet.
+                                    if (assets.halfpour) {
+                                        activeLiquidAsset = assets.halfpour;
+                                        liquidFrames = 3;
+                                        targetFrameIdx = idx; // 0=Stout, 1=IPA, 2=Lager
+
+                                        // Swap to half_pours tweaks
+                                        if (SPRITE_DATA.half_pours) {
+                                            activeTweaks = SPRITE_DATA.half_pours.fillTweaks;
+                                            tweakIdx = targetFrameIdx;
+                                        }
+                                    }
+                                } else {
+                                    // STEP 2: Pouring the second half. Use mixpour sheet.
+                                    if (assets.mixpour) {
+                                        activeLiquidAsset = assets.mixpour;
+                                        liquidFrames = 3;
+                                        if (recipeKey === 'black_tan') targetFrameIdx = 0;
+                                        else if (recipeKey === 'black_bitter') targetFrameIdx = 1;
+                                        else if (recipeKey === 'lawnmower') targetFrameIdx = 2;
+
+                                        // Swap to mix_pours tweaks
+                                        if (SPRITE_DATA.mix_pours) {
+                                            activeTweaks = SPRITE_DATA.mix_pours.fillTweaks;
+                                            tweakIdx = targetFrameIdx;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Calculate dynamic slice width based on the active sprite sheet
+                            let liqBaseW = Math.floor(activeLiquidAsset.width / liquidFrames);
+                            let liqBaseH = activeLiquidAsset.height;
 
                             // Grab the custom tweaks and scale them to match the current 3D size
                             let tweakXScreen = 0;
                             let tweakYScreen = 0;
-                            if (fpData.fillTweaks && fpData.fillTweaks[idx]) {
-                                tweakXScreen = fpData.fillTweaks[idx].x * currentScale;
-                                tweakYScreen = fpData.fillTweaks[idx].y * currentScale;
+                            if (activeTweaks && activeTweaks[tweakIdx]) {
+                                tweakXScreen = activeTweaks[tweakIdx].x * currentScale;
+                                tweakYScreen = activeTweaks[tweakIdx].y * currentScale;
                             }
 
                             ctx.save();
@@ -591,11 +662,9 @@ class Game {
                             );
                             ctx.clip();
 
-                            let targetFrameIdx = idx + 1; // 1 = Stout, 2 = IPA, 3 = Lager
-
                             // Draw the filled glass shifted perfectly to match the mask
-                            ctx.drawImage(assets.fullpints,
-                                targetFrameIdx * baseFPW, 0, baseFPW, baseFPH,
+                            ctx.drawImage(activeLiquidAsset,
+                                targetFrameIdx * liqBaseW, 0, liqBaseW, liqBaseH,
                                 drawX + tweakXScreen, drawY + tweakYScreen, drawFPW, drawFPH
                             );
                             ctx.restore();
@@ -834,13 +903,7 @@ class Game {
             ctx.restore();
             // ---------------------------------
 
-            if (this.customer.state === 'waiting') {
-                // Pour progress bar only (circle timer removed)
-                ctx.fillStyle = "white";
-                ctx.fillRect(this.customer.x + 120, this.customer.y - 200, 20, -200 * this.customer.currentDrinkProgress);
-                ctx.strokeStyle = "red";
-                ctx.strokeRect(this.customer.x + 120, this.customer.y - 200, 20, -200);
-            }
+            
         }
 
         this.drawTower();
@@ -866,26 +929,7 @@ class Game {
         
         this.notifications.draw();
 
-        // --- ADD STEP C RIGHT HERE ---
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctx.fillRect(10, 10, 300, 60);
-        ctx.fillStyle = "#0f0"; // Neon green
-        ctx.font = "30px monospace";
-        ctx.textAlign = "left";
-        ctx.fillText(`X: ${Math.round(this.debugPos.x)}`, 20, 40);
-        ctx.fillText(`Y: ${Math.round(this.debugPos.y)}`, 160, 40);
-
-        ctx.strokeStyle = "#0f0";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(this.debugPos.x - 20, this.debugPos.y);
-        ctx.lineTo(this.debugPos.x + 20, this.debugPos.y);
-        ctx.moveTo(this.debugPos.x, this.debugPos.y - 20);
-        ctx.lineTo(this.debugPos.x, this.debugPos.y + 20);
-        ctx.stroke();
-        ctx.restore();
-        // -----------------------------
+        
         
         ctx.restore();
     }
@@ -941,30 +985,36 @@ function loadImages() {
 loadImages();
 
 // ==========================================
-// PINPOINT TOOL: VISUAL PLACEMENT CALIBRATOR
+// TEMPORARY TESTING TOOLS
 // ==========================================
-let pinLocked = false;
-let pinPos = { x: 960, y: 540 };
-
-window.addEventListener('mousemove', (e) => {
-    if (pinLocked) return;
-    const rect = canvas.getBoundingClientRect();
-    pinPos.x = (e.clientX - rect.left - screenOffset.x) / screenScale;
-    pinPos.y = (e.clientY - rect.top - screenOffset.y) / screenScale;
-});
-
-window.addEventListener('mousedown', (e) => {
-    pinLocked = !pinLocked; // Click to freeze/unfreeze
-    if (pinLocked) {
-        console.log(`📍 PINPOINT LOCKED: x: ${Math.round(pinPos.x)}, y: ${Math.round(pinPos.y)}`);
-    }
-});
-
-// TEMPORARY POSE TESTING TOOL
 window.addEventListener('keydown', (e) => {
     if (!window.game || !window.game.customer) return;
 
+    // POSE OVERRIDES
     if (e.key === '1') window.game.customer.poseIndex = 0; // Idle
     if (e.key === '2') window.game.customer.poseIndex = 1; // Happy
     if (e.key === '3') window.game.customer.poseIndex = 2; // Angry
+
+    // RECIPE OVERRIDES FOR VISUAL TWEAKING
+    if (e.key === '4') {
+        window.game.customer.order = [RECIPES['black_tan']];
+        window.game.customer.currentOrderIndex = 0;
+        window.game.customer.currentStepIndex = 0;
+        window.game.customer.currentDrinkProgress = 0;
+        console.log("TESTING: Black & Tan (Lager bottom, Stout top)");
+    }
+    if (e.key === '5') {
+        window.game.customer.order = [RECIPES['lawnmower']];
+        window.game.customer.currentOrderIndex = 0;
+        window.game.customer.currentStepIndex = 0;
+        window.game.customer.currentDrinkProgress = 0;
+        console.log("TESTING: Lawnmower Hop (Lager bottom, IPA top)");
+    }
+    if (e.key === '6') {
+        window.game.customer.order = [RECIPES['black_bitter']];
+        window.game.customer.currentOrderIndex = 0;
+        window.game.customer.currentStepIndex = 0;
+        window.game.customer.currentDrinkProgress = 0;
+        console.log("TESTING: Black & Bitter (IPA bottom, Stout top)");
+    }
 });
