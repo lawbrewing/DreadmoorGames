@@ -57,6 +57,29 @@ let SPRITE_DATA = {
     ],
 
     // VISUAL DATA
+    full_pints: {
+        s: 0.25, // Global scale of the glass on the counter
+        fillTweaks: [
+            { x: 28, y: 0 }, // Tap 0 (Stout) liquid offset
+            { x: 79, y: 0 }, // Tap 1 (IPA) liquid offset
+            { x: 122, y: 0 }  // Tap 2 (Lager) liquid offset
+        ],
+        positions: [
+            {
+                x: 11, y: 880,
+                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Left Tap
+            },
+            {
+                x: -11, y: 880,
+                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Middle Tap
+            },
+            {
+                x: -50, y: 880,
+                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Right Tap
+            }
+        ]
+    },
+
     // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
     towers_visual: {
         s: 0.5, // Default scale for towers
@@ -160,7 +183,8 @@ const ASSETS_PATHS = {
     vip: 'assets/vip.png',         // Added
     karen: 'assets/karen.png',     // Added
     spill: 'assets/spill.png', 
-    paddles: 'assets/paddles.png'
+    paddles: 'assets/paddles.png',
+    fullpints: 'assets/fullpints.png'
 };
 const assets = {}; 
 
@@ -279,10 +303,13 @@ class Game {
     constructor() {
         this.started = false; this.score = 1250; this.lives = 3;
         this.customer = null; this.menuAnim = { y: -600 };
-        this.activePour = { active: false, tapIndex: -1, spillTimer: 0 };
+
+        // 👇 ADD slideProgress: 0 HERE
+        this.activePour = { active: false, tapIndex: -1, spillTimer: 0, slideProgress: 0 };
+
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
-        
+
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -302,15 +329,25 @@ class Game {
             const randomType = standardPool[Math.floor(Math.random() * standardPool.length)];
             
             this.customer = new Customer(randomType);
+            this.activePour.tapIndex = -1;
+            this.activePour.slideProgress = 0;
         }
     }
 
     handlePourInput(isDown, tapIndex) {
         if (!this.customer || this.customer.state !== 'waiting') return;
         if (isDown) {
-            this.activePour.active = true; this.activePour.tapIndex = tapIndex;
+            this.activePour.active = true;
+
+            // Only trigger the 3D slide-in if they clicked a DIFFERENT tap
+            if (this.activePour.tapIndex !== tapIndex) {
+                this.activePour.slideProgress = 0;
+            }
+            this.activePour.tapIndex = tapIndex;
         } else {
-            this.activePour.active = false; this.activePour.spillTimer = 0;
+            this.activePour.active = false;
+            this.activePour.spillTimer = 0;
+            // 👇 REMOVED the slideProgress reset from here so it stays on the counter!
             this.evaluatePour();
         }
     }
@@ -404,7 +441,7 @@ class Game {
         if (assets.tower && SPRITE_DATA.towers_visual) {
             const towersData = SPRITE_DATA.towers_visual;
             const towerScale = towersData.s || 0.5;
-            
+
             let frameW = assets.tower.width / 3;
             let frameH = assets.tower.height;
 
@@ -412,15 +449,15 @@ class Game {
                 ctx.save();
                 ctx.translate(t.x, t.y);
 
-                let srcX = idx * frameW; 
+                let srcX = idx * frameW;
                 let drawW = frameW * towerScale;
                 let drawH = frameH * towerScale;
 
-                ctx.drawImage(assets.tower, 
-                    srcX, 0, frameW, frameH, 
-                    -drawW/2, -drawH, drawW, drawH
+                ctx.drawImage(assets.tower,
+                    srcX, 0, frameW, frameH,
+                    -drawW / 2, -drawH, drawW, drawH
                 );
-                
+
                 ctx.restore();
             });
         }
@@ -429,20 +466,20 @@ class Game {
         if (assets.taps && SPRITE_DATA.taps_visual) {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
-            
+
             // Base automatic grid math
             let baseFrameW = assets.taps.width / 3;
             let baseFrameH = assets.taps.height / 2;
-            
+
             tapsData.positions.forEach((pos, idx) => {
                 ctx.save(); // Global save for this tap station
                 ctx.translate(pos.x, pos.y);
-                
+
                 let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
-                
+
                 // --- DRAW THE TAP HANDLE ---
-                ctx.save(); 
-                
+                ctx.save();
+
                 if (isPouring) {
                     if (pos.openOffset) {
                         ctx.translate(pos.openOffset.x, pos.openOffset.y);
@@ -451,19 +488,19 @@ class Game {
                         ctx.rotate(pos.openRotation);
                     }
                 }
-                
+
                 // SWAP CLIPS BASED ON STATE! 
                 // If pouring, use openClip. If not, use standard clip.
                 let activeClip = (isPouring && pos.openClip) ? pos.openClip : (pos.clip || {});
-                
+
                 let clipSX = activeClip.sx || 0;
                 let clipSY = activeClip.sy || 0;
                 let trimW = activeClip.trimW || 0;
                 let trimH = activeClip.trimH || 0;
 
                 let srcX = (idx * baseFrameW) + clipSX;
-                let srcY = (isPouring ? baseFrameH : 0) + clipSY; 
-                
+                let srcY = (isPouring ? baseFrameH : 0) + clipSY;
+
                 // Apply the trims
                 let finalFrameW = baseFrameW - trimW;
                 let finalFrameH = baseFrameH - trimH;
@@ -474,14 +511,99 @@ class Game {
                 // Use the activeScale instead of the default tapScale
                 let drawW = finalFrameW * activeScale;
                 let drawH = finalFrameH * activeScale;
-                
-                ctx.drawImage(assets.taps, 
-                    srcX, srcY, finalFrameW, finalFrameH, 
-                    -drawW/2, 0, drawW, drawH 
+
+                ctx.drawImage(assets.taps,
+                    srcX, srcY, finalFrameW, finalFrameH,
+                    -drawW / 2, 0, drawW, drawH
                 );
-                
-                ctx.restore(); 
+
+                ctx.restore();
                 // -----------------------------
+
+                // --- 3D COUNTER PINT DROP-IN & FILLING ---
+                if (assets.fullpints && SPRITE_DATA.full_pints) {
+                    const fpData = SPRITE_DATA.full_pints;
+                    const pintPos = fpData.positions[idx];
+                    const pintScale = fpData.s || 0.45;
+
+                    let baseFPW = Math.floor(assets.fullpints.width / 4);
+                    let baseFPH = assets.fullpints.height;
+
+                    // 👇 CHANGED: The glass now belongs to whatever tap was LAST clicked
+                    let isGlassHere = (this.activePour.tapIndex === idx && this.customer && this.customer.state === 'waiting');
+
+                    if (isGlassHere) { // 👇 CHANGED condition
+                        // Slightly slower progress increment to let the eye catch the 3D motion
+                        if (this.activePour.slideProgress < 1.0) {
+                            this.activePour.slideProgress = Math.min(1.0, this.activePour.slideProgress + 0.12);
+                        }
+
+                        // Ease-out curve: Starts fast, slows down right as it hits the counter
+                        let p = this.activePour.slideProgress;
+                        let easeOut = 1 - (1 - p) * (1 - p);
+
+                        ctx.save();
+                        let targetX = pintPos.x;
+                        let targetY = pintPos.y;
+
+                        // 3D EFFECT PARAMETERS
+                        // Start huge (3x scale), originating from the bottom-center of the screen
+                        let startScale = pintScale * 3.5;
+                        let startX = 1920 / 2; // Center of the screen
+                        let startY = targetY + 600; // Deep off the bottom edge
+
+                        // Interpolate current values based on the easing curve
+                        let currentScale = startScale + (pintScale - startScale) * easeOut;
+                        let currentX = startX + (targetX - startX) * easeOut;
+                        let currentY = startY + (targetY - startY) * easeOut;
+
+                        let drawFPW = baseFPW * currentScale;
+                        let drawFPH = baseFPH * currentScale;
+                        let drawX = currentX - drawFPW / 2;
+                        let drawY = currentY - drawFPH;
+
+                        // 1. DRAW FRAME 0 (The 3D Sliding Empty Glass Base)
+                        ctx.drawImage(assets.fullpints,
+                            0, 0, baseFPW, baseFPH,
+                            drawX, drawY, drawFPW, drawFPH
+                        );
+
+                        // 2. DYNAMICALLY FILL THE LIQUID WITH NUDGE OFFSETS
+                        if (this.customer) {
+                            let drinkProgress = Math.min(this.customer.currentDrinkProgress, 1.0);
+
+                            // Grab the custom tweaks and scale them to match the current 3D size
+                            let tweakXScreen = 0;
+                            let tweakYScreen = 0;
+                            if (fpData.fillTweaks && fpData.fillTweaks[idx]) {
+                                tweakXScreen = fpData.fillTweaks[idx].x * currentScale;
+                                tweakYScreen = fpData.fillTweaks[idx].y * currentScale;
+                            }
+
+                            ctx.save();
+                            ctx.beginPath();
+                            // Shift BOTH the clipping mask and the liquid bounding box together
+                            ctx.rect(
+                                drawX + tweakXScreen,
+                                drawY + tweakYScreen + (drawFPH * (1 - drinkProgress)),
+                                drawFPW,
+                                drawFPH * drinkProgress
+                            );
+                            ctx.clip();
+
+                            let targetFrameIdx = idx + 1; // 1 = Stout, 2 = IPA, 3 = Lager
+
+                            // Draw the filled glass shifted perfectly to match the mask
+                            ctx.drawImage(assets.fullpints,
+                                targetFrameIdx * baseFPW, 0, baseFPW, baseFPH,
+                                drawX + tweakXScreen, drawY + tweakYScreen, drawFPW, drawFPH
+                            );
+                            ctx.restore();
+                        }
+                        ctx.restore();
+                    }
+                }
+                // ----------------------------------------------
 
                 // --- DRAW THE SPILL ---
                 if (isPouring && this.activePour.spillTimer > 0) {
@@ -494,15 +616,15 @@ class Game {
                         let spillDrawW = spW * sp.s * tapScale;
                         let spillDrawH = spH * sp.s * tapScale;
 
-                        ctx.drawImage(assets.spill, 
+                        ctx.drawImage(assets.spill,
                             spX, 0, spW, spH,
-                            sp.x, sp.y, 
+                            sp.x, sp.y,
                             spillDrawW, spillDrawH
                         );
                     }
                 }
                 // -----------------------------
-                
+
                 ctx.restore(); // End global save for this tap station
             });
         }
@@ -651,10 +773,6 @@ class Game {
                 if (pOffset.s !== undefined) customScale = pOffset.s;
             }
 
-            if (this.customer.state === 'walking_out') {
-                this.customer.poseIndex = 2;
-            }
-
             let baseFrameW = (this.customer.clip.sw > 0) ? this.customer.clip.sw : Math.floor(img.width / 3);
             let frameW = (customSW !== null) ? customSW : baseFrameW;
             let frameH = (this.customer.clip.sh > 0) ? this.customer.clip.sh : img.height;
@@ -680,17 +798,24 @@ class Game {
             let yBob = 0;
             let rotation = 0;
             let isFlipped = false;
+            let isLeftFacing = (this.customer.spriteId === 'vip');
+            let movingRight = false;
 
             if (this.customer.state === 'walking_in') {
-                // If they spawned on the right, they are walking left (Flip needed!)
-                if (this.customer.startX > this.customer.targetX) isFlipped = true;
+                movingRight = (this.customer.startX < this.customer.targetX);
                 yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
                 rotation = Math.sin(Date.now() / 150) * 0.05;
+                isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
+            } else if (this.customer.state === 'waiting') {
+                // EVERYONE faces right while waiting at the destination counter!
+                isFlipped = isLeftFacing; // Flips left-facing sprites right. Leaves right-facing sprites alone.
+                yBob = 0;
+                rotation = 0;
             } else if (this.customer.state === 'walking_out') {
-                // If their exit is to their left, flip them to face it
-                if (this.customer.exitX < this.customer.x) isFlipped = true;
+                movingRight = (this.customer.exitX > this.customer.x);
                 yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
                 rotation = Math.sin(Date.now() / 150) * 0.05;
+                isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
             }
 
             // Move the canvas directly to the character's feet
