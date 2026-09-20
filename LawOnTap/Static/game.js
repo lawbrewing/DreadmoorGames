@@ -222,7 +222,7 @@ class NotificationSystem {
 }
 
 class Customer {
-    constructor(typeKey) {
+    constructor(typeKey, currentLevel = 1) { // Accept the level
         const type = CUSTOMER_TYPES[typeKey];
         this.type = typeKey;
         this.spriteId = type.id;
@@ -247,7 +247,7 @@ class Customer {
         this.patienceMax = type.patience;
         this.patience = this.patienceMax;
         this.satisfaction = 100;
-        this.order = this.generateOrder(typeKey);
+        this.order = this.generateOrder(typeKey, currentLevel);
 
         this.currentOrderIndex = 0;
         this.currentDrinkProgress = 0;
@@ -255,17 +255,51 @@ class Customer {
         this.poseIndex = 0;
     }
 
-    generateOrder(typeKey) {
+    generateOrder(typeKey, level) {
         if (typeKey === 'karen') return [{ name: "???", recipe: null }];
+
         if (typeKey === 'judge') {
-            const keys = Object.keys(RECIPES);
+            // Scale flight size with level (Level 1 = 2 glasses, Level 4 = 5 glasses)
+            let flightSize = Math.min(level + 1, 5);
+
+            // Core standard pool
+            let availableKeys = ['stout', 'ipa', 'lager'];
+
+            // Allow mixed drinks in the Judge's pool only on Level 4 or higher
+            if (level >= 4) {
+                availableKeys.push('black_tan', 'black_bitter', 'lawnmower');
+            }
+
+            // 👇 SHUFFLE AND PICK UNIQUE DRINKS
             let flight = [];
-            for (let i = 0; i < 3; i++) flight.push(RECIPES[keys[Math.floor(Math.random() * keys.length)]]);
+            let tempPool = [...availableKeys];
+
+            for (let i = 0; i < flightSize; i++) {
+                if (tempPool.length === 0) break; // Failsafe
+                let rndIdx = Math.floor(Math.random() * tempPool.length);
+                // Remove the chosen beer from the temporary pool and add to flight
+                flight.push(RECIPES[tempPool.splice(rndIdx, 1)[0]]);
+            }
             return flight;
         }
+
         const possible = CUSTOMER_TYPES[typeKey].orders;
-        if (possible[0] === 'all_pure') return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
-        if (possible[0] === 'all_mixed') return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
+
+        // Regular single pour randomization
+        if (possible[0] === 'all_pure') {
+            return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
+        }
+
+        // VIP escalation logic
+        if (possible[0] === 'all_mixed') {
+            // If they spawn on Level 1 or 2, force them to order a pure drink instead
+            if (level < 3) {
+                return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
+            }
+            // Level 3+, they unleash the mixed drinks
+            return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
+        }
+
         return [RECIPES[possible[0]]];
     }
 
@@ -289,6 +323,13 @@ class Customer {
                     return 'arrived';
                 }
             }
+        } else if (this.state === 'finished_pause') {
+            // Hold the pose at the counter for the beat
+            this.pauseTimer -= 1;
+            if (this.pauseTimer <= 0) {
+                this.state = 'walking_out';
+            }
+            return null;
         } else if (this.state === 'walking_out') {
             // Move steadily towards their exit side
             if (this.x < this.exitX) {
@@ -315,8 +356,11 @@ class Game {
     constructor() {
         this.started = false; this.score = 1250; this.lives = 3;
         this.customer = null; this.menuAnim = { y: -600 };
-
-        // 👇 ADD slideProgress: 0 HERE
+        this.level = 1;
+        this.customersServedThisLevel = 0;
+        this.levelQuota = 3;
+        this.combo = 0;
+        this.lastCustomerType = null;
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
 
         this.notifications = new NotificationSystem();
@@ -329,18 +373,31 @@ class Game {
 
     spawnCustomer() {
         if (this.customer) return;
-        const rnd = Math.random();
-        
-        if (rnd > 0.9) {
-            // 10% chance for the Boss (Judge)
-            this.notifications.trigger("JUDGE INCOMING!", "#f00", 180);
-            setTimeout(() => { this.customer = new Customer('judge'); }, 3000);
+
+        // Check if we hit the quota to trigger the Boss Phase
+        if (this.customersServedThisLevel >= this.levelQuota) {
+            this.notifications.trigger(`SHIFT ${this.level} BOSS!`, "#f00", 180);
+
+            // Pass this.level to the Judge so his flight size scales
+            setTimeout(() => {
+                this.customer = new Customer('judge', this.level);
+                this.activePour.tapIndex = -1;
+                this.activePour.slideProgress = 0;
+            }, 3000);
+
         } else {
-            // 90% chance to pick a random standard customer
-            const standardPool = ['viking', 'hipster', 'regular', 'vip', 'karen'];
+            // Standard customer pool
+            let standardPool = ['viking', 'hipster', 'regular', 'vip', 'karen'];
+
+            // Filter out the last customer to prevent duplicates
+            if (this.lastCustomerType) {
+                standardPool = standardPool.filter(type => type !== this.lastCustomerType);
+            }
+
             const randomType = standardPool[Math.floor(Math.random() * standardPool.length)];
-            
-            this.customer = new Customer(randomType);
+            this.lastCustomerType = randomType; // Save for next time
+
+            this.customer = new Customer(randomType, this.level);
             this.activePour.tapIndex = -1;
             this.activePour.slideProgress = 0;
         }
@@ -370,6 +427,13 @@ class Game {
 
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
+
+        // INSTANT FAILURE: Wrong Tap
+        if (this.activePour.tapIndex !== step.tap) {
+            this.activePour.active = false;
+            this.completeOrder(false); // Instantly trigger the failure state
+            return;
+        }
 
         if (this.activePour.tapIndex === step.tap) {
             c.currentDrinkProgress += 0.008; 
@@ -418,20 +482,53 @@ class Game {
     }
 
     completeOrder(success) {
+        const isJudge = this.customer.type === 'judge';
+
         if (success && this.customer.satisfaction > 0) {
-            this.score += 50 * this.customer.order.length;
-            this.customer.poseIndex = 1; // Force Happy Face
-            this.customer.state = 'walking_out';
+            // --- SUCCESS ---
+            if (isJudge) {
+                // THE BOSS BOUNTY
+                this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
+                this.score += 1000 * this.level; // Massive point drop
+                if (this.lives < 3) this.lives++; // Heal a life!
+
+                this.level++; // Advance to the next shift
+                this.customersServedThisLevel = 0; // Reset quota for the new shift
+            } else {
+                // Standard customer success
+                this.combo++;
+                this.score += (50 * this.customer.order.length) + (this.combo * 10);
+                this.notifications.trigger(`PERFECT! +${this.combo} COMBO`, "#0f0", 60);
+                this.customersServedThisLevel++; // Count towards triggering the next Judge
+            }
         } else {
+            // --- FAILURE ---
             this.lives--;
-            this.notifications.trigger("TRASH!", "#f00");
-            this.customer.poseIndex = 2; // Force Angry Face
+            this.combo = 0; // Violently break the combo multiplier
+
+            if (isJudge) {
+                // THE ALL-OR-NOTHING PENALTY
+                this.notifications.trigger("FLIGHT REJECTED!", "#f00", 120);
+                // Note: We do NOT increment level here. They must try again.
+            } else {
+                this.notifications.trigger("TRASH! COMBO BROKEN", "#f00", 60);
+            }
+        }
+
+        // --- APPLY FINAL POSE AND STATE ---
+        this.customer.poseIndex = success && this.customer.satisfaction > 0 ? 1 : 2;
+
+        if (isJudge) {
+            // Trigger the 3-second dramatic pause (180 frames at 60fps)
+            this.customer.state = 'finished_pause';
+            this.customer.pauseTimer = 180;
+        } else {
             this.customer.state = 'walking_out';
         }
     }
     drawFlightPaddle() {
         if (!this.customer || !assets.paddles) return;
-
+        if (this.customer.state !== 'waiting' && this.customer.state !== 'finished_pause') return;
         const orderLen = this.customer.order.length;
         if (orderLen < 2) return;
 
