@@ -221,6 +221,59 @@ class NotificationSystem {
     }
 }
 
+class AudioEngine {
+    constructor() {
+        this.bgm = new Audio('assets/law_on_tap.mp3');
+        this.bgm.loop = true;
+        this.bgm.volume = 0.5; // Lowered base volume so SFX pop more
+        this.targetVolume = 0.5;
+
+        this.sfx = {
+            perfect: new Audio('assets/perfectpour.mp3'),
+            trash: new Audio('assets/trashpour.mp3'),
+            judge: new Audio('assets/judgeenter.mp3'),
+            gameover: new Audio('assets/gameover.mp3') // New game over track
+        };
+        this.duckTimeout = null;
+    }
+
+    startBGM() {
+        this.bgm.play().catch(e => console.warn("BGM blocked until interaction:", e));
+    }
+
+    stopBGM() {
+        this.bgm.pause();
+        this.bgm.currentTime = 0; // Reset track to beginning
+    }
+
+    play(key, duckDuration = 1000, duckVolume = 0.1) {
+        if (this.sfx[key]) {
+            // 👇 FIX: Reset the original authorized track instead of cloning it!
+            this.sfx[key].currentTime = 0;
+            this.sfx[key].volume = 1.0;
+            this.sfx[key].play().catch(e => console.warn("SFX blocked:", e));
+
+            // If duckDuration is 0 (like the Judge), bypass ducking entirely
+            if (duckDuration > 0) {
+                this.bgm.volume = duckVolume;
+                this.targetVolume = duckVolume;
+
+                clearTimeout(this.duckTimeout);
+                this.duckTimeout = setTimeout(() => {
+                    this.targetVolume = 0.5; // Fade back to new base volume
+                }, duckDuration);
+            }
+        }
+    }
+
+    update() {
+        if (this.bgm.volume < this.targetVolume) {
+            this.bgm.volume = Math.min(this.bgm.volume + 0.005, this.targetVolume);
+        } else if (this.bgm.volume > this.targetVolume) {
+            this.bgm.volume = Math.max(this.bgm.volume - 0.05, this.targetVolume);
+        }
+    }
+}
 class Customer {
     constructor(typeKey, currentLevel = 1) { // Accept the level
         const type = CUSTOMER_TYPES[typeKey];
@@ -361,11 +414,12 @@ class Game {
         this.levelQuota = 3;
         this.combo = 0;
         this.lastCustomerType = null;
+        this.isGameOver = false;
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
 
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
-
+        this.audio = new AudioEngine();
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -377,7 +431,7 @@ class Game {
         // Check if we hit the quota to trigger the Boss Phase
         if (this.customersServedThisLevel >= this.levelQuota) {
             this.notifications.trigger(`SHIFT ${this.level} BOSS!`, "#f00", 180);
-
+            this.audio.play('judge', 0);
             // Pass this.level to the Judge so his flight size scales
             setTimeout(() => {
                 this.customer = new Customer('judge', this.level);
@@ -403,7 +457,25 @@ class Game {
         }
     }
 
+    checkGameOver() {
+        if (this.lives <= 0 && !this.isGameOver) {
+            this.isGameOver = true;
+            this.customer = null; // Instantly remove character
+            this.activePour.active = false;
+
+            // Abrupt audio takeover
+            this.audio.stopBGM();
+            this.audio.play('gameover', 0);
+
+            // Hijack the notification system permanently
+            this.notifications.queue = [];
+            this.notifications.active = null;
+            this.notifications.trigger("GAME OVER", "#f00", 999999); // Stays forever
+        }
+    }
+
     handlePourInput(isDown, tapIndex) {
+        if (this.isGameOver) return;
         if (!this.customer || this.customer.state !== 'waiting') return;
         if (isDown) {
             this.activePour.active = true;
@@ -436,10 +508,13 @@ class Game {
         }
 
         if (this.activePour.tapIndex === step.tap) {
-            c.currentDrinkProgress += 0.008; 
+            c.currentDrinkProgress += 0.008;
+
+            // INSTANT FAILURE: Overflowing the glass
             if (c.currentDrinkProgress > step.limit + 0.1) {
-                c.satisfaction -= 1; c.poseIndex = 2; // Angry
-                if (c.satisfaction % 20 === 0) this.notifications.trigger("TRASH!", "#f00", 30);
+                this.activePour.active = false;
+                this.completeOrder(false); // Instantly triggers failure, audio, and life loss
+                return;
             }
         }
     }
@@ -455,8 +530,9 @@ class Game {
         const lower = step.limit - 0.15; const upper = step.limit + 0.05;
 
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
-            if (c.currentDrinkProgress >= step.limit - 0.02 && c.currentDrinkProgress <= step.limit + 0.02) {
+            if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.02) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
+                this.audio.play('perfect', 800);
                 this.score += 50;
 
                 // FIX: Only change to the Happy pose if this is the final step of the drink
@@ -505,7 +581,7 @@ class Game {
             // --- FAILURE ---
             this.lives--;
             this.combo = 0; // Violently break the combo multiplier
-
+            this.audio.play('trash', 800);
             if (isJudge) {
                 // THE ALL-OR-NOTHING PENALTY
                 this.notifications.trigger("FLIGHT REJECTED!", "#f00", 120);
@@ -513,6 +589,7 @@ class Game {
             } else {
                 this.notifications.trigger("TRASH! COMBO BROKEN", "#f00", 60);
             }
+            this.checkGameOver();
         }
 
         // --- APPLY FINAL POSE AND STATE ---
@@ -1034,7 +1111,12 @@ class Game {
         };
 
         const handleStart = (e) => {
-            if (!this.started) { this.started = true; this.spawnCustomer(); return; }
+            if (!this.started) {
+                this.started = true;
+                this.audio.startBGM(); // 👇 Start the music on the very first tap!
+                this.spawnCustomer();
+                return;
+            }
             const pos = getPos(e);
             
             // TAP ZONES
@@ -1062,6 +1144,7 @@ class Game {
     }
 
     draw() {
+        this.audio.update();
         this.updatePouring();
         this.notifications.update();
         
@@ -1071,9 +1154,11 @@ class Game {
             
             if (status === 'timeout') {
                 this.lives--;
+                this.audio.play('trash', 1200);
                 this.notifications.trigger("WALKED OUT!", "#f00");
                 this.customer.poseIndex = 2; // Ensure they stay angry while walking out
                 this.customer.state = 'walking_out';
+                this.checkGameOver();
             } else if (status === 'gone') {
                 // Customer has fully walked off screen
                 this.customer = null;
