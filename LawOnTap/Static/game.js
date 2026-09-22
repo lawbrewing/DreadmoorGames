@@ -199,7 +199,26 @@ const ASSETS_PATHS = {
     halfpour: 'assets/halfpour.png',
     neon_sign: 'assets/lawbrewhollow.png'
 };
-const assets = {}; 
+const assets = {};
+
+const REAL_AWARDS = [
+    { name: "Gose", comp: "WI State Fair", year: "2022", type: "bronze" },
+    { name: "Gose", comp: "WI State Fair", year: "2023", type: "bronze" },
+    { name: "Gose", comp: "Manitowoc Fair", year: "2022", type: "bronze" },
+    { name: "Hopped Up", comp: "Manitowoc Fair", year: "2024", type: "gold" },
+    { name: "nIPLy", comp: "NHC", year: "2023", type: "silver" },
+    { name: "nIPLy", comp: "NHC", year: "2025", type: "gold" },
+    { name: "nIPLy", comp: "Manitowoc Fair", year: "2026", type: "silver" },
+    { name: "Dreamsicle", comp: "WI State Fair", year: "2026", type: "gold" },
+    { name: "Cabana", comp: "NHC", year: "2024", type: "bronze" },
+    { name: "Cabana", comp: "Manitowoc Fair", year: "2023", type: "bronze" },
+    { name: "Cabana", comp: "Manitowoc Fair", year: "2024", type: "bronze" },
+    { name: "Marshmallow", comp: "WI State Fair", year: "2025", type: "gold" },
+    { name: "LFO", comp: "NHC", year: "2024", type: "gold" },
+    { name: "LFO", comp: "Manitowoc BOS", year: "2023", type: "gold" }, // Best of Show treated as Gold
+    { name: "LFO", comp: "Manitowoc Fair", year: "2023", type: "gold" },
+    { name: "Pale Ale", comp: "Manitowoc Fair", year: "2022", type: "gold" }
+];
 
 // ==========================================
 // 3. LOGIC & DRAWING HELPERS
@@ -589,58 +608,64 @@ class Game {
             ctx.translate(medal.x, medal.y);
             ctx.rotate(medal.rot);
 
-            ctx.scale(1.5, 1.5); // Adjust this if you want them larger or smaller
+            ctx.scale(1.2, 1.2); // Slightly smaller scale so the wide plaques don't overlap too much
 
-            // Drop shadow to pop off the brick
+            // Drop shadow
             ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
             ctx.shadowBlur = 10;
             ctx.shadowOffsetY = 5;
 
-            // 1. Wooden Base
+            // 1. Wide Wooden Base (Landscape)
             ctx.fillStyle = "#3d2314";
-            ctx.fillRect(-30, -40, 60, 80);
+            ctx.fillRect(-60, -35, 120, 70);
 
-            ctx.shadowColor = "transparent"; // Clear shadow for the inner details
+            ctx.shadowColor = "transparent";
 
             // Wood border/bevel
             ctx.strokeStyle = "#2b180d";
             ctx.lineWidth = 4;
-            ctx.strokeRect(-30, -40, 60, 80);
+            ctx.strokeRect(-60, -35, 120, 70);
 
-            // 2. Determine Plate Colors
-            let fillCol, edgeCol, textStr, textColor;
-            if (medal.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textStr = "1ST"; textColor = "#5c4300"; }
-            else if (medal.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textStr = "2ND"; textColor = "#333333"; }
-            else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textStr = "3RD"; textColor = "#3b1c04"; }
+            // 2. Determine Plate Colors from the Award Object
+            let fillCol, edgeCol, textColor;
+            if (medal.award.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textColor = "#5c4300"; }
+            else if (medal.award.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textColor = "#333333"; }
+            else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textColor = "#3b1c04"; }
 
-            // 3. Metallic Plate
+            // 3. Wide Metallic Plate
             ctx.fillStyle = fillCol;
-            ctx.fillRect(-20, -30, 40, 60);
+            ctx.fillRect(-50, -25, 100, 50);
 
             ctx.strokeStyle = edgeCol;
             ctx.lineWidth = 2;
-            ctx.strokeRect(-20, -30, 40, 60);
+            ctx.strokeRect(-50, -25, 100, 50);
 
             // Decorative Corner Screws
             ctx.fillStyle = edgeCol;
-            ctx.beginPath(); ctx.arc(-15, -25, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(15, -25, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(-15, 25, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(15, 25, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-45, -20, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(45, -20, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-45, 20, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(45, 20, 2, 0, Math.PI * 2); ctx.fill();
 
-            // 4. Engraved Text
+            // 4. Two-Line Engraved Text
             ctx.fillStyle = textColor;
-            ctx.font = 'bold 24px "Bebas Neue", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(textStr, 0, 0);
+
+            // Top Line: Beer Name (Max width 90px to prevent spilling off the 100px metal plate)
+            ctx.font = 'bold 18px "Bebas Neue", monospace';
+            ctx.fillText(medal.award.name.toUpperCase(), 0, -8, 90);
+
+            // Bottom Line: Competition & Year
+            ctx.font = '14px "Bebas Neue", monospace';
+            ctx.fillText(`${medal.award.comp} '${medal.award.year.slice(-2)}`, 0, 10, 90);
 
             // 5. Glossy Shine
             ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
             ctx.beginPath();
-            ctx.moveTo(-20, -30);
-            ctx.lineTo(20, -30);
-            ctx.lineTo(-20, 30);
+            ctx.moveTo(-50, -25);
+            ctx.lineTo(50, -25);
+            ctx.lineTo(-50, 25);
             ctx.fill();
 
             ctx.restore();
@@ -805,17 +830,17 @@ class Game {
                 this.audio.play('perfect', 0);
                 this.score += 50;
 
-                // --- PLAQUE SPAWN LOGIC ---
-                let roll = Math.random();
-                let medalType = roll < 0.50 ? 'gold' : (roll < 0.80 ? 'silver' : 'bronze');
+                // --- EASTER EGG PLAQUE SPAWN LOGIC ---
+                // Pick a random real-world award from the database
+                let award = REAL_AWARDS[Math.floor(Math.random() * REAL_AWARDS.length)];
 
                 let mX, mY;
                 let validPlacement = false;
 
                 while (!validPlacement) {
                     // Pick a wide zone starting near the sign and stretching to the far right screen edge
-                    mX = 1100 + (Math.random() * 750); // X: 1100 to 1850
-                    mY = 100 + (Math.random() * 550);  // Y: 100 to 650 (Allows them to drop behind the right tap)
+                    mX = 1100 + (Math.random() * 750);
+                    mY = 100 + (Math.random() * 550);
 
                     // The Forbidden Zone: The exact coordinates of your neon sign
                     let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
@@ -825,9 +850,10 @@ class Game {
                     }
                 }
 
-                let mRot = (Math.random() - 0.5) * 0.15; // Slight realistic crookedness
+                let mRot = (Math.random() - 0.5) * 0.15;
 
-                this.wallMedals.push({ x: mX, y: mY, type: medalType, rot: mRot });
+                // Pass the whole award object instead of just a generic metal type
+                this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
 
             } else {
                 // Secondary trigger: Still successfully poured, but missed the perfect window
