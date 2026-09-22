@@ -274,6 +274,63 @@ class AudioEngine {
         }
     }
 }
+
+class LootLockerAPI {
+    constructor() {
+        this.baseURL = "https://api.lootlocker.io/game/v2";
+        this.gameKey = "dev_acdf056df19c4541b2c45db4424aa16f"; // 👈 PASTE KEY HERE
+        this.leaderboardID = "36366"; // 👈 PASTE ID HERE
+        this.sessionToken = "";
+        this.playerIdentifier = localStorage.getItem("ll_player_id") || "";
+        this.topScores = []; // Stores the fetched leaderboard
+    }
+
+    async init() {
+        try {
+            const res = await fetch(`${this.baseURL}/session/guest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ game_key: this.gameKey, game_version: "1.0.0", player_identifier: this.playerIdentifier })
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.sessionToken = data.session_token;
+                localStorage.setItem("ll_player_id", data.player_identifier);
+                this.topScores = await this.fetchScores(5); // Fetch top 5 immediately on load
+            }
+        } catch (e) { console.error("LootLocker Init Error:", e); }
+    }
+
+    async submitScore(score, playerName) {
+        if (!this.sessionToken) return;
+        try {
+            // Set name
+            await fetch(`${this.baseURL}/player/name`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
+                body: JSON.stringify({ name: playerName })
+            });
+            // Submit score
+            await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
+                body: JSON.stringify({ score: score, member_id: this.playerIdentifier })
+            });
+        } catch (e) { console.error("LootLocker Submit Error:", e); }
+    }
+
+    async fetchScores(count = 5) {
+        if (!this.sessionToken) return [];
+        try {
+            const res = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/list?count=${count}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken }
+            });
+            const data = await res.json();
+            return data.success ? data.items : [];
+        } catch (e) { return []; }
+    }
+}
 class Customer {
     constructor(typeKey, currentLevel = 1) { // Accept the level
         const type = CUSTOMER_TYPES[typeKey];
@@ -296,6 +353,10 @@ class Customer {
         // When they leave, walk towards the closest edge of the screen
         this.exitX = (this.targetX > WORLD.w / 2) ? WORLD.w + 300 : -300;
 
+        // 👇 ENDLESS SCALING: Faster walking and less patience every shift
+        this.walkSpeed = 8 + (currentLevel * 0.5);
+        this.patienceMax = Math.max(6000, type.patience - (currentLevel * 1000));
+
         this.state = 'walking_in';
         this.patienceMax = type.patience;
         this.patience = this.patienceMax;
@@ -306,6 +367,7 @@ class Customer {
         this.currentDrinkProgress = 0;
         this.currentStepIndex = 0;
         this.poseIndex = 0;
+        this.finishTimes = [];
     }
 
     generateOrder(typeKey, level) {
@@ -407,11 +469,11 @@ class Customer {
 
 class Game {
     constructor() {
-        this.started = false; this.score = 1250; this.lives = 3;
+        this.started = false; this.score = 0; this.lives = 3;
         this.customer = null; this.menuAnim = { y: -600 };
         this.level = 1;
         this.customersServedThisLevel = 0;
-        this.levelQuota = 3;
+        this.levelQuota = 10;
         this.combo = 0;
         this.lastCustomerType = null;
         this.isGameOver = false;
@@ -420,6 +482,8 @@ class Game {
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
         this.audio = new AudioEngine();
+        this.leaderboard = new LootLockerAPI();
+        this.leaderboard.init();
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -471,7 +535,35 @@ class Game {
             this.notifications.queue = [];
             this.notifications.active = null;
             this.notifications.trigger("GAME OVER", "#f00", 999999); // Stays forever
+            // 👇 ADD THIS BLOCK: Prompt for initials and send to LootLocker
+            setTimeout(async () => {
+                let name = prompt("GAME OVER! Enter your initials (3 letters):", "AAA");
+                if (name) {
+                    name = name.substring(0, 3).toUpperCase(); // Force 3 uppercase letters
+                    await this.leaderboard.submitScore(this.score, name);
+                    // Refresh the fetched scores immediately after submitting
+                    this.leaderboard.topScores = await this.leaderboard.fetchScores(5);
+                }
+            }, 500); // 500ms delay lets the Game Over screen draw first
         }
+    }
+
+    resetGame() {
+        this.score = 0;
+        this.lives = 3;
+        this.level = 1;
+        this.customersServedThisLevel = 0;
+        this.levelQuota = 10;
+        this.combo = 0;
+        this.lastCustomerType = null;
+        this.isGameOver = false;
+        this.customer = null;
+        this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
+        this.notifications.queue = [];
+        this.notifications.active = null;
+
+        this.audio.startBGM(); // Instantly restart the background track
+        this.spawnCustomer();
     }
 
     handlePourInput(isDown, tapIndex) {
@@ -521,30 +613,51 @@ class Game {
 
     evaluatePour() {
         const c = this.customer;
+        // 👇 KAREN GAMBLE LOGIC
         if (c.type === 'karen') {
-            if (c.currentDrinkProgress > 0.8) { this.completeOrder(Math.random() < 0.33); }
+            // As long as they poured *something* (progress > 0.3), spin the roulette wheel
+            if (c.currentDrinkProgress > 0.3) {
+                this.completeOrder(Math.random() < 0.33); // 33% chance to win the gamble
+            } else {
+                this.completeOrder(false); // They barely poured anything, auto-rage
+            }
             return;
         }
+
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
-        const lower = step.limit - 0.15; const upper = step.limit + 0.05;
 
+        // The acceptable boundaries for the step
+        const lower = step.limit - 0.15;
+        const upper = step.limit + 0.05;
+
+        // Did they release within the acceptable window?
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
-            if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.02) {
+
+            // THE UNIFIED PERFECT TRIGGER: Fires exactly once per committed pour
+            if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.05) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.audio.play('perfect', 800);
                 this.score += 50;
-
-                // FIX: Only change to the Happy pose if this is the final step of the drink
-                if (c.currentStepIndex === recipe.steps.length - 1) {
-                    c.poseIndex = 1;
-                }
             }
 
+            // Move to the next layer of a mixed drink, or finish the glass
             if (c.currentStepIndex < recipe.steps.length - 1) {
                 c.currentStepIndex++;
             } else {
+
+                // 👇 JUDGE POSE LOCK: Only smile if it's NOT the judge, or if it's his final glass!
+                if (c.type !== 'judge' || c.currentOrderIndex === c.order.length - 1) {
+                    c.poseIndex = 1;
+                }
+
                 this.finishDrink(true);
+            }
+
+        } else {
+            // 👇 THE ONE-SHOT PENALTY: They let go too early!
+            if (c.currentDrinkProgress < lower) {
+                this.completeOrder(false); // Instantly trashes the drink and costs a life
             }
         }
     }
@@ -552,13 +665,20 @@ class Game {
     finishDrink(success) {
         const c = this.customer;
         if (success) {
-            c.currentOrderIndex++; c.currentDrinkProgress = 0; c.currentStepIndex = 0;
+            // 👇 MAGIC STEP 1: Tag the timestamp so we can animate the settling!
+            if (!c.finishTimes) c.finishTimes = [];
+            c.finishTimes[c.currentOrderIndex] = Date.now();
+
+            c.currentOrderIndex++;
+            c.currentDrinkProgress = 0;
+            c.currentStepIndex = 0;
             if (c.currentOrderIndex >= c.order.length) this.completeOrder(true);
         }
     }
 
     completeOrder(success) {
         const isJudge = this.customer.type === 'judge';
+        const isKaren = this.customer.type === 'karen';
 
         if (success && this.customer.satisfaction > 0) {
             // --- SUCCESS ---
@@ -570,6 +690,15 @@ class Game {
 
                 this.level++; // Advance to the next shift
                 this.customersServedThisLevel = 0; // Reset quota for the new shift
+                this.levelQuota = 4 + this.level; // Endless quota loop
+
+            } else if (isKaren) {
+                // THE KAREN BONUS
+                this.combo++;
+                this.score += 200 + (this.combo * 10);
+                this.notifications.trigger("KAREN BONUS! +200", "#0f0", 90);
+                this.audio.play('perfect', 800); // Plays the perfect pour sound!
+                this.customersServedThisLevel++;
             } else {
                 // Standard customer success
                 this.combo++;
@@ -579,17 +708,28 @@ class Game {
             }
         } else {
             // --- FAILURE ---
-            this.lives--;
             this.combo = 0; // Violently break the combo multiplier
-            this.audio.play('trash', 800);
-            if (isJudge) {
-                // THE ALL-OR-NOTHING PENALTY
-                this.notifications.trigger("FLIGHT REJECTED!", "#f00", 120);
-                // Note: We do NOT increment level here. They must try again.
+
+            if (isKaren) {
+                // 👇 KAREN RAGE PENALTY (No lives lost, just points deducted)
+                this.audio.play('trash', 1200);
+                this.notifications.trigger("KAREN RAGE! -100", "#f00", 90);
+                this.score = Math.max(0, this.score - 100);
             } else {
-                this.notifications.trigger("TRASH! COMBO BROKEN", "#f00", 60);
+                // 👇 STANDARD PENALTY (Lose a life)
+                this.lives--;
+                this.audio.play('trash', 1200);
+
+                if (isJudge) {
+                    // BRUTAL BOSS FAIL: Kick them back to the start of the shift!
+                    this.notifications.trigger("DEMOTED! -1500 TIPS", "#f00", 180);
+                    this.score = Math.max(0, this.score - 1500); // Massive point penalty
+                    this.customersServedThisLevel = 0; // Reset the standard customer quota!
+                } else {
+                    this.notifications.trigger("TRASH! COMBO BROKEN", "#f00", 60);
+                }
+                this.checkGameOver();
             }
-            this.checkGameOver();
         }
 
         // --- APPLY FINAL POSE AND STATE ---
@@ -676,12 +816,63 @@ class Game {
                         mixIdx * mpBaseW, 0, mpBaseW, mpBaseH,
                         drawX, drawY, drawW, drawH
                     );
+
+                    // 👇 MAGIC STEP 3: THE 1.5 SECOND SETTLING FADE
+                    let finishTime = this.customer && this.customer.finishTimes ? (this.customer.finishTimes[i] || 0) : 0;
+                    let timeSinceFinish = Date.now() - finishTime;
+                    let settleDuration = 1500;
+
+                    if (finishTime > 0 && timeSinceFinish < settleDuration) {
+                        let settleProgress = timeSinceFinish / settleDuration;
+                        let opacity = (1.0 - settleProgress) * 0.9;
+
+                        ctx.save();
+                        ctx.globalAlpha = opacity;
+
+                        let liqX = drawX + (drawW * 0.15);
+                        let liqY = drawY + (drawH * 0.15);
+                        let liqW = drawW * 0.70;
+                        let liqH = drawH * 0.75;
+
+                        const settleGrad = ctx.createLinearGradient(0, liqY, 0, liqY + liqH);
+
+                        if (recipeKey === 'black_tan') {
+                            settleGrad.addColorStop(0, "#1a0f0a");
+                            settleGrad.addColorStop(0.3 + (settleProgress * 0.2), "#5a3a1a");
+                            settleGrad.addColorStop(1, "#fbd341");
+                        } else if (recipeKey === 'black_bitter') {
+                            settleGrad.addColorStop(0, "#1a0f0a");
+                            settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#8a4a1a");
+                            settleGrad.addColorStop(1, "#d97b29");
+                        } else if (recipeKey === 'lawnmower') {
+                            settleGrad.addColorStop(0, "#d97b29");
+                            settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#e8a033");
+                            settleGrad.addColorStop(1, "#fbd341");
+                        }
+
+                        ctx.fillStyle = settleGrad;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(liqX, liqY, liqW, liqH, 4);
+                        else ctx.rect(liqX, liqY, liqW, liqH);
+                        ctx.fill();
+
+                        ctx.globalAlpha = opacity * 0.5;
+                        ctx.fillStyle = "#fff";
+                        let bTime = (Date.now() % 1000) / 1000;
+                        for (let b = 0; b < 6; b++) {
+                            let bx = liqX + (liqW * ((b * 21) % 100) / 100);
+                            let by = liqY + (((bTime + (b * 0.17)) % 1) * liqH);
+                            ctx.beginPath();
+                            ctx.arc(bx, by, drawW * 0.03, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
                 }
             }
         }
         ctx.restore();
     }
-    // --- DRAWING ---
     drawMenu() {
         const m = SPRITE_DATA.menu;
         const targetY = (this.customer && this.customer.state === 'waiting') ? m.targetY : -600;
@@ -1029,6 +1220,7 @@ class Game {
                                 targetFrameIdx * liqBaseW, 0, liqBaseW, liqBaseH,
                                 drawX + tweakXScreen, drawY + tweakYScreen, drawFPW, drawFPH
                             );
+
                             ctx.restore();
                         }
                         ctx.restore();
@@ -1104,26 +1296,51 @@ class Game {
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
-            return { 
-                x: ((e.clientX || e.touches[0].clientX) - rect.left - screenOffset.x) / screenScale, 
-                y: ((e.clientY || e.touches[0].clientY) - rect.top - screenOffset.y) / screenScale 
+            return {
+                x: ((e.clientX || e.touches[0].clientX) - rect.left - screenOffset.x) / screenScale,
+                y: ((e.clientY || e.touches[0].clientY) - rect.top - screenOffset.y) / screenScale
             };
         };
 
         const handleStart = (e) => {
             if (!this.started) {
                 this.started = true;
-                this.audio.startBGM(); // 👇 Start the music on the very first tap!
+                this.audio.startBGM();
                 this.spawnCustomer();
                 return;
             }
-            const pos = getPos(e);
-            
-            // TAP ZONES
-            if (pos.y > 400 && pos.y < 900) {
-                if (pos.x < 1920 * 0.33) this.handlePourInput(true, 0);
-                else if (pos.x < 1920 * 0.66) this.handlePourInput(true, 1);
-                else this.handlePourInput(true, 2);
+            const pos = getPos(e); // Get the mouse/touch coordinates right away
+
+            if (this.isGameOver) {
+                // If game is over, check if they clicked inside the 400px wide buttons
+                if (pos.x >= 760 && pos.x <= 1160) {
+                    if (pos.y >= 650 && pos.y <= 750) {
+                        this.resetGame(); // Clicked Play Again
+                    } else if (pos.y >= 800 && pos.y <= 900) {
+                        window.location.href = 'landing.html'; // Clicked Home (Update this URL later!)
+                    }
+                }
+                return; // Stop processing other inputs
+            }
+
+            if (!this.started) {
+                this.started = true;
+                this.audio.startBGM();
+                this.spawnCustomer();
+                return;
+            }
+
+            // 👇 MASSIVE, FORGIVING HITBOXES
+            // Starting from the absolute top of the screen (Y: 0) down to the bottom of the towers (Y: 800)
+            if (pos.y >= 0 && pos.y < 800) {
+                // Slicing the screen into three massive vertical columns
+                if (pos.x < 1920 * 0.33) {
+                    this.handlePourInput(true, 0); // Left Tap
+                } else if (pos.x < 1920 * 0.66) {
+                    this.handlePourInput(true, 1); // Middle Tap
+                } else {
+                    this.handlePourInput(true, 2); // Right Tap
+                }
             }
         };
 
@@ -1133,14 +1350,13 @@ class Game {
         canvas.addEventListener('mouseup', handleEnd);
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
         canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleEnd(); });
-        // --- ADD STEP B RIGHT HERE ---
+
         canvas.addEventListener('mousemove', (e) => {
             if (this.debugPos) this.debugPos = getPos(e);
         });
         canvas.addEventListener('touchmove', (e) => {
             if (this.debugPos) this.debugPos = getPos(e);
         }, { passive: true });
-        // -----------------------------
     }
 
     draw() {
@@ -1250,12 +1466,66 @@ class Game {
                 -frameH * customScale + tweakY,                     // Shift up by full height
                 frameW * customScale, frameH * customScale
             );
+            // 👇 COMPLETE GAME OVER UI (Buttons + Leaderboard)
+            if (this.isGameOver) {
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillRect(0, 0, WORLD.w, WORLD.h);
 
+                ctx.textAlign = "center";
+                ctx.font = "bold 120px 'MedievalSharp', monospace";
+                ctx.fillStyle = "#f00";
+                ctx.fillText("GAME OVER", WORLD.w / 2, 400);
+
+                ctx.font = "bold 60px 'MedievalSharp', monospace";
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 520);
+
+                // Button Styles
+                ctx.fillStyle = "#222";
+                ctx.strokeStyle = "#ffcc00";
+                ctx.lineWidth = 6;
+                ctx.font = "bold 40px 'MedievalSharp', monospace";
+
+                // Play Again Button
+                ctx.fillRect(WORLD.w / 2 - 200, 650, 400, 100);
+                ctx.strokeRect(WORLD.w / 2 - 200, 650, 400, 100);
+                ctx.fillStyle = "#fff";
+                ctx.fillText("PLAY AGAIN", WORLD.w / 2, 715);
+
+                // Home Button 
+                ctx.fillStyle = "#222";
+                ctx.fillRect(WORLD.w / 2 - 200, 800, 400, 100);
+                ctx.strokeRect(WORLD.w / 2 - 200, 800, 400, 100);
+                ctx.fillStyle = "#fff";
+                ctx.fillText("HOME", WORLD.w / 2, 865);
+
+                // Leaderboard Text Rendering
+                ctx.font = "bold 35px 'MedievalSharp', monospace";
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillText("--- TOP BREWERS ---", WORLD.w / 2, 960);
+
+                ctx.font = "28px 'MedievalSharp', monospace";
+                ctx.fillStyle = "#fff";
+                if (this.leaderboard.topScores.length > 0) {
+                    this.leaderboard.topScores.forEach((entry, i) => {
+                        const name = entry.player ? entry.player.name : "???";
+                        ctx.textAlign = "left";
+                        ctx.fillText(`${entry.rank}. ${name}`, WORLD.w / 2 - 150, 1000 + (i * 35));
+                        ctx.textAlign = "right";
+                        ctx.fillText(entry.score, WORLD.w / 2 + 150, 1000 + (i * 35));
+                    });
+                } else {
+                    ctx.textAlign = "center";
+                    ctx.fillText("Loading scores...", WORLD.w / 2, 1000);
+                }
+
+                ctx.restore();
+            }
+
+            this.notifications.draw();
             ctx.restore();
-            // ---------------------------------
-
-            
-        }
+        } // <-- This is the final closing bracket for draw()
         this.drawFlightPaddle();
         this.drawTower();
         this.drawMenu();
@@ -1263,27 +1533,36 @@ class Game {
         const h = SPRITE_DATA.hud_elements;
         ctx.save(); ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "MedievalSharp"`;
         ctx.shadowColor = "black"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00";
-        ctx.fillText(`GOLD: ${this.score}`, h.score.x, h.score.y);
+        ctx.fillText(`TIPS: ${this.score}`, h.score.x, h.score.y);
         ctx.restore();
 
         for (let i = 0; i < 3; i++) {
             let isDead = i >= this.lives;
             let patiencePct = 1.0;
-
-            // If this life slot is our current health point AND a customer is waiting, make it the timer!
             if (!isDead && this.customer && this.customer.state === 'waiting' && i === this.lives - 1) {
                 patiencePct = this.customer.patience / this.customer.patienceMax;
             }
-
             this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, isDead, patiencePct);
         }
-        
-        this.notifications.draw();
 
-        
-        
+        // 👇 PASTE IT HERE! Outside of the customer loop, right before notifications!
+        if (this.isGameOver) {
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+
+            ctx.textAlign = "center";
+            ctx.font = "bold 120px 'MedievalSharp', monospace";
+            ctx.fillStyle = "#f00";
+            ctx.fillText("GAME OVER", WORLD.w / 2, 400);
+
+            // ... (rest of your Game Over drawing logic) ...
+            ctx.restore();
+        }
+
+        this.notifications.draw();
         ctx.restore();
-    }
+    } // End of draw()
 
     resize() {
         const dpr = window.devicePixelRatio || 1;
@@ -1334,65 +1613,3 @@ function loadImages() {
 }
 // Start the engine!
 loadImages();
-
-// ==========================================
-// TEMPORARY TESTING TOOLS
-// ==========================================
-window.addEventListener('keydown', (e) => {
-    if (!window.game) return;
-
-    // 👇 MOVE THE INSTANT SPAWN OVERRIDE HERE (Above the customer check)
-    // --- VISUAL PADDLE CALIBRATION TOOLS ---
-    if (e.key === '7' || e.key === '8' || e.key === '9' || e.key === '0') {
-        let size = e.key === '7' ? 2 : e.key === '8' ? 3 : e.key === '9' ? 4 : 5;
-
-        window.game.customer = new Customer('judge');
-        window.game.customer.x = window.game.customer.targetX;
-        window.game.customer.state = 'waiting';
-        window.game.customer.patience = 999999; // Freeze the patience timer
-
-        let dummyOrder = [];
-        for (let i = 0; i < size; i++) {
-            dummyOrder.push(RECIPES[['stout', 'ipa', 'lager'][i % 3]]);
-        }
-        window.game.customer.order = dummyOrder;
-
-        // Force the order to appear fully completed so all glasses draw instantly
-        window.game.customer.currentOrderIndex = size;
-
-        console.log(`CALIBRATING: Flight of ${size}`);
-        return;
-    }
-
-    // --- CUSTOMER-SPECIFIC TOOLS (Requires a customer to be on screen) ---
-    if (!window.game.customer) return;
-
-    // POSE OVERRIDES
-    if (e.key === '1') window.game.customer.poseIndex = 0; // Idle
-    if (e.key === '2') window.game.customer.poseIndex = 1; // Happy
-    if (e.key === '3') window.game.customer.poseIndex = 2; // Angry
-
-    // RECIPE OVERRIDES FOR VISUAL TWEAKING
-    if (e.key === '4') {
-        window.game.customer.order = [RECIPES['black_tan']];
-        window.game.customer.currentOrderIndex = 0;
-        window.game.customer.currentStepIndex = 0;
-        window.game.customer.currentDrinkProgress = 0;
-        console.log("TESTING: Black & Tan (Lager bottom, Stout top)");
-    }
-    if (e.key === '5') {
-        window.game.customer.order = [RECIPES['lawnmower']];
-        window.game.customer.currentOrderIndex = 0;
-        window.game.customer.currentStepIndex = 0;
-        window.game.customer.currentDrinkProgress = 0;
-        console.log("TESTING: Lawnmower Hop (Lager bottom, IPA top)");
-    }
-    if (e.key === '6') {
-        window.game.customer.order = [RECIPES['black_bitter']];
-        window.game.customer.currentOrderIndex = 0;
-        window.game.customer.currentStepIndex = 0;
-        window.game.customer.currentDrinkProgress = 0;
-        console.log("TESTING: Black & Bitter (IPA bottom, Stout top)");
-    }
-  
-});
