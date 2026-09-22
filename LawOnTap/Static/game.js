@@ -589,67 +589,58 @@ class Game {
             ctx.translate(medal.x, medal.y);
             ctx.rotate(medal.rot);
 
-            // 👇 SCALED UP 3X SO THEY ARE MASSIVE
-            ctx.scale(3.0, 3.0);
+            ctx.scale(1.5, 1.5); // Adjust this if you want them larger or smaller
 
-            // Add a heavy drop shadow so they pop off the background
+            // Drop shadow to pop off the brick
             ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
             ctx.shadowBlur = 10;
             ctx.shadowOffsetY = 5;
 
-            // 1. Draw the Ribbon 
-            ctx.fillStyle = medal.type === 'gold' ? '#0033a0' : (medal.type === 'silver' ? '#cc0000' : '#f9fafb');
-            ctx.beginPath();
-            ctx.moveTo(-12, -35);
-            ctx.lineTo(12, -35);
-            ctx.lineTo(0, 0);
-            ctx.fill();
+            // 1. Wooden Base
+            ctx.fillStyle = "#3d2314";
+            ctx.fillRect(-30, -40, 60, 80);
 
-            // Ribbon shading/crease
-            ctx.fillStyle = "rgba(0,0,0,0.2)";
-            ctx.beginPath();
-            ctx.moveTo(-12, -35);
-            ctx.lineTo(0, -35);
-            ctx.lineTo(0, 0);
-            ctx.fill();
+            ctx.shadowColor = "transparent"; // Clear shadow for the inner details
 
-            // Clear shadow for the crisp inner details
-            ctx.shadowColor = "transparent";
+            // Wood border/bevel
+            ctx.strokeStyle = "#2b180d";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-30, -40, 60, 80);
 
-            // 2. Determine Medal Colors
-            let fillCol, edgeCol, textStr;
-            if (medal.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textStr = "1"; }
-            else if (medal.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textStr = "2"; }
-            else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textStr = "3"; }
+            // 2. Determine Plate Colors
+            let fillCol, edgeCol, textStr, textColor;
+            if (medal.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textStr = "1ST"; textColor = "#5c4300"; }
+            else if (medal.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textStr = "2ND"; textColor = "#333333"; }
+            else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textStr = "3RD"; textColor = "#3b1c04"; }
 
-            // 3. Draw the Metallic Body
-            ctx.beginPath();
-            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            // 3. Metallic Plate
             ctx.fillStyle = fillCol;
-            ctx.fill();
+            ctx.fillRect(-20, -30, 40, 60);
 
-            ctx.lineWidth = 3;
             ctx.strokeStyle = edgeCol;
-            ctx.stroke();
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-20, -30, 40, 60);
 
-            // Inner engraved ring
-            ctx.beginPath();
-            ctx.arc(0, 0, 13, 0, Math.PI * 2);
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // 4. Draw the Number
+            // Decorative Corner Screws
             ctx.fillStyle = edgeCol;
-            ctx.font = 'bold 20px "Bebas Neue", monospace';
+            ctx.beginPath(); ctx.arc(-15, -25, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, -25, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-15, 25, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, 25, 2, 0, Math.PI * 2); ctx.fill();
+
+            // 4. Engraved Text
+            ctx.fillStyle = textColor;
+            ctx.font = 'bold 24px "Bebas Neue", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(textStr, 0, 2);
+            ctx.fillText(textStr, 0, 0);
 
-            // 5. Add a glossy shine
-            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            // 5. Glossy Shine
+            ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
             ctx.beginPath();
-            ctx.arc(0, 0, 18, Math.PI, Math.PI * 1.5);
-            ctx.lineTo(0, 0);
+            ctx.moveTo(-20, -30);
+            ctx.lineTo(20, -30);
+            ctx.lineTo(-20, 30);
             ctx.fill();
 
             ctx.restore();
@@ -814,15 +805,27 @@ class Game {
                 this.audio.play('perfect', 0);
                 this.score += 50;
 
-                // --- MEDAL SPAWN LOGIC ---
+                // --- PLAQUE SPAWN LOGIC ---
                 let roll = Math.random();
                 let medalType = roll < 0.50 ? 'gold' : (roll < 0.80 ? 'silver' : 'bronze');
 
-                // Spawn in the empty wall gaps between the towers (X: 550-800 or X: 1150-1400)
-                let spawnGap = Math.random() > 0.5;
-                let mX = spawnGap ? 550 + (Math.random() * 250) : 1150 + (Math.random() * 250);
-                let mY = 150 + (Math.random() * 300);
-                let mRot = (Math.random() - 0.5) * 0.4;
+                let mX, mY;
+                let validPlacement = false;
+
+                while (!validPlacement) {
+                    // Pick a wide zone starting near the sign and stretching to the far right screen edge
+                    mX = 1100 + (Math.random() * 750); // X: 1100 to 1850
+                    mY = 100 + (Math.random() * 550);  // Y: 100 to 650 (Allows them to drop behind the right tap)
+
+                    // The Forbidden Zone: The exact coordinates of your neon sign
+                    let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
+
+                    if (!inSignBox) {
+                        validPlacement = true;
+                    }
+                }
+
+                let mRot = (Math.random() - 0.5) * 0.15; // Slight realistic crookedness
 
                 this.wallMedals.push({ x: mX, y: mY, type: medalType, rot: mRot });
 
@@ -1067,24 +1070,39 @@ class Game {
         const m = SPRITE_DATA.menu;
         const targetY = (this.customer && this.customer.state === 'waiting') ? m.targetY : -600;
         this.menuAnim.y += (targetY - this.menuAnim.y) * 0.1;
+
         if (assets.menu) {
             ctx.save(); ctx.translate(m.x, this.menuAnim.y);
-            const mw = assets.menu.width * m.s; const mh = assets.menu.height * m.s;
-            ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
+            const mw = assets.menu.width * m.s;
+            const mh = assets.menu.height * m.s;
+            ctx.drawImage(assets.menu, -mw / 2, -mh / 2, mw, mh);
+
             if (this.customer) {
-                ctx.fillStyle = "rgba(40,20,0,0.9)"; ctx.textAlign = "center";
-                ctx.font = "bold 24px 'Bebas Neue', monospace";
-                ctx.fillText("ORDER HERE:", 0, -60);
-                const ord = this.customer.order; let startY = -20;
+                // 👇 This forces the text to squish if it ever tries to leave the paper
+                const maxTextWidth = mw * 0.75;
+
+                ctx.fillStyle = "rgba(40,20,0,0.9)";
+                ctx.textAlign = "center";
+
+                ctx.font = "bold 38px 'Bebas Neue', monospace"; // Jacked up from 24px
+                ctx.fillText("ORDER HERE:", 0, -60, maxTextWidth);
+
+                const ord = this.customer.order;
+                let startY = -10;
+
                 if (this.customer.type === 'judge') {
-                    ctx.font = "bold 20px 'Bebas Neue', monospace"; ctx.fillText("FLIGHT:", 0, startY); startY += 25;
-                    ctx.font = "16px 'Bebas Neue', monospace";
+                    ctx.font = "bold 34px 'Bebas Neue', monospace"; // Jacked up from 20px
+                    ctx.fillText("FLIGHT:", 0, startY, maxTextWidth);
+                    startY += 30;
+
+                    ctx.font = "28px 'Bebas Neue', monospace"; // Jacked up from 16px
                     ord.forEach((item, idx) => {
                         ctx.fillStyle = (idx === this.customer.currentOrderIndex) ? "#aa0000" : "#000";
-                        ctx.fillText(item.name, 0, startY + (idx * 20));
+                        ctx.fillText(item.name, 0, startY + (idx * 28), maxTextWidth);
                     });
                 } else {
-                    ctx.font = "bold 30px 'Bebas Neue', monospace"; ctx.fillText(ord[0].name, 0, 10);
+                    ctx.font = "bold 48px 'Bebas Neue', monospace"; // Jacked up from 30px
+                    ctx.fillText(ord[0].name, 0, 15, maxTextWidth);
                 }
             }
             ctx.restore();
