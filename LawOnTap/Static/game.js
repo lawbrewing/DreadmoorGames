@@ -196,7 +196,8 @@ const ASSETS_PATHS = {
     paddles: 'assets/paddles.png',
     fullpints: 'assets/fullpints.png',
     mixpour: 'assets/mixpour.png',   // Added
-    halfpour: 'assets/halfpour.png'
+    halfpour: 'assets/halfpour.png',
+    neon_sign: 'assets/lawbrewhollow.png'
 };
 const assets = {}; 
 
@@ -496,7 +497,7 @@ class Game {
         this.isGameOver = false;
         this.showLeaderboard = false;
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
-
+        this.wallMedals = []; // Tracks dynamically spawned hardware
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
         this.audio = new AudioEngine();
@@ -505,6 +506,154 @@ class Game {
         this.initInput();
         this.resize();
         window.addEventListener('resize', () => this.resize());
+        
+    }
+    
+    drawNeonSign() {
+        if (!assets.neon_sign) return;
+
+        ctx.save();
+
+        // --- POSITION & SCALE ON THE WALL ---
+        // Change these X, Y, and scale values to mount the sign wherever your background wall has space
+        let signX = 1260;
+        let signY = 250;
+        let signScale = 0.35;
+
+        let drawW = assets.neon_sign.width * signScale;
+        let drawH = assets.neon_sign.height * signScale;
+
+        // --- INTENTIONAL COLOR LOGIC (Diegetic UI) ---
+        let activeColor = "rgba(255, 204, 0, 1)"; // Default: Amber Gold
+
+        if (this.isGameOver) {
+            activeColor = "rgba(100, 0, 0, 1)"; // Dead/Broken Red
+        } else if (this.customer && this.customer.type === 'judge') {
+            activeColor = "rgba(255, 51, 51, 1)"; // Boss Phase: Aggressive Red
+        } else if (this.lives <= 1) {
+            activeColor = "rgba(255, 102, 0, 1)"; // Danger: Warning Orange
+        } else if (this.combo >= 3) {
+            activeColor = "rgba(0, 255, 102, 1)"; // Heating Up: Electric Hop Green
+        }
+
+        // Electric hum / flicker effect (98% solid glow, 2% stutter)
+        let flicker = Math.random() > 0.02 ? 1.0 : 0.4;
+
+        // If game over, make it sputter and struggle to stay lit
+        if (this.isGameOver) {
+            flicker = Math.random() > 0.1 ? 0.2 : 0.6;
+        }
+
+        let pulse = 0.7 + (Math.sin(Date.now() / 200) * 0.15); // Organic breathing pulse
+        let finalAlpha = flicker * pulse;
+
+        // 1. DRAW THE BACK-GLOW (Casting light onto the brick wall)
+        ctx.globalCompositeOperation = "screen";
+        let glowGrad = ctx.createRadialGradient(signX, signY, 10, signX, signY, drawW * 0.8);
+
+        glowGrad.addColorStop(0, activeColor);
+        // Swap out the "1" opacity for "0.3" for the mid-glow fade
+        glowGrad.addColorStop(0.5, activeColor.replace(', 1)', ', 0.3)'));
+        glowGrad.addColorStop(1, "rgba(0,0,0,0)");
+
+        ctx.fillStyle = glowGrad;
+        ctx.globalAlpha = finalAlpha * 0.6;
+        ctx.beginPath();
+        ctx.arc(signX, signY, drawW * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. DRAW THE PHYSICAL TRANSPARENT SIGN OUTLINE
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1.0;
+
+        // Outer neon tube bloom pass
+        ctx.shadowColor = activeColor;
+        ctx.shadowBlur = 25 * pulse;
+
+        ctx.drawImage(
+            assets.neon_sign,
+            signX - drawW / 2,
+            signY - drawH / 2,
+            drawW,
+            drawH
+        );
+
+        ctx.restore();
+    }
+
+    drawWallMedals() {
+        if (!this.wallMedals || this.wallMedals.length === 0) return;
+
+        this.wallMedals.forEach(medal => {
+            ctx.save();
+            ctx.translate(medal.x, medal.y);
+            ctx.rotate(medal.rot);
+
+            // 👇 SCALED UP 3X SO THEY ARE MASSIVE
+            ctx.scale(3.0, 3.0);
+
+            // Add a heavy drop shadow so they pop off the background
+            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 5;
+
+            // 1. Draw the Ribbon 
+            ctx.fillStyle = medal.type === 'gold' ? '#0033a0' : (medal.type === 'silver' ? '#cc0000' : '#f9fafb');
+            ctx.beginPath();
+            ctx.moveTo(-12, -35);
+            ctx.lineTo(12, -35);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+
+            // Ribbon shading/crease
+            ctx.fillStyle = "rgba(0,0,0,0.2)";
+            ctx.beginPath();
+            ctx.moveTo(-12, -35);
+            ctx.lineTo(0, -35);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+
+            // Clear shadow for the crisp inner details
+            ctx.shadowColor = "transparent";
+
+            // 2. Determine Medal Colors
+            let fillCol, edgeCol, textStr;
+            if (medal.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textStr = "1"; }
+            else if (medal.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textStr = "2"; }
+            else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textStr = "3"; }
+
+            // 3. Draw the Metallic Body
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.fillStyle = fillCol;
+            ctx.fill();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = edgeCol;
+            ctx.stroke();
+
+            // Inner engraved ring
+            ctx.beginPath();
+            ctx.arc(0, 0, 13, 0, Math.PI * 2);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 4. Draw the Number
+            ctx.fillStyle = edgeCol;
+            ctx.font = 'bold 20px "Bebas Neue", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(textStr, 0, 2);
+
+            // 5. Add a glossy shine
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, Math.PI, Math.PI * 1.5);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+
+            ctx.restore();
+        });
     }
 
     spawnCustomer() {
@@ -577,9 +726,16 @@ class Game {
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
         this.notifications.queue = [];
         this.notifications.active = null;
-
+        this.wallMedals = []; // Tracks dynamically spawned hardware
         this.audio.startBGM(); // Instantly restart the background track
         this.spawnCustomer();
+        this.poolAnim = {
+            activeColumn: 0,
+            currentRow: 0,
+            tick: 0,
+            state: 'waiting',
+            waitTimer: 120 // Start the first animation 2 seconds into the game
+        };
     }
 
     handlePourInput(isDown, tapIndex) {
@@ -629,13 +785,13 @@ class Game {
 
     evaluatePour() {
         const c = this.customer;
-        // 👇 KAREN GAMBLE LOGIC
+
+        // KAREN GAMBLE LOGIC
         if (c.type === 'karen') {
-            // As long as they poured *something* (progress > 0.3), spin the roulette wheel
             if (c.currentDrinkProgress > 0.3) {
-                this.completeOrder(Math.random() < 0.33); // 33% chance to win the gamble
+                this.completeOrder(Math.random() < 0.33);
             } else {
-                this.completeOrder(false); // They barely poured anything, auto-rage
+                this.completeOrder(false);
             }
             return;
         }
@@ -643,20 +799,36 @@ class Game {
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
 
-        // The acceptable boundaries for the step
+        // The acceptable boundaries for a passing drink (You don't lose a life)
         const lower = step.limit - 0.15;
         const upper = step.limit + 0.05;
 
         // Did they release within the acceptable window?
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
 
-            // 👇 WIDENED PERFECT WINDOW
-            if (c.currentDrinkProgress >= step.limit - 0.12 && c.currentDrinkProgress <= step.limit + 0.05) {
+            // 👇 THE STRICT PERFECT TRIGGER: Restored the tight -0.08 margin
+            if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.05) {
+
+                // 1. Trigger the Text & Audio
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.audio.play('perfect', 0);
                 this.score += 50;
+
+                // --- MEDAL SPAWN LOGIC ---
+                let roll = Math.random();
+                let medalType = roll < 0.50 ? 'gold' : (roll < 0.80 ? 'silver' : 'bronze');
+
+                // Spawn in the empty wall gaps between the towers (X: 550-800 or X: 1150-1400)
+                let spawnGap = Math.random() > 0.5;
+                let mX = spawnGap ? 550 + (Math.random() * 250) : 1150 + (Math.random() * 250);
+                let mY = 150 + (Math.random() * 300);
+                let mRot = (Math.random() - 0.5) * 0.4;
+
+                this.wallMedals.push({ x: mX, y: mY, type: medalType, rot: mRot });
+
             } else {
-                // 👇 GUARANTEED AUDIO ON SUCCESSFUL POURS
+                // Secondary trigger: Still successfully poured, but missed the perfect window
+                // Plays the sound but does NOT duck the background music, and grants no medal.
                 this.audio.play('perfect', 0);
                 this.score += 10;
             }
@@ -665,17 +837,15 @@ class Game {
             if (c.currentStepIndex < recipe.steps.length - 1) {
                 c.currentStepIndex++;
             } else {
-
-                // 👇 JUDGE POSE LOCK: Only smile if it's NOT the judge, or if it's his final glass!
+                // JUDGE POSE LOCK: Only smile if it's NOT the judge, or if it's his final glass
                 if (c.type !== 'judge' || c.currentOrderIndex === c.order.length - 1) {
                     c.poseIndex = 1;
                 }
-
                 this.finishDrink(true);
             }
 
         } else {
-            // 👇 THE ONE-SHOT PENALTY: They let go too early!
+            // THE ONE-SHOT PENALTY: They let go too early!
             if (c.currentDrinkProgress < lower) {
                 this.completeOrder(false); // Instantly trashes the drink and costs a life
             }
@@ -1392,47 +1562,45 @@ class Game {
         this.audio.update();
         this.updatePouring();
         this.notifications.update();
-        
-        // --- ADD THIS BLOCK ---
+
         if (this.customer) {
             const status = this.customer.update();
-            
+
             if (status === 'timeout') {
                 this.lives--;
                 this.audio.play('trash', 1200);
                 this.notifications.trigger("WALKED OUT!", "#f00");
-                this.customer.poseIndex = 2; // Ensure they stay angry while walking out
+                this.customer.poseIndex = 2;
                 this.customer.state = 'walking_out';
                 this.checkGameOver();
             } else if (status === 'gone') {
-                // Customer has fully walked off screen
                 this.customer = null;
                 this.spawnCustomer();
             }
         }
-        // ----------------------
-        
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
-        if (assets.bg) ctx.drawImage(assets.bg, 0, 0, WORLD.w, WORLD.h);
-        
-        // --- DRAW CUSTOMER (FIXED) ---
+
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(screenOffset.x, screenOffset.y);
+        ctx.scale(screenScale, screenScale);
+
+        if (assets.bg) ctx.drawImage(assets.bg, -320, 0, 2560, 1080);
+        this.drawNeonSign();
+        this.drawWallMedals();
+
+        // --- DRAW CUSTOMER ---
         if (this.customer && assets[this.customer.spriteId]) {
             const img = assets[this.customer.spriteId];
             const s = this.customer.scale;
 
-            // SLICING LOGIC
-            let tweakX = 0;
-            let tweakY = 0;
-            let customSW = null;
-            let customSX = null;
-            let customScale = s;
+            let tweakX = 0; let tweakY = 0;
+            let customSW = null; let customSX = null; let customScale = s;
 
             if (this.customer.poseOffsets && this.customer.poseOffsets[this.customer.poseIndex]) {
                 let pOffset = this.customer.poseOffsets[this.customer.poseIndex];
-                tweakX = pOffset.x || 0;
-                tweakY = pOffset.y || 0;
+                tweakX = pOffset.x || 0; tweakY = pOffset.y || 0;
                 if (pOffset.sw !== undefined) customSW = pOffset.sw;
                 if (pOffset.sx !== undefined) customSX = pOffset.sx;
                 if (pOffset.s !== undefined) customScale = pOffset.s;
@@ -1442,27 +1610,20 @@ class Game {
             let frameW = (customSW !== null) ? customSW : baseFrameW;
             let frameH = (this.customer.clip.sh > 0) ? this.customer.clip.sh : img.height;
 
-            let srcX;
-            let destOffsetX = 0;
+            let srcX; let destOffsetX = 0;
 
             if (customSX !== null) {
                 srcX = customSX;
             } else {
                 let clipSX = this.customer.clip.sx;
-                if (clipSX < 0) {
-                    destOffsetX = clipSX;
-                    clipSX = 0;
-                }
+                if (clipSX < 0) { destOffsetX = clipSX; clipSX = 0; }
                 srcX = clipSX + (this.customer.poseIndex * baseFrameW);
             }
+
             let srcY = this.customer.clip.sy;
 
-            // --- THE INDIE WADDLE & FLIP ---
             ctx.save();
-
-            let yBob = 0;
-            let rotation = 0;
-            let isFlipped = false;
+            let yBob = 0; let rotation = 0; let isFlipped = false;
             let isLeftFacing = (this.customer.spriteId === 'vip');
             let movingRight = false;
 
@@ -1472,10 +1633,8 @@ class Game {
                 rotation = Math.sin(Date.now() / 150) * 0.05;
                 isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
             } else if (this.customer.state === 'waiting') {
-                // EVERYONE faces right while waiting at the destination counter!
-                isFlipped = isLeftFacing; // Flips left-facing sprites right. Leaves right-facing sprites alone.
-                yBob = 0;
-                rotation = 0;
+                isFlipped = isLeftFacing;
+                yBob = 0; rotation = 0;
             } else if (this.customer.state === 'walking_out') {
                 movingRight = (this.customer.exitX > this.customer.x);
                 yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
@@ -1483,85 +1642,30 @@ class Game {
                 isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
             }
 
-            // Move the canvas directly to the character's feet
             ctx.translate(this.customer.x, this.customer.y + yBob);
             ctx.rotate(rotation);
             if (isFlipped) ctx.scale(-1, 1);
 
-            // Draw the image relative to their feet!
             ctx.drawImage(img,
                 srcX, srcY, frameW, frameH,
-                -(frameW * customScale) / 2 + destOffsetX + tweakX, // Shift left by half width
-                -frameH * customScale + tweakY,                     // Shift up by full height
+                -(frameW * customScale) / 2 + destOffsetX + tweakX,
+                -frameH * customScale + tweakY,
                 frameW * customScale, frameH * customScale
             );
-            // 👇 COMPLETE GAME OVER UI (Buttons + Leaderboard)
-            if (this.isGameOver) {
-                ctx.save();
-                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-                ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-
-                ctx.textAlign = "center";
-                ctx.font = "bold 120px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#f00";
-                ctx.fillText("GAME OVER", WORLD.w / 2, 400);
-
-                ctx.font = "bold 60px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#ffcc00";
-                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 520);
-
-                // Button Styles
-                ctx.fillStyle = "#222";
-                ctx.strokeStyle = "#ffcc00";
-                ctx.lineWidth = 6;
-                ctx.font = "bold 40px 'Bebas Neue', monospace";
-
-                // Play Again Button
-                ctx.fillRect(WORLD.w / 2 - 200, 650, 400, 100);
-                ctx.strokeRect(WORLD.w / 2 - 200, 650, 400, 100);
-                ctx.fillStyle = "#fff";
-                ctx.fillText("PLAY AGAIN", WORLD.w / 2, 715);
-
-                // Home Button 
-                ctx.fillStyle = "#222";
-                ctx.fillRect(WORLD.w / 2 - 200, 800, 400, 100);
-                ctx.strokeRect(WORLD.w / 2 - 200, 800, 400, 100);
-                ctx.fillStyle = "#fff";
-                ctx.fillText("HOME", WORLD.w / 2, 865);
-
-                // Leaderboard Text Rendering
-                ctx.font = "bold 35px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#ffcc00";
-                ctx.fillText("--- TOP BREWERS ---", WORLD.w / 2, 960);
-
-                ctx.font = "28px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#fff";
-                if (this.leaderboard.topScores.length > 0) {
-                    this.leaderboard.topScores.forEach((entry, i) => {
-                        const name = entry.player ? entry.player.name : "???";
-                        ctx.textAlign = "left";
-                        ctx.fillText(`${entry.rank}. ${name}`, WORLD.w / 2 - 150, 1000 + (i * 35));
-                        ctx.textAlign = "right";
-                        ctx.fillText(entry.score, WORLD.w / 2 + 150, 1000 + (i * 35));
-                    });
-                } else {
-                    ctx.textAlign = "center";
-                    ctx.fillText("Loading scores...", WORLD.w / 2, 1000);
-                }
-
-                ctx.restore();
-            }
-
-            this.notifications.draw();
             ctx.restore();
-        } // <-- This is the final closing bracket for draw()
+        }
+
         this.drawFlightPaddle();
         this.drawTower();
         this.drawMenu();
 
         const h = SPRITE_DATA.hud_elements;
-        ctx.save(); ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
-        ctx.shadowColor = "black"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00";
+        ctx.save();
+        ctx.textAlign = "right";
+        ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = "#ffcc00";
         ctx.fillText(`TIPS: ${this.score}`, h.score.x, h.score.y);
         ctx.restore();
 
@@ -1580,7 +1684,6 @@ class Game {
             ctx.fillRect(0, 0, WORLD.w, WORLD.h);
 
             if (this.showLeaderboard) {
-                // --- HIGH SCORE SCREEN ---
                 ctx.textAlign = "center";
                 ctx.font = "bold 80px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#ffcc00";
@@ -1601,7 +1704,6 @@ class Game {
                     ctx.fillText("Loading scores...", WORLD.w / 2, 400);
                 }
 
-                // BACK Button
                 ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
                 ctx.fillRect(WORLD.w / 2 - 200, 900, 400, 90);
                 ctx.strokeRect(WORLD.w / 2 - 200, 900, 400, 90);
@@ -1611,7 +1713,6 @@ class Game {
                 ctx.fillText("BACK", WORLD.w / 2, 960);
 
             } else {
-                // --- STANDARD GAME OVER SCREEN ---
                 ctx.textAlign = "center";
                 ctx.font = "bold 120px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#f00";
@@ -1624,20 +1725,17 @@ class Game {
                 ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
                 ctx.font = "bold 40px 'Bebas Neue', monospace";
 
-                // Play Again Button 
                 ctx.fillRect(WORLD.w / 2 - 200, 600, 400, 90);
                 ctx.strokeRect(WORLD.w / 2 - 200, 600, 400, 90);
                 ctx.fillStyle = "#fff";
                 ctx.fillText("PLAY AGAIN", WORLD.w / 2, 660);
 
-                // High Scores Button
                 ctx.fillStyle = "#222";
                 ctx.fillRect(WORLD.w / 2 - 200, 720, 400, 90);
                 ctx.strokeRect(WORLD.w / 2 - 200, 720, 400, 90);
                 ctx.fillStyle = "#fff";
                 ctx.fillText("HIGH SCORES", WORLD.w / 2, 780);
 
-                // Home Button 
                 ctx.fillStyle = "#222";
                 ctx.fillRect(WORLD.w / 2 - 200, 840, 400, 90);
                 ctx.strokeRect(WORLD.w / 2 - 200, 840, 400, 90);
@@ -1649,7 +1747,7 @@ class Game {
 
         this.notifications.draw();
         ctx.restore();
-    } // End of draw()
+    }
 
     resize() {
         const dpr = window.devicePixelRatio || 1;
