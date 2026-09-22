@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAW ON TAP - Welcome</title>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: #0b0806;
+            color: #f9fafb;
+            font-family: 'MedievalSharp', cursive, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: radial-gradient(circle at center, #2d1a10 0%, #000000 100%);
+        }
+
+        .container {
+            max-width: 900px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 5rem;
+            color: #ffcc00;
+            text-shadow: 4px 4px 0px #8c3b0a, 8px 8px 15px rgba(0,0,0,0.8);
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #d97b29;
+            margin-bottom: 40px;
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            text-align: left;
+            margin-bottom: 50px;
+        }
+
+        .rule-card {
+            background: rgba(20, 10, 5, 0.8);
+            border: 2px solid #8c3b0a;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
+
+        .rule-card h3 {
+            color: #ffcc00;
+            font-size: 1.8rem;
+            margin-top: 0;
+            border-bottom: 1px solid #8c3b0a;
+            padding-bottom: 10px;
+        }
+
+        .rule-card p {
+            font-size: 1.2rem;
+            line-height: 1.5;
+            font-family: monospace;
+            color: #e0e0e0;
+        }
+
+        .highlight {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        .danger {
+            color: #ff3333;
+            font-weight: bold;
+        }
+
+        .btn-play {
+            display: inline-block;
+            background-color: #222;
+            color: #fff;
+            font-size: 2.5rem;
+            padding: 20px 60px;
+            border: 4px solid #ffcc00;
+            text-decoration: none;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .btn-play:hover {
+            background-color: #ffcc00;
+            color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .rules-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 3.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>LAW ON TAP</h1>
+        <h2>Survive the Shift. Master the Pour.</h2>
+
+        <a href="index.html" class="btn-play">Tap to Start</a>
+
+        <div style="margin-top: 60px;"></div>
+
+        <div class="rules-grid">
+            <div class="rule-card">
+                <h3>🍻 The Perfect Pour</h3>
+                <p>Tap and hold the metal handles at the top of the screen to pour Stout, IPA, or Lager. Release in the target zone for a <span class="highlight">Perfect Pour</span> and a combo multiplier.</p>
+                <p><span class="danger">ONE SHOT ONLY:</span> If you let go of the tap too early, the drink is instantly trashed. No topping off!</p>
+            </div>
+
+            <div class="rule-card">
+                <h3>🧪 Layered Drinks</h3>
+                <p>VIPs and Bosses might order mixed drinks like a Black & Tan or a Lawnmower Hop. Watch the order card carefully and switch to the second tap when the bottom half is full to layer it perfectly.</p>
+            </div>
+
+            <div class="rule-card">
+                <h3>🤬 The Karen Gamble</h3>
+                <p>Karen never knows what she wants. When she steps to the bar, just pour *something*. You have a 33% chance to guess right and earn a massive <span class="highlight">+200 Tip</span>. Guess wrong, and suffer Karen Rage (lose 100 tips).</p>
+            </div>
+
+            <div class="rule-card">
+                <h3>⚖️ The Judge</h3>
+                <p>At the end of every shift, The Judge arrives. He demands a massive flight of beers on a wooden paddle. Nail every single glass in his flight to level up and earn a life back.</p>
+                <p><span class="danger">WARNING:</span> Trash his flight, and you suffer a brutal 1,500 tip penalty and must repeat the shift!</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
