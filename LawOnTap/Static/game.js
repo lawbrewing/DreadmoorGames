@@ -653,11 +653,11 @@ class Game {
             // 👇 WIDENED PERFECT WINDOW
             if (c.currentDrinkProgress >= step.limit - 0.12 && c.currentDrinkProgress <= step.limit + 0.05) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
-                this.audio.play('perfect', 800);
+                this.audio.play('perfect', 0);
                 this.score += 50;
             } else {
                 // 👇 GUARANTEED AUDIO ON SUCCESSFUL POURS
-                this.audio.play('perfect', 800);
+                this.audio.play('perfect', 0);
                 this.score += 10;
             }
 
@@ -717,7 +717,7 @@ class Game {
                 this.combo++;
                 this.score += 200 + (this.combo * 10);
                 this.notifications.trigger("KAREN BONUS! +200", "#0f0", 90);
-                this.audio.play('perfect', 800); // Plays the perfect pour sound!
+                this.audio.play('perfect', 0); // Plays the perfect pour sound!
                 this.customersServedThisLevel++;
             } else {
                 // Standard customer success
