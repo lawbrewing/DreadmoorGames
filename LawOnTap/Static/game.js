@@ -214,7 +214,7 @@ class NotificationSystem {
     draw() {
         if (this.active) {
             ctx.save(); ctx.fillStyle = this.active.color; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
-            ctx.font = "bold 60px 'MedievalSharp', monospace"; ctx.textAlign = "center";
+            ctx.font = "bold 60px 'Bebas Neue', monospace"; ctx.textAlign = "center";
             ctx.strokeText(this.active.text, WORLD.w/2, 300); ctx.fillText(this.active.text, WORLD.w/2, 300);
             ctx.restore();
         }
@@ -398,6 +398,23 @@ class Customer {
             return flight;
         }
 
+        // 👇 LEVEL 3+ MIXED DRINK LOGIC
+        if (level >= 3) {
+            if (typeKey === 'vip') {
+                // VIPs have an 80% chance to order a mixed drink
+                if (Math.random() < 0.80) {
+                    return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
+                }
+            } else {
+                // Standard patrons have a 30% chance based on their core style
+                if (Math.random() < 0.30) {
+                    if (typeKey === 'viking') return [RECIPES[['black_tan', 'black_bitter'][Math.floor(Math.random() * 2)]]];
+                    if (typeKey === 'hipster') return [RECIPES[['lawnmower', 'black_bitter'][Math.floor(Math.random() * 2)]]];
+                    if (typeKey === 'regular') return [RECIPES[['black_tan', 'lawnmower'][Math.floor(Math.random() * 2)]]];
+                }
+            }
+        }
+
         const possible = CUSTOMER_TYPES[typeKey].orders;
 
         // Regular single pour randomization
@@ -473,10 +490,11 @@ class Game {
         this.customer = null; this.menuAnim = { y: -600 };
         this.level = 1;
         this.customersServedThisLevel = 0;
-        this.levelQuota = 10;
+        this.levelQuota = 5;
         this.combo = 0;
         this.lastCustomerType = null;
         this.isGameOver = false;
+        this.showLeaderboard = false;
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
 
         this.notifications = new NotificationSystem();
@@ -531,20 +549,18 @@ class Game {
             this.audio.stopBGM();
             this.audio.play('gameover', 0);
 
-            // Hijack the notification system permanently
+            // Removed the double notification text!
             this.notifications.queue = [];
             this.notifications.active = null;
-            this.notifications.trigger("GAME OVER", "#f00", 999999); // Stays forever
-            // 👇 ADD THIS BLOCK: Prompt for initials and send to LootLocker
+
             setTimeout(async () => {
                 let name = prompt("GAME OVER! Enter your initials (3 letters):", "AAA");
                 if (name) {
-                    name = name.substring(0, 3).toUpperCase(); // Force 3 uppercase letters
+                    name = name.substring(0, 3).toUpperCase();
                     await this.leaderboard.submitScore(this.score, name);
-                    // Refresh the fetched scores immediately after submitting
-                    this.leaderboard.topScores = await this.leaderboard.fetchScores(5);
+                    this.leaderboard.topScores = await this.leaderboard.fetchScores(10);
                 }
-            }, 500); // 500ms delay lets the Game Over screen draw first
+            }, 500);
         }
     }
 
@@ -553,7 +569,7 @@ class Game {
         this.lives = 3;
         this.level = 1;
         this.customersServedThisLevel = 0;
-        this.levelQuota = 10;
+        this.levelQuota = 5;
         this.combo = 0;
         this.lastCustomerType = null;
         this.isGameOver = false;
@@ -634,11 +650,15 @@ class Game {
         // Did they release within the acceptable window?
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
 
-            // THE UNIFIED PERFECT TRIGGER: Fires exactly once per committed pour
-            if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.05) {
+            // 👇 WIDENED PERFECT WINDOW
+            if (c.currentDrinkProgress >= step.limit - 0.12 && c.currentDrinkProgress <= step.limit + 0.05) {
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.audio.play('perfect', 800);
                 this.score += 50;
+            } else {
+                // 👇 GUARANTEED AUDIO ON SUCCESSFUL POURS
+                this.audio.play('perfect', 800);
+                this.score += 10;
             }
 
             // Move to the next layer of a mixed drink, or finish the glass
@@ -883,18 +903,18 @@ class Game {
             ctx.drawImage(assets.menu, -mw/2, -mh/2, mw, mh);
             if (this.customer) {
                 ctx.fillStyle = "rgba(40,20,0,0.9)"; ctx.textAlign = "center";
-                ctx.font = "bold 24px 'MedievalSharp', monospace";
+                ctx.font = "bold 24px 'Bebas Neue', monospace";
                 ctx.fillText("ORDER HERE:", 0, -60);
                 const ord = this.customer.order; let startY = -20;
                 if (this.customer.type === 'judge') {
-                    ctx.font = "bold 20px 'MedievalSharp', monospace"; ctx.fillText("FLIGHT:", 0, startY); startY += 25;
-                    ctx.font = "16px 'MedievalSharp', monospace";
+                    ctx.font = "bold 20px 'Bebas Neue', monospace"; ctx.fillText("FLIGHT:", 0, startY); startY += 25;
+                    ctx.font = "16px 'Bebas Neue', monospace";
                     ord.forEach((item, idx) => {
                         ctx.fillStyle = (idx === this.customer.currentOrderIndex) ? "#aa0000" : "#000";
                         ctx.fillText(item.name, 0, startY + (idx * 20));
                     });
                 } else {
-                    ctx.font = "bold 30px 'MedievalSharp', monospace"; ctx.fillText(ord[0].name, 0, 10);
+                    ctx.font = "bold 30px 'Bebas Neue', monospace"; ctx.fillText(ord[0].name, 0, 10);
                 }
             }
             ctx.restore();
@@ -1302,7 +1322,7 @@ class Game {
             };
         };
 
-        const handleStart = (e) => {
+        const handleStart = async (e) => {
             if (!this.started) {
                 this.started = true;
                 this.audio.startBGM();
@@ -1312,15 +1332,24 @@ class Game {
             const pos = getPos(e); // Get the mouse/touch coordinates right away
 
             if (this.isGameOver) {
-                // If game is over, check if they clicked inside the 400px wide buttons
-                if (pos.x >= 760 && pos.x <= 1160) {
-                    if (pos.y >= 650 && pos.y <= 750) {
-                        this.resetGame(); // Clicked Play Again
-                    } else if (pos.y >= 800 && pos.y <= 900) {
-                        window.location.href = 'landing.html'; // Clicked Home (Update this URL later!)
+                if (this.showLeaderboard) {
+                    // Back button hitbox
+                    if (pos.x >= 760 && pos.x <= 1160 && pos.y >= 900 && pos.y <= 990) {
+                        this.showLeaderboard = false;
+                    }
+                } else {
+                    if (pos.x >= 760 && pos.x <= 1160) {
+                        if (pos.y >= 600 && pos.y <= 690) {
+                            this.resetGame();
+                        } else if (pos.y >= 720 && pos.y <= 810) {
+                            this.showLeaderboard = true; // Show leaderboard toggle
+                            this.leaderboard.topScores = await this.leaderboard.fetchScores(10);
+                        } else if (pos.y >= 840 && pos.y <= 930) {
+                            window.location.href = 'landing.html';
+                        }
                     }
                 }
-                return; // Stop processing other inputs
+                return;
             }
 
             if (!this.started) {
@@ -1473,11 +1502,11 @@ class Game {
                 ctx.fillRect(0, 0, WORLD.w, WORLD.h);
 
                 ctx.textAlign = "center";
-                ctx.font = "bold 120px 'MedievalSharp', monospace";
+                ctx.font = "bold 120px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#f00";
                 ctx.fillText("GAME OVER", WORLD.w / 2, 400);
 
-                ctx.font = "bold 60px 'MedievalSharp', monospace";
+                ctx.font = "bold 60px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#ffcc00";
                 ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 520);
 
@@ -1485,7 +1514,7 @@ class Game {
                 ctx.fillStyle = "#222";
                 ctx.strokeStyle = "#ffcc00";
                 ctx.lineWidth = 6;
-                ctx.font = "bold 40px 'MedievalSharp', monospace";
+                ctx.font = "bold 40px 'Bebas Neue', monospace";
 
                 // Play Again Button
                 ctx.fillRect(WORLD.w / 2 - 200, 650, 400, 100);
@@ -1501,11 +1530,11 @@ class Game {
                 ctx.fillText("HOME", WORLD.w / 2, 865);
 
                 // Leaderboard Text Rendering
-                ctx.font = "bold 35px 'MedievalSharp', monospace";
+                ctx.font = "bold 35px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#ffcc00";
                 ctx.fillText("--- TOP BREWERS ---", WORLD.w / 2, 960);
 
-                ctx.font = "28px 'MedievalSharp', monospace";
+                ctx.font = "28px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#fff";
                 if (this.leaderboard.topScores.length > 0) {
                     this.leaderboard.topScores.forEach((entry, i) => {
@@ -1531,7 +1560,7 @@ class Game {
         this.drawMenu();
 
         const h = SPRITE_DATA.hud_elements;
-        ctx.save(); ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "MedievalSharp"`;
+        ctx.save(); ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
         ctx.shadowColor = "black"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00";
         ctx.fillText(`TIPS: ${this.score}`, h.score.x, h.score.y);
         ctx.restore();
@@ -1545,18 +1574,76 @@ class Game {
             this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, isDead, patiencePct);
         }
 
-        // 👇 PASTE IT HERE! Outside of the customer loop, right before notifications!
         if (this.isGameOver) {
             ctx.save();
             ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
             ctx.fillRect(0, 0, WORLD.w, WORLD.h);
 
-            ctx.textAlign = "center";
-            ctx.font = "bold 120px 'MedievalSharp', monospace";
-            ctx.fillStyle = "#f00";
-            ctx.fillText("GAME OVER", WORLD.w / 2, 400);
+            if (this.showLeaderboard) {
+                // --- HIGH SCORE SCREEN ---
+                ctx.textAlign = "center";
+                ctx.font = "bold 80px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillText("--- TOP BREWERS ---", WORLD.w / 2, 200);
 
-            // ... (rest of your Game Over drawing logic) ...
+                ctx.font = "40px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#fff";
+                if (this.leaderboard.topScores.length > 0) {
+                    this.leaderboard.topScores.forEach((entry, i) => {
+                        const name = entry.player ? entry.player.name : "???";
+                        ctx.textAlign = "left";
+                        ctx.fillText(`${entry.rank}. ${name}`, WORLD.w / 2 - 200, 320 + (i * 55));
+                        ctx.textAlign = "right";
+                        ctx.fillText(entry.score, WORLD.w / 2 + 200, 320 + (i * 55));
+                    });
+                } else {
+                    ctx.textAlign = "center";
+                    ctx.fillText("Loading scores...", WORLD.w / 2, 400);
+                }
+
+                // BACK Button
+                ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
+                ctx.fillRect(WORLD.w / 2 - 200, 900, 400, 90);
+                ctx.strokeRect(WORLD.w / 2 - 200, 900, 400, 90);
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 40px 'Bebas Neue', monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("BACK", WORLD.w / 2, 960);
+
+            } else {
+                // --- STANDARD GAME OVER SCREEN ---
+                ctx.textAlign = "center";
+                ctx.font = "bold 120px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#f00";
+                ctx.fillText("GAME OVER", WORLD.w / 2, 400);
+
+                ctx.font = "bold 60px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 520);
+
+                ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
+                ctx.font = "bold 40px 'Bebas Neue', monospace";
+
+                // Play Again Button 
+                ctx.fillRect(WORLD.w / 2 - 200, 600, 400, 90);
+                ctx.strokeRect(WORLD.w / 2 - 200, 600, 400, 90);
+                ctx.fillStyle = "#fff";
+                ctx.fillText("PLAY AGAIN", WORLD.w / 2, 660);
+
+                // High Scores Button
+                ctx.fillStyle = "#222";
+                ctx.fillRect(WORLD.w / 2 - 200, 720, 400, 90);
+                ctx.strokeRect(WORLD.w / 2 - 200, 720, 400, 90);
+                ctx.fillStyle = "#fff";
+                ctx.fillText("HIGH SCORES", WORLD.w / 2, 780);
+
+                // Home Button 
+                ctx.fillStyle = "#222";
+                ctx.fillRect(WORLD.w / 2 - 200, 840, 400, 90);
+                ctx.strokeRect(WORLD.w / 2 - 200, 840, 400, 90);
+                ctx.fillStyle = "#fff";
+                ctx.fillText("HOME", WORLD.w / 2, 900);
+            }
             ctx.restore();
         }
 
