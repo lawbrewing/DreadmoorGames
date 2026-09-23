@@ -900,21 +900,37 @@ class Game {
 
                 let mX, mY;
                 let validPlacement = false;
+                let attempts = 0; // Failsafe to prevent a browser crash if the wall gets completely full!
 
-                while (!validPlacement) {
+                while (!validPlacement && attempts < 200) {
                     mX = 1100 + (Math.random() * 750);
                     mY = 100 + (Math.random() * 550);
+                    attempts++;
 
+                    // 1. Check environment exclusions
                     let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
                     let inHudBox = (mX > 1500) && (mY < 250);
 
                     if (!inSignBox && !inHudBox) {
-                        validPlacement = true;
+                        // 2. Check collision against existing plaques
+                        // Plaque physical size is 144x84. We use 160x100 to give them a nice padded border.
+                        let isOverlapping = this.wallMedals.some(medal => {
+                            let xDist = Math.abs(medal.x - mX);
+                            let yDist = Math.abs(medal.y - mY);
+                            return (xDist < 160 && yDist < 100);
+                        });
+
+                        if (!isOverlapping) {
+                            validPlacement = true;
+                        }
                     }
                 }
 
-                let mRot = (Math.random() - 0.5) * 0.15;
-                this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
+                // Only spawn the plaque if we successfully found an empty spot
+                if (validPlacement) {
+                    let mRot = (Math.random() - 0.5) * 0.15;
+                    this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
+                }
 
             } else {
                 // Secondary trigger: Still successfully poured, but missed perfect window
