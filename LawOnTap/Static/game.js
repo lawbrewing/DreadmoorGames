@@ -1617,9 +1617,21 @@ class Game {
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
+            let clientX = 0;
+            let clientY = 0;
+
+            // 100% crash-proof check for Mouse vs Touch coordinates
+            if (e.clientX !== undefined) {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
             return {
-                x: ((e.clientX || e.touches[0].clientX) - rect.left - screenOffset.x) / screenScale,
-                y: ((e.clientY || e.touches[0].clientY) - rect.top - screenOffset.y) / screenScale
+                x: (clientX - rect.left - screenOffset.x) / screenScale,
+                y: (clientY - rect.top - screenOffset.y) / screenScale
             };
         };
 
@@ -1630,11 +1642,10 @@ class Game {
                 this.spawnCustomer();
                 return;
             }
-            const pos = getPos(e); // Get the mouse/touch coordinates right away
+            const pos = getPos(e);
 
             if (this.isGameOver) {
                 if (this.showLeaderboard) {
-                    // Back button hitbox
                     if (pos.x >= 760 && pos.x <= 1160 && pos.y >= 900 && pos.y <= 990) {
                         this.showLeaderboard = false;
                     }
@@ -1644,7 +1655,7 @@ class Game {
                             this.resetGame();
                         } else if (pos.y >= 720 && pos.y <= 810) {
                             this.showLeaderboard = true;
-                            this.leaderboard.topScores = null; // 👇 FIX: Trigger loading text
+                            this.leaderboard.topScores = null;
                             this.leaderboard.topScores = await this.leaderboard.fetchScores(10);
                         } else if (pos.y >= 840 && pos.y <= 930) {
                             window.location.href = 'landing.html';
@@ -1654,23 +1665,13 @@ class Game {
                 return;
             }
 
-            if (!this.started) {
-                this.started = true;
-                this.audio.startBGM();
-                this.spawnCustomer();
-                return;
-            }
-
-            // 👇 MASSIVE, FORGIVING HITBOXES
-            // Starting from the absolute top of the screen (Y: 0) down to the bottom of the towers (Y: 800)
             if (pos.y >= 0 && pos.y < 800) {
-                // Slicing the screen into three massive vertical columns
                 if (pos.x < 1920 * 0.33) {
-                    this.handlePourInput(true, 0); // Left Tap
+                    this.handlePourInput(true, 0);
                 } else if (pos.x < 1920 * 0.66) {
-                    this.handlePourInput(true, 1); // Middle Tap
+                    this.handlePourInput(true, 1);
                 } else {
-                    this.handlePourInput(true, 2); // Right Tap
+                    this.handlePourInput(true, 2);
                 }
             }
         };
