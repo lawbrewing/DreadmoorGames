@@ -305,13 +305,11 @@ class LootLockerAPI {
         // Ensure we don't trip over bad data saved in the browser from previous runs
         this.playerIdentifier = localStorage.getItem("ll_player_identifier") || "";
         this.memberId = localStorage.getItem("ll_member_id") || "";
-
         this.topScores = null;
     }
 
     async init() {
         try {
-            // Session endpoint DOES require /v2/
             const res = await fetch(`${this.baseURL}/v2/session/guest`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -321,10 +319,14 @@ class LootLockerAPI {
 
             if (data.success) {
                 this.sessionToken = data.session_token;
-
-                // Save both the string identifier (for login) and the numeric ID (for scores)
                 this.playerIdentifier = data.player_identifier;
-                this.memberId = data.player_id.toString();
+
+                // 👇 FIX: Safely extract the numeric player ID, fallback to identifier if it fails
+                if (data.player_id) {
+                    this.memberId = data.player_id.toString();
+                } else {
+                    this.memberId = data.player_identifier;
+                }
 
                 localStorage.setItem("ll_player_identifier", this.playerIdentifier);
                 localStorage.setItem("ll_member_id", this.memberId);
@@ -339,24 +341,30 @@ class LootLockerAPI {
     async submitScore(score, playerName) {
         if (!this.sessionToken) return;
 
+        // 👇 FIX: Force a valid member ID so we never send "undefined" or an empty string
+        const targetMemberId = (this.memberId && this.memberId !== "undefined") ? this.memberId : this.playerIdentifier;
+
         try {
-            // Player name endpoint DOES NOT use versioning
-            const nameRes = await fetch(`${this.baseURL}/player/name`, {
+            // 1. Update Name
+            await fetch(`${this.baseURL}/player/name`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
                 body: JSON.stringify({ name: playerName })
             });
-            const nameData = await nameRes.json();
-            console.log("LootLocker Name Update:", nameData);
 
-            // Leaderboard submit endpoint DOES NOT use versioning
+            // 2. Submit Score
             const scoreRes = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/submit`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
-                body: JSON.stringify({ score: score, member_id: this.memberId })
+                body: JSON.stringify({ score: Math.floor(score), member_id: targetMemberId })
             });
+
             const scoreData = await scoreRes.json();
-            console.log("LootLocker Score Submit:", scoreData);
+
+            // 👇 FIX: Log the EXACT rejection reason if it fails again so we aren't flying blind!
+            if (!scoreRes.ok || !scoreData.success) {
+                console.error("❌ LOOTLOCKER REJECTED SCORE:", scoreData);
+            }
 
         } catch (e) { console.error("LootLocker Submit Error:", e); }
     }
@@ -364,16 +372,13 @@ class LootLockerAPI {
     async fetchScores(count = 10) {
         if (!this.sessionToken) return [];
         try {
-            // Leaderboard list endpoint DOES NOT use versioning
             const res = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/list?count=${count}`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken }
             });
             const data = await res.json();
-            console.log("LootLocker Fetch Scores:", data);
             return data.success ? data.items : [];
         } catch (e) {
-            console.error("LootLocker Fetch Error:", e);
             return [];
         }
     }
@@ -1686,6 +1691,45 @@ class Game {
     }
 
     draw() {
+        // 👇 FIX: Explicit Start Screen to handle browser audio autoplay policies
+        if (!this.started) {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(screenOffset.x, screenOffset.y);
+            ctx.scale(screenScale, screenScale);
+
+            // Draw a blurred/darkened version of the bar in the background
+            if (assets.bg) ctx.drawImage(assets.bg, -320, 0, 2560, 1080);
+            this.drawNeonSign();
+            this.drawTower();
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+            ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+
+            // Draw the Title and Prompt
+            ctx.textAlign = "center";
+            ctx.shadowColor = "black";
+            ctx.shadowBlur = 15;
+
+            ctx.font = "bold 120px 'Bebas Neue', monospace";
+            ctx.fillStyle = "#ffcc00";
+            ctx.fillText("LAW ON TAP", WORLD.w / 2, WORLD.h / 2 - 40);
+
+            ctx.font = "bold 50px 'Bebas Neue', monospace";
+            ctx.fillStyle = "#fff";
+
+            // Blink the start text every 500ms
+            if (Math.floor(Date.now() / 500) % 2 === 0) {
+                ctx.fillText("CLICK ANYWHERE TO START", WORLD.w / 2, WORLD.h / 2 + 60);
+            }
+
+            ctx.restore();
+            return; // 🛑 Block all other game logic/timers from running until they click!
+        }
+
+        // ... [The rest of your existing draw() code continues here]
         this.audio.update();
         this.updatePouring();
         this.notifications.update();
