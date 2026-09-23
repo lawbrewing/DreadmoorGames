@@ -775,7 +775,15 @@ class Game {
     updatePouring() {
         if (!this.activePour.active) return;
         const c = this.customer;
-        if (c.type === 'karen') { c.currentDrinkProgress += 0.01; return; }
+        // 👇 KAREN OVERFLOW LOGIC
+        if (c.type === 'karen') {
+            c.currentDrinkProgress += 0.008; // Normal fill rate
+            if (c.currentDrinkProgress > 1.1) {
+                this.activePour.active = false;
+                this.completeOrder(false, "mechanical"); // Custom fail flag!
+            }
+            return;
+        }
 
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
@@ -802,12 +810,14 @@ class Game {
     evaluatePour() {
         const c = this.customer;
 
-        // KAREN GAMBLE LOGIC
+        // 👇 KAREN SHORT POUR & GAMBLE LOGIC
         if (c.type === 'karen') {
-            if (c.currentDrinkProgress > 0.3) {
-                this.completeOrder(Math.random() < 0.33);
+            if (c.currentDrinkProgress < 0.85) {
+                // Short pour penalty
+                this.completeOrder(false, "mechanical");
             } else {
-                this.completeOrder(false);
+                // Good pour! Now spin the 33% Roulette Wheel
+                this.completeOrder(Math.random() < 0.33);
             }
             return;
         }
@@ -831,28 +841,26 @@ class Game {
                 this.score += 50;
 
                 // --- EASTER EGG PLAQUE SPAWN LOGIC ---
-                // Pick a random real-world award from the database
                 let award = REAL_AWARDS[Math.floor(Math.random() * REAL_AWARDS.length)];
 
                 let mX, mY;
                 let validPlacement = false;
 
                 while (!validPlacement) {
-                    // Pick a wide zone starting near the sign and stretching to the far right screen edge
                     mX = 1100 + (Math.random() * 750);
                     mY = 100 + (Math.random() * 550);
 
-                    // The Forbidden Zone: The exact coordinates of your neon sign
+                    // 1. Avoid the Neon Sign
                     let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
+                    // 2. Avoid the Top-Right HUD (Tips & Lives)
+                    let inHudBox = (mX > 1500) && (mY < 250);
 
-                    if (!inSignBox) {
+                    if (!inSignBox && !inHudBox) {
                         validPlacement = true;
                     }
                 }
 
                 let mRot = (Math.random() - 0.5) * 0.15;
-
-                // Pass the whole award object instead of just a generic metal type
                 this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
 
             } else {
@@ -895,55 +903,55 @@ class Game {
         }
     }
 
-    completeOrder(success) {
+    completeOrder(success, failType = null) {
         const isJudge = this.customer.type === 'judge';
         const isKaren = this.customer.type === 'karen';
 
         if (success && this.customer.satisfaction > 0) {
             // --- SUCCESS ---
             if (isJudge) {
-                // THE BOSS BOUNTY
                 this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
-                this.score += 1000 * this.level; // Massive point drop
-                if (this.lives < 3) this.lives++; // Heal a life!
+                this.score += 1000 * this.level;
+                if (this.lives < 3) this.lives++;
 
-                this.level++; // Advance to the next shift
-                this.customersServedThisLevel = 0; // Reset quota for the new shift
-                this.levelQuota = 4 + this.level; // Endless quota loop
+                this.level++;
+                this.customersServedThisLevel = 0;
+                this.levelQuota = 4 + this.level;
 
             } else if (isKaren) {
-                // THE KAREN BONUS
                 this.combo++;
                 this.score += 200 + (this.combo * 10);
                 this.notifications.trigger("KAREN BONUS! +200", "#0f0", 90);
-                this.audio.play('perfect', 0); // Plays the perfect pour sound!
+                this.audio.play('perfect', 0);
                 this.customersServedThisLevel++;
             } else {
-                // Standard customer success
                 this.combo++;
                 this.score += (50 * this.customer.order.length) + (this.combo * 10);
                 this.notifications.trigger(`PERFECT! +${this.combo} COMBO`, "#0f0", 60);
-                this.customersServedThisLevel++; // Count towards triggering the next Judge
+                this.customersServedThisLevel++;
             }
         } else {
             // --- FAILURE ---
             this.combo = 0; // Violently break the combo multiplier
 
-            if (isKaren) {
-                // 👇 KAREN RAGE PENALTY (No lives lost, just points deducted)
+            if (isKaren && failType !== "mechanical") {
+                // 👇 KAREN RAGE PENALTY (Gamble lost, no life lost)
                 this.audio.play('trash', 1200);
                 this.notifications.trigger("KAREN RAGE! -100", "#f00", 90);
                 this.score = Math.max(0, this.score - 100);
             } else {
                 // 👇 STANDARD PENALTY (Lose a life)
+                // Karen will hit this block if failType === "mechanical"
                 this.lives--;
                 this.audio.play('trash', 1200);
 
                 if (isJudge) {
-                    // BRUTAL BOSS FAIL: Kick them back to the start of the shift!
                     this.notifications.trigger("DEMOTED! -1500 TIPS", "#f00", 180);
-                    this.score = Math.max(0, this.score - 1500); // Massive point penalty
-                    this.customersServedThisLevel = 0; // Reset the standard customer quota!
+                    this.score = Math.max(0, this.score - 1500);
+                    this.customersServedThisLevel = 0;
+                } else if (isKaren) {
+                    // Custom notification so they know they messed up the pour, not the gamble
+                    this.notifications.trigger("TRASH! BAD POUR", "#f00", 60);
                 } else {
                     this.notifications.trigger("TRASH! COMBO BROKEN", "#f00", 60);
                 }
@@ -955,7 +963,6 @@ class Game {
         this.customer.poseIndex = success && this.customer.satisfaction > 0 ? 1 : 2;
 
         if (isJudge) {
-            // Trigger the 3-second dramatic pause (180 frames at 60fps)
             this.customer.state = 'finished_pause';
             this.customer.pauseTimer = 180;
         } else {
@@ -1104,31 +1111,45 @@ class Game {
             ctx.drawImage(assets.menu, -mw / 2, -mh / 2, mw, mh);
 
             if (this.customer) {
-                // 👇 This forces the text to squish if it ever tries to leave the paper
-                const maxTextWidth = mw * 0.75;
+                const maxTextWidth = mw * 0.85; // Slightly widened boundaries
 
                 ctx.fillStyle = "rgba(40,20,0,0.9)";
                 ctx.textAlign = "center";
 
-                ctx.font = "bold 38px 'Bebas Neue', monospace"; // Jacked up from 24px
+                ctx.font = "bold 38px 'Bebas Neue', monospace";
                 ctx.fillText("ORDER HERE:", 0, -60, maxTextWidth);
 
                 const ord = this.customer.order;
                 let startY = -10;
 
                 if (this.customer.type === 'judge') {
-                    ctx.font = "bold 34px 'Bebas Neue', monospace"; // Jacked up from 20px
+                    ctx.font = "bold 34px 'Bebas Neue', monospace";
                     ctx.fillText("FLIGHT:", 0, startY, maxTextWidth);
                     startY += 30;
 
-                    ctx.font = "28px 'Bebas Neue', monospace"; // Jacked up from 16px
+                    ctx.font = "28px 'Bebas Neue', monospace";
                     ord.forEach((item, idx) => {
                         ctx.fillStyle = (idx === this.customer.currentOrderIndex) ? "#aa0000" : "#000";
                         ctx.fillText(item.name, 0, startY + (idx * 28), maxTextWidth);
                     });
                 } else {
-                    ctx.font = "bold 48px 'Bebas Neue', monospace"; // Jacked up from 30px
-                    ctx.fillText(ord[0].name, 0, 15, maxTextWidth);
+                    const drinkName = ord[0].name;
+
+                    // 👇 TWO-LINE SPLIT LOGIC
+                    // If the name has a space and is longer than 10 characters (e.g. "LAWNMOWER HOP", "BLACK & TAN")
+                    if (drinkName.includes(" ") && drinkName.length > 10) {
+                        ctx.font = "bold 40px 'Bebas Neue', monospace";
+                        let firstSpace = drinkName.indexOf(" ");
+                        let line1 = drinkName.substring(0, firstSpace);
+                        let line2 = drinkName.substring(firstSpace + 1);
+
+                        ctx.fillText(line1, 0, -5, maxTextWidth);
+                        ctx.fillText(line2, 0, 35, maxTextWidth);
+                    } else {
+                        // Standard single-line rendering
+                        ctx.font = "bold 48px 'Bebas Neue', monospace";
+                        ctx.fillText(drinkName, 0, 15, maxTextWidth);
+                    }
                 }
             }
             ctx.restore();
@@ -1612,7 +1633,7 @@ class Game {
 
             if (status === 'timeout') {
                 this.lives--;
-                this.audio.play('trash', 1200);
+                this.audio.play('trash', 0);
                 this.notifications.trigger("WALKED OUT!", "#f00");
                 this.customer.poseIndex = 2;
                 this.customer.state = 'walking_out';
