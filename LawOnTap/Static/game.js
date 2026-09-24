@@ -3,6 +3,7 @@
 // ==========================================
 const style = document.createElement('style');
 style.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; margin: 0 auto; }
 `;
@@ -1016,7 +1017,6 @@ class Game {
         const isJudge = c.type === 'judge';
         const isKaren = c.type === 'karen';
 
-        // 👇 NEW: Calculate the multiplier for the final hand-off (1.0x to 2.0x)
         const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
 
         if (success && c.satisfaction > 0) {
@@ -1025,7 +1025,8 @@ class Game {
                 this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
                 let earned = Math.floor((1000 * this.level) * patienceMult);
                 this.score += earned;
-                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
+                // 👇 FIX: Spawns higher to avoid overlapping the pour score
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
 
                 if (this.lives < 3) this.lives++;
                 this.level++;
@@ -1038,7 +1039,8 @@ class Game {
                 this.score += earned;
 
                 this.notifications.trigger(`KAREN BONUS!`, "#0f0", 90);
-                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
+                // 👇 FIX: Spawns higher 
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
 
                 this.audio.play('perfect', 0);
                 this.customersServedThisLevel++;
@@ -1048,7 +1050,8 @@ class Game {
                 this.score += earned;
 
                 this.notifications.trigger(`PERFECT!`, "#0f0", 60);
-                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
+                // 👇 FIX: Spawns higher 
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
 
                 this.customersServedThisLevel++;
             }
@@ -1057,21 +1060,21 @@ class Game {
             this.combo = 0; // Violently break the combo multiplier
 
             if (isKaren && failType !== "mechanical") {
-                // 👇 KAREN RAGE PENALTY
                 this.audio.play('trash', 1200);
                 this.notifications.trigger("KAREN RAGE!", "#f00", 90);
                 this.score = Math.max(0, this.score - 100);
-                this.spawnTipPopup(`-100`, c.x, c.y - 350, "#f00");
+                // 👇 FIX: Spawns higher 
+                this.spawnTipPopup(`-100`, c.x, c.y - 450, "#f00");
 
             } else {
-                // 👇 STANDARD PENALTY (Lose a life)
                 this.lives--;
                 this.audio.play('trash', 1200);
 
                 if (isJudge) {
                     this.notifications.trigger("DEMOTED!", "#f00", 180);
                     this.score = Math.max(0, this.score - 1500);
-                    this.spawnTipPopup(`-1500`, c.x, c.y - 350, "#f00");
+                    // 👇 FIX: Spawns higher 
+                    this.spawnTipPopup(`-1500`, c.x, c.y - 450, "#f00");
                     this.customersServedThisLevel = 0;
                 } else if (isKaren) {
                     this.notifications.trigger("TRASH! BAD POUR", "#f00", 60);
@@ -1092,7 +1095,6 @@ class Game {
             c.state = 'walking_out';
         }
 
-        // CLEAR TARGET ONCE FINISHED
         this.activeCustomer = null;
     }
     drawFlightPaddle(c) {
@@ -1236,42 +1238,86 @@ class Game {
             const mh = assets.menu.height * m.s;
             ctx.drawImage(assets.menu, -mw / 2, -mh / 2, mw, mh);
 
-            // 👇 FIX: Constricted safe zone from 85% to 60%. 
-            // The canvas will natively shrink the text to ensure it never hits the dark borders.
-            const maxTextWidth = mw * 0.60;
+            // 👇 FIX: Constricted back to 55% so it stays completely out of the dark borders
+            const maxTextWidth = mw * 0.55;
             ctx.textAlign = "center";
 
             // BOSS PHASE: Judge gets the board to himself
             if (waiters.length === 1 && waiters[0].type === 'judge') {
                 const c = waiters[0];
                 ctx.fillStyle = "rgba(40,20,0,0.9)";
-                ctx.font = "bold 32px 'Bebas Neue', monospace";
-                ctx.fillText("JUDGE'S FLIGHT:", 0, -60, maxTextWidth);
+                ctx.font = "bold 34px 'Patrick Hand', sans-serif";
+                ctx.fillText("JUDGE'S FLIGHT:", 0, -80, maxTextWidth);
 
-                let startY = -20;
-                ctx.font = "26px 'Bebas Neue', monospace";
+                let startY = -30;
                 c.order.forEach((item, idx) => {
-                    // Highlight the current glass in red
                     ctx.fillStyle = (idx === c.currentOrderIndex) ? "#aa0000" : "#000";
-                    ctx.fillText(item.name, 0, startY + (idx * 28), maxTextWidth);
+
+                    let beerName = item.name;
+                    let fontSize = 32;
+                    ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+
+                    while (ctx.measureText(beerName).width > maxTextWidth && fontSize > 20) {
+                        fontSize--;
+                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                    }
+                    ctx.fillText(beerName, 0, startY + (idx * 40), maxTextWidth);
                 });
 
             } else if (waiters.length > 0) {
                 // MULTI-CUSTOMER DISPLAY
                 ctx.fillStyle = "rgba(40,20,0,0.9)";
-                ctx.font = "bold 34px 'Bebas Neue', monospace";
-                ctx.fillText("PENDING ORDERS:", 0, -65, maxTextWidth);
+                ctx.font = "bold 34px 'Patrick Hand', sans-serif";
+                ctx.fillText("PENDING ORDERS:", 0, -80, maxTextWidth);
 
-                let startY = -15;
+                let currentY = -35;
+
                 waiters.forEach((c, idx) => {
-                    // Highlight the order in red if it's the one actively being poured
                     ctx.fillStyle = (this.activeCustomer === c) ? "#aa0000" : "#000";
 
-                    // Slightly smaller font so horizontal shrinking isn't jarring on long names
-                    ctx.font = "bold 28px 'Bebas Neue', monospace";
+                    // Line 1: Order Number
+                    ctx.font = "bold 20px 'Patrick Hand', sans-serif";
+                    ctx.fillText(`ORDER ${idx + 1}:`, 0, currentY, maxTextWidth);
 
-                    const drinkName = c.order[0].name;
-                    ctx.fillText(`ORDER ${idx + 1}: ${drinkName}`, 0, startY + (idx * 40), maxTextWidth);
+                    let beerName = c.order[0].name;
+                    let words = beerName.split(' ');
+
+                    // 👇 FIX: Aggressive split! If it has a space AND is over 10 chars, chop it!
+                    if (words.length > 1 && beerName.length > 10) {
+                        let splitIdx = Math.ceil(words.length / 2);
+                        let line1 = words.slice(0, splitIdx).join(' ');
+                        let line2 = words.slice(splitIdx).join(' ');
+
+                        let fontSize = 26;
+                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        while ((ctx.measureText(line1).width > maxTextWidth || ctx.measureText(line2).width > maxTextWidth) && fontSize > 16) {
+                            fontSize--;
+                            ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        }
+
+                        currentY += 26;
+                        ctx.fillText(line1, 0, currentY, maxTextWidth);
+
+                        currentY += 24;
+                        ctx.fillText(line2, 0, currentY, maxTextWidth);
+
+                        currentY += 34; // Gap before next order
+
+                    } else {
+                        // SINGLE LINE DYNAMIC SCALING
+                        let fontSize = 36;
+                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+
+                        while (ctx.measureText(beerName).width > maxTextWidth && fontSize > 18) {
+                            fontSize--;
+                            ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        }
+
+                        currentY += 34;
+                        ctx.fillText(beerName, 0, currentY, maxTextWidth);
+
+                        currentY += 34; // Gap before next order
+                    }
                 });
             }
             ctx.restore();
@@ -1934,7 +1980,8 @@ class Game {
         ctx.shadowColor = "black";
         ctx.shadowBlur = 10;
         ctx.fillStyle = "#ffcc00";
-        ctx.fillText(`TIPS: ${this.score}`, h.score.x, h.score.y);
+        let scoreString = `TIPS: ${this.score}`;
+        ctx.fillText(scoreString, h.score.x, h.score.y);
 
         // --- DYNAMIC COMBO METER UI ---
         if (this.combo > 1) {
@@ -1944,16 +1991,20 @@ class Game {
             if (this.combo >= 5) comboColor = "#ff3333"; // On Fire: Aggressive Red
 
             ctx.save();
-            ctx.translate(h.score.x, h.score.y + 45); // Positioned directly beneath the score
+
+            // 👇 FIX: Dynamically measure the TIPS text width and dock the combo meter 35px to its left!
+            let scoreWidth = ctx.measureText(scoreString).width;
+            ctx.translate(h.score.x - scoreWidth - 35, h.score.y);
+
             ctx.scale(pulse, pulse);
             ctx.font = `bold 45px "Bebas Neue"`;
             ctx.fillStyle = comboColor;
             ctx.shadowColor = "black";
             ctx.shadowBlur = 15;
+            ctx.textAlign = "right";
             ctx.fillText(`x${this.combo} COMBO`, 0, 0);
             ctx.restore();
         }
-
         ctx.restore();
 
         // HUD Glass pulses based on the MOST impatient customer
