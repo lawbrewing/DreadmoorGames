@@ -763,11 +763,7 @@ class Game {
             this.customers = []; // Instantly clear all characters
             this.activeCustomer = null;
             this.activePour.active = false;
-            // 👇 ARCADE MODE FIX: Forget the player so their next score doesn't overwrite this one!
-            localStorage.removeItem("ll_player_identifier");
-            localStorage.removeItem("ll_member_id");
-            this.leaderboard.playerIdentifier = "";
-            this.leaderboard.memberId = "";
+
             // Abrupt audio takeover
             this.audio.stopBGM();
             this.audio.play('gameover', 0);
@@ -777,12 +773,28 @@ class Game {
 
             setTimeout(async () => {
                 let name = prompt("GAME OVER! Enter your initials (3 letters):", "AAA");
+
+                // Trigger the "Loading..." text on the UI
+                this.leaderboard.topScores = null;
+
                 if (name) {
                     name = name.substring(0, 3).toUpperCase();
-                    this.leaderboard.topScores = null; // 👇 FIX: Trigger loading text
+                    // 1. Submit the score using the CURRENT player identity
                     await this.leaderboard.submitScore(this.score, name);
-                    this.leaderboard.topScores = await this.leaderboard.fetchScores(10);
                 }
+
+                // 2. ARCADE MODE FIX: Burn the identity AFTER the score is safely submitted
+                localStorage.removeItem("ll_player_identifier");
+                localStorage.removeItem("ll_member_id");
+                this.leaderboard.playerIdentifier = "";
+                this.leaderboard.memberId = "";
+
+                // We also MUST clear the session token, otherwise LootLocker still knows it's you!
+                this.leaderboard.sessionToken = "";
+
+                // 3. Generate a brand new identity & fetch updated scores for the Game Over screen
+                await this.leaderboard.init();
+
             }, 500);
         }
     }
