@@ -316,7 +316,7 @@ class LootLockerAPI {
             });
             const data = await res.json();
 
-            // 👇 FIX: Trust the token rather than a success boolean
+            // 👇 FIX: Trust the token instead of a success boolean
             if (data.session_token) {
                 this.sessionToken = data.session_token;
                 this.playerIdentifier = data.player_identifier;
@@ -331,8 +331,6 @@ class LootLockerAPI {
                 localStorage.setItem("ll_member_id", this.memberId);
 
                 this.topScores = await this.fetchScores(10);
-            } else {
-                console.error("LootLocker Session Failed:", data);
             }
         } catch (e) { console.error("LootLocker Init Error:", e); }
     }
@@ -343,14 +341,12 @@ class LootLockerAPI {
         const targetMemberId = (this.memberId && this.memberId !== "undefined") ? this.memberId : this.playerIdentifier;
 
         try {
-            // 1. Update Name
             await fetch(`${this.baseURL}/player/name`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
                 body: JSON.stringify({ name: playerName })
             });
 
-            // 2. Submit Score
             const scoreRes = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/submit`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
@@ -359,7 +355,7 @@ class LootLockerAPI {
 
             const scoreData = await scoreRes.json();
 
-            // 👇 FIX: Only throw an error if the HTTP response is physically broken
+            // 👇 FIX: Only throw an error if the HTTP network response is physically broken
             if (!scoreRes.ok) {
                 console.error("❌ LOOTLOCKER REJECTED SCORE:", scoreData);
             } else {
@@ -378,7 +374,7 @@ class LootLockerAPI {
             });
             const data = await res.json();
 
-            // 👇 FIX: LootLocker puts the scores directly into data.items
+            // 👇 FIX: Bypass the success check entirely and just grab the items
             if (data.items) {
                 return data.items;
             } else {
