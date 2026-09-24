@@ -302,7 +302,6 @@ class LootLockerAPI {
         this.leaderboardID = "36366";
         this.sessionToken = "";
 
-        // Ensure we don't trip over bad data saved in the browser from previous runs
         this.playerIdentifier = localStorage.getItem("ll_player_identifier") || "";
         this.memberId = localStorage.getItem("ll_member_id") || "";
         this.topScores = null;
@@ -317,11 +316,11 @@ class LootLockerAPI {
             });
             const data = await res.json();
 
-            if (data.success) {
+            // 👇 FIX: Trust the token rather than a success boolean
+            if (data.session_token) {
                 this.sessionToken = data.session_token;
                 this.playerIdentifier = data.player_identifier;
 
-                // 👇 FIX: Safely extract the numeric player ID, fallback to identifier if it fails
                 if (data.player_id) {
                     this.memberId = data.player_id.toString();
                 } else {
@@ -341,7 +340,6 @@ class LootLockerAPI {
     async submitScore(score, playerName) {
         if (!this.sessionToken) return;
 
-        // 👇 FIX: Force a valid member ID so we never send "undefined" or an empty string
         const targetMemberId = (this.memberId && this.memberId !== "undefined") ? this.memberId : this.playerIdentifier;
 
         try {
@@ -361,9 +359,11 @@ class LootLockerAPI {
 
             const scoreData = await scoreRes.json();
 
-            // 👇 FIX: Log the EXACT rejection reason if it fails again so we aren't flying blind!
-            if (!scoreRes.ok || !scoreData.success) {
+            // 👇 FIX: Only throw an error if the HTTP response is physically broken
+            if (!scoreRes.ok) {
                 console.error("❌ LOOTLOCKER REJECTED SCORE:", scoreData);
+            } else {
+                console.log("✅ SCORE SUBMITTED SUCCESSFULLY:", scoreData);
             }
 
         } catch (e) { console.error("LootLocker Submit Error:", e); }
@@ -377,7 +377,13 @@ class LootLockerAPI {
                 headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken }
             });
             const data = await res.json();
-            return data.success ? data.items : [];
+
+            // 👇 FIX: LootLocker puts the scores directly into data.items
+            if (data.items) {
+                return data.items;
+            } else {
+                return [];
+            }
         } catch (e) {
             return [];
         }
