@@ -22,9 +22,9 @@ let screenOffset = { x: 0, y: 0 };
 const TAPS = { STOUT: 0, IPA: 1, LAGER: 2 };
 
 const RECIPES = {
-    'stout': { name: "STOUT", steps: [{ tap: TAPS.STOUT, limit: 1.0 }] },
-    'ipa': { name: "IPA", steps: [{ tap: TAPS.IPA, limit: 1.0 }] },
-    'lager': { name: "LAGER", steps: [{ tap: TAPS.LAGER, limit: 1.0 }] },
+    'stout': { name: "MARSHMALLOW STOUT", steps: [{ tap: TAPS.STOUT, limit: 1.0 }] },
+    'ipa': { name: "nIPLy", steps: [{ tap: TAPS.IPA, limit: 1.0 }] },
+    'lager': { name: "LFO", steps: [{ tap: TAPS.LAGER, limit: 1.0 }] },
     'black_tan': { name: "BLACK & TAN", steps: [{ tap: TAPS.LAGER, limit: 0.5 }, { tap: TAPS.STOUT, limit: 1.0 }] },
     'black_bitter': { name: "BLACK & BITTER", steps: [{ tap: TAPS.IPA, limit: 0.5 }, { tap: TAPS.STOUT, limit: 1.0 }] },
     'lawnmower': { name: "LAWNMOWER HOP", steps: [{ tap: TAPS.LAGER, limit: 0.5 }, { tap: TAPS.IPA, limit: 1.0 }] }
@@ -556,6 +556,7 @@ class Game {
         this.leaderboard.init();
         this.initInput();
         this.resize();
+        this.tipPopups = [];
         window.addEventListener('resize', () => this.resize());
 
     }
@@ -810,7 +811,7 @@ class Game {
         this.isGameOver = false;
         this.bossTriggered = false;
         this.spawnTimer = 0;
-
+        this.tipPopups = [];
         this.customers = []; // Clear array
         this.activeCustomer = null;
 
@@ -847,6 +848,17 @@ class Game {
             }
             this.activeCustomer = null; // Clear context on release
         }
+    }
+
+    spawnTipPopup(text, x, y, color = "#0f0") {
+        this.tipPopups.push({
+            text: text,
+            x: x,
+            y: y,
+            color: color,
+            life: 60,      // Lasts for 60 frames (1 second)
+            maxLife: 60
+        });
     }
 
     updatePouring() {
@@ -886,8 +898,11 @@ class Game {
     }
 
     evaluatePour() {
-        const c = this.activeCustomer; // <-- CHANGED THIS LINE
+        const c = this.activeCustomer;
         if (!c) return;
+
+        // 👇 NEW: Dynamic multiplier based on remaining patience (Scales from 1.0x to 2.0x)
+        const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
 
         // 👇 KAREN SHORT POUR & GAMBLE LOGIC
         if (c.type === 'karen') {
@@ -916,27 +931,28 @@ class Game {
 
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.audio.play('perfect', 0);
-                this.score += 50;
+
+                // 👇 FIX: Floating Text for Perfect Micro-Score
+                let earned = Math.floor(50 * patienceMult);
+                this.score += earned;
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
 
                 // --- EASTER EGG PLAQUE SPAWN LOGIC ---
                 let award = REAL_AWARDS[Math.floor(Math.random() * REAL_AWARDS.length)];
 
                 let mX, mY;
                 let validPlacement = false;
-                let attempts = 0; // Failsafe to prevent a browser crash if the wall gets completely full!
+                let attempts = 0;
 
                 while (!validPlacement && attempts < 200) {
                     mX = 1100 + (Math.random() * 750);
                     mY = 100 + (Math.random() * 550);
                     attempts++;
 
-                    // 1. Check environment exclusions
                     let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
                     let inHudBox = (mX > 1500) && (mY < 250);
 
                     if (!inSignBox && !inHudBox) {
-                        // 2. Check collision against existing plaques
-                        // Plaque physical size is 144x84. We use 160x100 to give them a nice padded border.
                         let isOverlapping = this.wallMedals.some(medal => {
                             let xDist = Math.abs(medal.x - mX);
                             let yDist = Math.abs(medal.y - mY);
@@ -949,7 +965,6 @@ class Game {
                     }
                 }
 
-                // Only spawn the plaque if we successfully found an empty spot
                 if (validPlacement) {
                     let mRot = (Math.random() - 0.5) * 0.15;
                     this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
@@ -958,7 +973,11 @@ class Game {
             } else {
                 // Secondary trigger: Still successfully poured, but missed perfect window
                 this.audio.play('perfect', 0);
-                this.score += 10;
+
+                // 👇 FIX: Floating Text for Good Micro-Score
+                let earned = Math.floor(10 * patienceMult);
+                this.score += earned;
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#fff");
             }
 
             // Move to the next layer of a mixed drink, or finish the glass
@@ -972,10 +991,8 @@ class Game {
             }
 
         } else {
-            // THE ONE-SHOT PENALTY: They let go too early!
-            if (c.currentDrinkProgress < lower) {
-                this.completeOrder(false);
-            }
+            // THE ONE-SHOT PENALTY: They let go too early or too late
+            this.completeOrder(false);
         }
     }
 
@@ -993,33 +1010,46 @@ class Game {
     }
 
     completeOrder(success, failType = null) {
-        const c = this.activeCustomer; // <-- CHANGED THIS LINE
+        const c = this.activeCustomer;
         if (!c) return;
 
         const isJudge = c.type === 'judge';
         const isKaren = c.type === 'karen';
 
+        // 👇 NEW: Calculate the multiplier for the final hand-off (1.0x to 2.0x)
+        const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
+
         if (success && c.satisfaction > 0) {
             // --- SUCCESS ---
             if (isJudge) {
                 this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
-                this.score += 1000 * this.level;
-                if (this.lives < 3) this.lives++;
+                let earned = Math.floor((1000 * this.level) * patienceMult);
+                this.score += earned;
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
 
+                if (this.lives < 3) this.lives++;
                 this.level++;
                 this.customersServedThisLevel = 0;
                 this.levelQuota = 4 + this.level;
 
             } else if (isKaren) {
                 this.combo++;
-                this.score += 200 + (this.combo * 10);
-                this.notifications.trigger("KAREN BONUS! +200", "#0f0", 90);
+                let earned = Math.floor((200 + (this.combo * 10)) * patienceMult);
+                this.score += earned;
+
+                this.notifications.trigger(`KAREN BONUS!`, "#0f0", 90);
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
+
                 this.audio.play('perfect', 0);
                 this.customersServedThisLevel++;
             } else {
                 this.combo++;
-                this.score += (50 * c.order.length) + (this.combo * 10);
-                this.notifications.trigger(`PERFECT! +${this.combo} COMBO`, "#0f0", 60);
+                let earned = Math.floor(((50 * c.order.length) + (this.combo * 10)) * patienceMult);
+                this.score += earned;
+
+                this.notifications.trigger(`PERFECT!`, "#0f0", 60);
+                this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
+
                 this.customersServedThisLevel++;
             }
         } else {
@@ -1029,16 +1059,19 @@ class Game {
             if (isKaren && failType !== "mechanical") {
                 // 👇 KAREN RAGE PENALTY
                 this.audio.play('trash', 1200);
-                this.notifications.trigger("KAREN RAGE! -100", "#f00", 90);
+                this.notifications.trigger("KAREN RAGE!", "#f00", 90);
                 this.score = Math.max(0, this.score - 100);
+                this.spawnTipPopup(`-100`, c.x, c.y - 350, "#f00");
+
             } else {
                 // 👇 STANDARD PENALTY (Lose a life)
                 this.lives--;
                 this.audio.play('trash', 1200);
 
                 if (isJudge) {
-                    this.notifications.trigger("DEMOTED! -1500 TIPS", "#f00", 180);
+                    this.notifications.trigger("DEMOTED!", "#f00", 180);
                     this.score = Math.max(0, this.score - 1500);
+                    this.spawnTipPopup(`-1500`, c.x, c.y - 350, "#f00");
                     this.customersServedThisLevel = 0;
                 } else if (isKaren) {
                     this.notifications.trigger("TRASH! BAD POUR", "#f00", 60);
@@ -1869,14 +1902,58 @@ class Game {
         this.drawTower();
         
         // 5. Draw HUD
+        // --- DRAW FLOATING TIP POPUPS (WORLD SPACE) ---
+        for (let i = this.tipPopups.length - 1; i >= 0; i--) {
+            let p = this.tipPopups[i];
+            p.y -= 2.5; // Float upwards
+            p.life--;
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+            ctx.textAlign = "center";
+            ctx.font = "bold 55px 'Bebas Neue', monospace";
+            ctx.fillStyle = p.color;
+
+            // Heavy black outline so the floating text pops against the background
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 6;
+            ctx.strokeText(p.text, p.x, p.y);
+            ctx.fillText(p.text, p.x, p.y);
+            ctx.restore();
+
+            if (p.life <= 0) this.tipPopups.splice(i, 1);
+        }
+
+        // 5. Draw Static HUD Elements
         const h = SPRITE_DATA.hud_elements;
         ctx.save();
+
+        // Main Score
         ctx.textAlign = "right";
         ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
         ctx.shadowColor = "black";
         ctx.shadowBlur = 10;
         ctx.fillStyle = "#ffcc00";
         ctx.fillText(`TIPS: ${this.score}`, h.score.x, h.score.y);
+
+        // --- DYNAMIC COMBO METER UI ---
+        if (this.combo > 1) {
+            let pulse = 1 + Math.sin(Date.now() / 120) * 0.12; // Heartbeat pulse
+            let comboColor = "#00ff66"; // Standard Green
+            if (this.combo >= 3) comboColor = "#ffcc00"; // Heating Up: Gold
+            if (this.combo >= 5) comboColor = "#ff3333"; // On Fire: Aggressive Red
+
+            ctx.save();
+            ctx.translate(h.score.x, h.score.y + 45); // Positioned directly beneath the score
+            ctx.scale(pulse, pulse);
+            ctx.font = `bold 45px "Bebas Neue"`;
+            ctx.fillStyle = comboColor;
+            ctx.shadowColor = "black";
+            ctx.shadowBlur = 15;
+            ctx.fillText(`x${this.combo} COMBO`, 0, 0);
+            ctx.restore();
+        }
+
         ctx.restore();
 
         // HUD Glass pulses based on the MOST impatient customer
