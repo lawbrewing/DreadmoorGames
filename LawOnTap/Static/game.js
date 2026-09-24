@@ -763,7 +763,11 @@ class Game {
             this.customers = []; // Instantly clear all characters
             this.activeCustomer = null;
             this.activePour.active = false;
-
+            // 👇 ARCADE MODE FIX: Forget the player so their next score doesn't overwrite this one!
+            localStorage.removeItem("ll_player_identifier");
+            localStorage.removeItem("ll_member_id");
+            this.leaderboard.playerIdentifier = "";
+            this.leaderboard.memberId = "";
             // Abrupt audio takeover
             this.audio.stopBGM();
             this.audio.play('gameover', 0);
