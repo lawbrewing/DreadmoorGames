@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAW ON TAP - Welcome</title>
+    <!-- Silences the 404 Favicon Error -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍺</text></svg>">
+    <!-- Unifies fonts to match the in-game HUD -->
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <style>
         body, html {
@@ -13,7 +16,7 @@
             min-height: 100vh;
             background-color: #0b0806;
             color: #f9fafb;
-            font-family: 'MedievalSharp', cursive, sans-serif;
+            font-family: monospace, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -26,16 +29,20 @@
             text-align: center;
         }
 
+        h1, h2, h3, .btn-play, .modal-content h2, .btn-close {
+            font-family: 'Bebas Neue', monospace;
+            letter-spacing: 1.5px;
+        }
+
         h1 {
-            font-size: 5rem;
+            font-size: 6rem;
             color: #ffcc00;
             text-shadow: 4px 4px 0px #8c3b0a, 8px 8px 15px rgba(0,0,0,0.8);
             margin: 0 0 10px 0;
-            letter-spacing: 2px;
         }
 
         h2 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             color: #d97b29;
             margin-bottom: 40px;
         }
@@ -58,16 +65,15 @@
 
             .rule-card h3 {
                 color: #ffcc00;
-                font-size: 1.8rem;
+                font-size: 2.2rem;
                 margin-top: 0;
                 border-bottom: 1px solid #8c3b0a;
                 padding-bottom: 10px;
             }
 
             .rule-card p {
-                font-size: 1.2rem;
-                line-height: 1.5;
-                font-family: monospace;
+                font-size: 1.1rem;
+                line-height: 1.6;
                 color: #e0e0e0;
             }
 
@@ -81,7 +87,6 @@
             font-weight: bold;
         }
 
-        /* --- NEW BUTTON STYLES --- */
         .button-group {
             display: flex;
             gap: 20px;
@@ -93,15 +98,13 @@
             display: inline-block;
             background-color: #222;
             color: #fff;
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             padding: 20px 60px;
             border: 4px solid #ffcc00;
             text-decoration: none;
-            text-transform: uppercase;
             box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
             transition: all 0.2s ease-in-out;
             cursor: pointer;
-            font-family: 'MedievalSharp', cursive, sans-serif;
         }
 
             .btn-play:hover {
@@ -142,36 +145,36 @@
             border-radius: 8px;
             padding: 40px;
             width: 90%;
-            max-width: 500px;
+            max-width: 550px;
             text-align: center;
             box-shadow: 0 0 30px rgba(255, 204, 0, 0.4);
         }
 
             .modal-content h2 {
                 color: #ffcc00;
-                font-size: 2.5rem;
+                font-size: 3.5rem;
                 margin-top: 0;
             }
 
         .score-row {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            font-family: monospace;
             font-size: 1.5rem;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             border-bottom: 1px solid #333;
-            padding-bottom: 5px;
+            border-radius: 4px;
         }
 
         .btn-close {
             background: #222;
             color: #fff;
             border: 2px solid #ffcc00;
-            padding: 10px 30px;
-            font-size: 1.5rem;
-            font-family: 'MedievalSharp', cursive;
+            padding: 10px 40px;
+            font-size: 2rem;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 30px;
+            transition: all 0.2s;
         }
 
             .btn-close:hover {
@@ -185,11 +188,11 @@
             }
 
             h1 {
-                font-size: 3.5rem;
+                font-size: 4rem;
             }
 
             .btn-play {
-                font-size: 1.8rem;
+                font-size: 2rem;
                 padding: 15px 30px;
             }
         }
@@ -201,7 +204,6 @@
         <h1>LAW ON TAP</h1>
         <h2>Survive the Shift. Master the Pour.</h2>
 
-        <!-- The upgraded side-by-side buttons -->
         <div class="button-group">
             <a href="index.html" class="btn-play">Tap to Start</a>
             <button onclick="openLeaderboard()" class="btn-play btn-scores">High Scores</button>
@@ -217,19 +219,24 @@
             </div>
 
             <div class="rule-card">
-                <h3>🧪 Layered Drinks</h3>
-                <p>Starting on Shift 3, patrons might order mixed drinks like a Black & Tan or a Lawnmower Hop. Watch the order card carefully and switch to the second tap when the bottom half is full.</p>
-            </div>
-
-            <div class="rule-card">
                 <h3>🤬 The Karen Gamble</h3>
                 <p>Karen never knows what she wants. When she steps to the bar, just pour *something*. You have a 33% chance to guess right and earn a massive <span class="highlight">+200 Tip</span>. Guess wrong, and suffer Karen Rage (lose 100 tips).</p>
             </div>
 
-            <div class="rule-card">
-                <h3>⚖️ The Judge</h3>
-                <p>At the end of every shift, The Judge arrives. He demands a massive flight of beers on a wooden paddle. Nail every single glass in his flight to level up and earn a life back.</p>
-                <p><span class="danger">WARNING:</span> Trash his flight, and you suffer a brutal 1,500 tip penalty and must repeat the shift!</p>
+            <!-- New Full-Width Cheat Sheet Card -->
+            <div class="rule-card" style="grid-column: 1 / -1;">
+                <h3>📋 House Recipe Cheat Sheet</h3>
+                <p style="margin-top: -10px; margin-bottom: 20px; color: #aaa;">Starting on Shift 3, patrons will order layered drinks. Keep an eye on the order board!</p>
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; font-size: 1.1rem; color: #ffcc00;">
+                    <div style="background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 5px; border: 1px solid #d97b29;"><strong>Black & Tan:</strong> Lager (50%) + Stout (50%)</div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 5px; border: 1px solid #d97b29;"><strong>Black & Bitter:</strong> IPA (50%) + Stout (50%)</div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 5px; border: 1px solid #d97b29;"><strong>Lawnmower Hop:</strong> Lager (50%) + IPA (50%)</div>
+                </div>
+            </div>
+
+            <div class="rule-card" style="grid-column: 1 / -1; text-align: center;">
+                <h3 style="border: none;">⚖️ The Judge</h3>
+                <p style="max-width: 600px; margin: 0 auto;">At the end of every shift, The Judge demands a massive flight of beers on a wooden paddle. Nail every single glass to level up.<br><br><span class="danger">WARNING:</span> Trash his flight, and you suffer a brutal 1,500 tip penalty and must repeat the shift!</p>
             </div>
         </div>
     </div>
@@ -237,20 +244,22 @@
     <!-- Leaderboard Modal -->
     <div class="modal-overlay" id="leaderboardModal">
         <div class="modal-content">
-            <h2>TITANS OF THE TAP</h2>
-            <div id="loadingText" style="font-family: monospace; font-size: 1.2rem; color: #aaa;">Loading scores...</div>
+            <h2>TITANS OF THE TAPS</h2>
+            <div id="loadingText" style="font-size: 1.2rem; color: #aaa;">Loading scores...</div>
             <div id="scoreList"></div>
             <button class="btn-close" onclick="closeLeaderboard()">CLOSE</button>
         </div>
     </div>
 
-    <!-- Defensive, Linter-Safe JS Script -->
+    <!-- LootLocker & Modal Logic -->
     <script>
                 async function openLeaderboard() {
                     const modal = document.getElementById('leaderboardModal');
                     const loadingText = document.getElementById('loadingText');
                     const list = document.getElementById('scoreList');
 
+                    // Lock body scroll
+                    document.body.style.overflow = 'hidden';
                     modal.style.display = 'flex';
                     loadingText.style.display = 'block';
                     loadingText.innerText = "Loading scores...";
@@ -260,10 +269,10 @@
                     const leaderboardID = "36366";
 
                     try {
-                        // Safely check local storage without triggering strict VS warnings
+                        // Grab the updated key
                         let localPlayerId = "";
                         if (typeof window !== "undefined" && window.localStorage) {
-                            localPlayerId = window.localStorage.getItem("ll_player_id") || "";
+                            localPlayerId = window.localStorage.getItem("ll_player_identifier") || "";
                         }
 
                         const payload = {
@@ -283,10 +292,9 @@
 
                         const authData = await authRes.json();
 
-                        if (authData.success) {
-                            // Safely set local storage
+                        if (authData.session_token) {
                             if (typeof window !== "undefined" && window.localStorage) {
-                                window.localStorage.setItem("ll_player_id", authData.player_identifier);
+                                window.localStorage.setItem("ll_player_identifier", authData.player_identifier);
                             }
 
                             const scoreRes = await fetch("https://api.lootlocker.io/game/leaderboards/" + leaderboardID + "/list?count=10", {
@@ -297,17 +305,30 @@
                             const scoreData = await scoreRes.json();
                             loadingText.style.display = 'none';
 
-                            if (scoreData.success && scoreData.items && scoreData.items.length > 0) {
-                                // Using a traditional loop to keep strict linters happy
+                            if (scoreData.items && scoreData.items.length > 0) {
                                 let htmlString = "";
+
                                 for (let i = 0; i < scoreData.items.length; i++) {
                                     const entry = scoreData.items[i];
                                     const name = (entry.player && entry.player.name) ? entry.player.name : "???";
-                                    htmlString += "<div class='score-row'><span style='color:#ffcc00'>" + entry.rank + ".</span> <span style='flex-grow:1; text-align:left; margin-left:10px;'>" + name + "</span><span>" + entry.score + "</span></div>";
+
+                                    // Highlight self and assign podium medals
+                                    const isSelf = (entry.member_id === authData.player_id.toString() || entry.member_id === authData.player_identifier);
+                                    const rankDisplay = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}.`;
+
+                                    htmlString += `
+                                        <div class="score-row" style="padding: 8px; ${isSelf ? 'background: rgba(255, 204, 0, 0.15); border-color: #ffcc00;' : ''}">
+                                            <span style="color:#ffcc00; width: 40px; text-align: left;">${rankDisplay}</span>
+                                            <span style="flex-grow:1; text-align:left; margin-left:10px; ${isSelf ? 'color:#ffcc00; font-weight:bold;' : ''}">
+                                                ${name} ${isSelf ? '(YOU)' : ''}
+                                            </span>
+                                            <span style="font-weight: bold; color: ${isSelf ? '#ffcc00' : '#fff'};">${entry.score}</span>
+                                        </div>
+                                    `;
                                 }
                                 list.innerHTML = htmlString;
                             } else {
-                                list.innerHTML = "<div class='score-row' style='justify-content:center;'>No scores yet!</div>";
+                                list.innerHTML = "<div class='score-row' style='justify-content:center; border:none; margin-top: 20px;'>No scores yet!</div>";
                             }
                         } else {
                             loadingText.innerText = "Connection failed.";
@@ -320,7 +341,18 @@
 
                 function closeLeaderboard() {
                     document.getElementById('leaderboardModal').style.display = 'none';
+                    document.body.style.overflow = ''; // Restore scrolling
                 }
+
+                // Click outside to close
+                document.getElementById('leaderboardModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'leaderboardModal') closeLeaderboard();
+                });
+
+                // Escape key to close
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeLeaderboard();
+                });
     </script>
 </body>
 </html>
