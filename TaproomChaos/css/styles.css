@@ -1,1 +1,78 @@
-styles.css
+/* Base Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    background-color: #09090b; /* Dreadmoor dark theme */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: #f4f4f5;
+}
+
+/* Gritty overlay inherited from the Library */
+.noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 100; /* Stays on top of everything to give the game grit */
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* The Magic Scaling Canvas */
+#gameCanvas {
+    /* This forces the canvas to maintain its 16:9 ratio while filling the screen as much as possible */
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 16 / 9;
+    /* The bar napkin color for the background before assets load */
+    background-color: #f4e8d1;
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.15); /* Slight red Dreadmoor glow */
+    z-index: 10;
+}
+
+/* UI Layer sits exactly on top of the Canvas dimensions */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Lets clicks pass through to the canvas */
+    z-index: 50;
+}
+
+/* The PWA Exit Button */
+#btn-exit {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    pointer-events: auto; /* Re-enables clicking just for this button */
+    font-family: 'Oswald', sans-serif;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    font-size: 14px;
+    letter-spacing: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    background: rgba(9, 9, 11, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+    #btn-exit:hover {
+        color: #dc2626;
+        border-color: #dc2626;
+        box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+    }
