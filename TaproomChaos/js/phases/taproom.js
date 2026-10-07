@@ -6,6 +6,9 @@ class TaproomPhase {
         this.projectiles = [];
         this.availableAmmo = [];
         this.isActive = false;
+        this.floatingTexts = [];
+        this.spawnTimer = 0;
+        this.spawnInterval = 2.5;
 
         // Ammo Selection
         this.selectedAmmoIndex = 0; // Defaults to 0 (Swill)
@@ -17,8 +20,8 @@ class TaproomPhase {
 
         // Fake 3D Physics Constants
         this.gravity = 1500; // Pulls 'z' (height) back down to 0
-        this.throwMultiplier = 2.5; // How much drag distance affects speed
-        this.zMultiplier = 1.2; // How much drag affects the upward arc
+        this.throwMultiplier = 7.0; // INCREASED from 2.5
+        this.zMultiplier = 2.5;     // INCREASED from 1.2
 
         this.setupEventListeners();
     }
@@ -51,9 +54,27 @@ class TaproomPhase {
             }
         });
 
-        gameEvents.on('DRAG_MOVE', (pos) => {
+        gameEvents.on('DRAG_END', (pos) => {
             if (!this.isAiming) return;
-            this.aimCurrent = { x: pos.x, y: pos.y };
+            this.isAiming = false;
+
+            // --- NEW DART THROW LOGIC ---
+            // Drag FORWARD (up the screen) to shoot FORWARD
+            const dx = pos.x - this.aimStart.x;
+            const dy = pos.y - this.aimStart.y; // Dragging UP makes dy negative (into the room)
+
+            // We only shoot if they flicked forward (dy < -20)
+            if (dy < -20) {
+                const dragDistance = Math.sqrt(dx * dx + dy * dy);
+
+                // Tuned multipliers for a forward flick
+                const throwMult = 4.0;
+                const zMult = 1.5;
+
+                this.fireProjectile(this.aimStart.x, this.aimStart.y, dx * throwMult, dy * throwMult, dragDistance * zMult);
+            } else {
+                console.log("Canceled throw (didn't drag forward enough)");
+            }
         });
 
         gameEvents.on('DRAG_END', (pos) => {
@@ -125,24 +146,17 @@ class TaproomPhase {
     fireProjectile(x, y, vx, vy, vz) {
         const currentAmmo = playerState.ammo[this.selectedAmmoIndex];
 
-        // Deduct ammo (if it's not the infinite Swill)
         if (currentAmmo.count !== 'Infinite') {
             currentAmmo.count--;
-            // If we just threw the last one, auto-switch back to Swill
             if (currentAmmo.count <= 0) {
-                console.log(`Keg kicked! Switched back to Swill.`);
                 this.selectedAmmoIndex = 0;
             }
         }
 
         this.projectiles.push({
-            x: x,
-            y: y,
-            z: 0,
-            vx: vx,
-            vy: vy,
-            vz: vz,
-            type: currentAmmo.name, // The glass now knows what's inside it!
+            x: x, y: y, z: 0, vx: vx, vy: vy, vz: vz,
+            name: currentAmmo.name,
+            type: currentAmmo.type || 'crowd_control', // e.g., 'premium', 'soda', or 'crowd_control'
             radius: 12,
             active: true
         });
@@ -150,19 +164,73 @@ class TaproomPhase {
 
     init(ammoList = []) {
         this.isActive = true;
-        // Patrons spawn far away (y = 200) and walk toward the bar (y = 550)
-        this.patrons = [
-            { x: 400, y: 150, type: 'Old Timer', speed: 20, color: '#71717a' },
-            { x: 800, y: 200, type: 'VIP', speed: 25, color: '#f59e0b' }
-        ];
+        this.patrons = []; // Start empty!
+        this.spawnTimer = 0.5; // First patron walks in almost instantly
         this.projectiles = [];
         this.isAiming = false;
         this.availableAmmo = playerState.ammo;
+        this.floatingTexts = [];
+    }
+
+    spawnPatron() {
+        const rand = Math.random();
+        let template;
+
+        if (rand > 0.8) {
+            template = { type: 'VIP', speed: 25, color: '#f59e0b' };
+        } else if (rand > 0.5) {
+            template = { type: 'Kid', speed: 45, color: '#3b82f6' }; // Kids run fast!
+        } else {
+            template = { type: 'Old Timer', speed: 18, color: '#71717a' };
+        }
+
+        const randomX = Math.floor(Math.random() * 1080) + 100;
+        this.patrons.push({
+            x: randomX, y: 150, type: template.type,
+            speed: template.speed, color: template.color, active: true
+        });
+    }
+
+    triggerKidHorde() {
+        console.log("HORDE TRIGGERED!");
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+                this.patrons.push({
+                    x: Math.floor(Math.random() * 1080) + 100,
+                    y: 100 - (i * 20), // Stagger them
+                    type: 'Kid', speed: 45, color: '#3b82f6', active: true
+                });
+            }, i * 400); // 400ms delay between each
+        }
     }
 
     update(deltaTime) {
         if (!this.isActive) return;
         const dt = deltaTime / 1000;
+
+        // --- SPAWNING LOGIC ---
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0) {
+            this.spawnPatron();
+            // Reset timer (Add a little randomness so it doesn't feel robotic)
+            this.spawnTimer = this.spawnInterval + (Math.random() * 1.5);
+        }
+
+        // --- MOVEMENT & ESCAPE LOGIC ---
+        this.patrons = this.patrons.filter(patron => {
+            if (!patron.active) return false; // They were served, remove them!
+
+            patron.y += patron.speed * dt;
+
+            if (patron.y >= 540) {
+                gameEvents.emit('SPEND_TIPS', 5);
+                this.floatingTexts.push({
+                    x: patron.x, y: patron.y - 160, text: "-$5", color: "#ef4444", alpha: 1.0, life: 1.5
+                });
+                return false;
+            }
+            return true;
+        });
 
         // Move patrons toward the camera (increasing Y)
         this.patrons.forEach(patron => {
@@ -197,16 +265,40 @@ class TaproomPhase {
                 const withinZ = p.z > 0 && p.z < patronHeight;
 
                 if (withinX && withinY && withinZ) {
-                    console.log(`🎯 DIRECT HIT on ${patron.type} with ${p.type}!`);
                     p.active = false;
+                    patron.active = false; // Mark served so they get removed!
 
-                    // --- NEW TIP LOGIC ---
-                    // VIPs tip huge for good beer. Old Timers tip tiny amounts.
-                    const tipAmount = patron.type === 'VIP' ? 15 : 2;
-                    gameEvents.emit('EARN_TIPS', tipAmount);
+                    let tipAmount = 0;
+                    let floatText = "";
+                    let floatColor = "#10b981"; // Default Green
 
-                    // Knock them back to show the hit registered
-                    patron.y -= 100;
+                    // Evaluate the Serve!
+                    if (patron.type === 'VIP') {
+                        if (p.type === 'premium') {
+                            tipAmount = 15; floatText = "+$15 (Loved it!)";
+                        } else {
+                            tipAmount = 0; floatText = "Gross! (No Tip)"; floatColor = "#ef4444";
+                        }
+                    }
+                    else if (patron.type === 'Old Timer') {
+                        tipAmount = 2; floatText = "+$2";
+                    }
+                    else if (patron.type === 'Kid') {
+                        if (p.type === 'soda') {
+                            tipAmount = 10; floatText = "+$10 (Mom Tip!)";
+                        } else {
+                            tipAmount = 0; floatText = "YAY BEER! (Horde Incoming)"; floatColor = "#ef4444";
+                            this.triggerKidHorde(); // Uh oh.
+                        }
+                    }
+
+                    if (tipAmount > 0) gameEvents.emit('EARN_TIPS', tipAmount);
+
+                    this.floatingTexts.push({
+                        x: patron.x, y: patron.y - 160,
+                        text: floatText, color: floatColor, alpha: 1.0, life: 2.0
+                    });
+
                     break;
                 }
             }
@@ -226,111 +318,18 @@ class TaproomPhase {
 
         // Sort patrons so those closer to the bar (higher Y) are drawn on top of those further back
         this.patrons.sort((a, b) => a.y - b.y);
+
+        // Animate Floating Text
+        this.floatingTexts.forEach(ft => {
+            ft.life -= dt;
+            ft.y -= 40 * dt; // Float upward at 40 pixels per second
+            ft.alpha = Math.max(0, ft.life / 1.5); // Fade out as life drops
+        });
+
+        // Clean up dead text
+        this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
     }
-
-    draw(ctx, canvas) {
-        if (!this.isActive) return;
-
-        // 1. Floor
-        ctx.fillStyle = '#18181b';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 2. The Bar (Foreground)
-        ctx.fillStyle = '#27272a';
-        ctx.fillRect(0, 550, canvas.width, 170);
-        // Bar lip
-        ctx.fillStyle = '#3f3f46';
-        ctx.fillRect(0, 540, canvas.width, 10);
-
-        // 3. Draw Patrons
-        this.patrons.forEach(patron => {
-            // Scale them slightly based on depth so they look bigger as they approach
-            const scale = 0.5 + (patron.y / canvas.height);
-            const width = 60 * scale;
-            const height = 140 * scale;
-
-            // Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.beginPath();
-            ctx.ellipse(patron.x, patron.y, width / 2, 10 * scale, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Body
-            ctx.fillStyle = patron.color;
-            ctx.fillRect(patron.x - width / 2, patron.y - height, width, height);
-
-            // Label
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `${Math.floor(14 * scale)}px Inter`;
-            ctx.textAlign = 'center';
-            ctx.fillText(patron.type, patron.x, patron.y - height - 10);
-        });
-
-        // 4. Draw Projectiles
-        this.projectiles.forEach(p => {
-            // Draw floor shadow so the player can judge where the glass is in the room
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.beginPath();
-            ctx.ellipse(p.x, p.y, p.radius, p.radius / 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw the actual glass simulating height (y - z)
-            const renderY = p.y - p.z;
-
-            ctx.fillStyle = '#eab308'; // Beer
-            ctx.beginPath();
-            ctx.arc(p.x, renderY, p.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = 'rgba(255,255,255,0.7)'; // Highlight
-            ctx.beginPath();
-            ctx.arc(p.x - 3, renderY - 3, p.radius / 3, 0, Math.PI * 2);
-            ctx.fill();
-        });
-
-        // 5. Draw Aiming Line
-        if (this.isAiming) {
-            ctx.strokeStyle = 'rgba(220, 38, 38, 0.6)'; // Dreadmoor Red
-            ctx.lineWidth = 4;
-            ctx.setLineDash([10, 10]);
-
-            ctx.beginPath();
-            ctx.moveTo(this.aimStart.x, this.aimStart.y);
-            // Invert the drag distance to show where it's being aimed
-            const dx = this.aimStart.x - this.aimCurrent.x;
-            const dy = this.aimStart.y - this.aimCurrent.y;
-            ctx.lineTo(this.aimStart.x + dx, this.aimStart.y + dy);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-        // 6. Draw the HUD (Ammo)
-        ctx.fillStyle = 'rgba(9, 9, 11, 0.8)'; // Dark Dreadmoor panel
-        ctx.fillRect(10, 10, 280, 50 + (playerState.ammo.length * 35));
-
-        ctx.fillStyle = '#dc2626'; // Red
-        ctx.font = 'bold 24px Oswald';
-        ctx.textAlign = 'left';
-        ctx.fillText('ON TAP:', 25, 45);
-
-        ctx.font = '16px Inter';
-        let yOffset = 80;
-
-        playerState.ammo.forEach((ammo, index) => {
-            // Highlight the currently selected weapon
-            if (index === this.selectedAmmoIndex) {
-                ctx.fillStyle = '#f59e0b'; // Gold
-                ctx.fillText(`► ${ammo.name} (x${ammo.count})`, 25, yOffset);
-            } else {
-                ctx.fillStyle = '#a1a1aa'; // Gray
-                ctx.fillText(`  ${ammo.name} (x${ammo.count})`, 25, yOffset);
-            }
-
-            // Save the exact coordinates of this text so DRAG_START knows where to click
-            ammo.hitbox = { x: 25, y: yOffset - 16, w: 250, h: 24 };
-
-            yOffset += 35;
-        });
-    }
+       
     /**
          * Clean up when the round ends
          */

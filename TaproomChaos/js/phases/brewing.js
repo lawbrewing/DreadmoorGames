@@ -3,32 +3,39 @@
 class BrewingPhase {
     constructor() {
         this.isActive = false;
+        this.recipes = null;
+        this.loadRecipes(); // Fetch the JSON on boot
 
         // Grid configuration
         this.cols = 6;
         this.rows = 5;
         this.tileSize = 90;
-
-        // We moved the grid down slightly to make room for the Generators at the top
         this.gridOffset = { x: 350, y: 160 };
         this.grid = [];
+        this.dragState = null;
 
-        // Drag & Drop State
-        this.dragState = null; // Will hold: { item, startCol, startRow, mouseX, mouseY }
-
-        // Sidebar Tip Injection
         this.injectionCost = 15;
         this.btnInject = { x: 20, y: 120, w: 200, h: 50 };
 
-        // Permanent Board Generators
+        // TWO Generators now!
         this.generators = [
-            { id: 'grain', name: 'Grain Sack', x: 350, y: 30, w: 100, h: 100, color: '#b45309', produces: 'Base Malt' }
+            { id: 'grain', name: 'Grain Sack', x: 350, y: 30, w: 100, h: 100, color: '#b45309', produces: 'Base Malt' },
+            { id: 'water', name: 'Water Tap', x: 470, y: 30, w: 100, h: 100, color: '#0ea5e9', produces: 'Tap Water' }
         ];
 
-        // The Brew Kettle (Spans the width of the grid at the bottom)
         this.kettle = { x: 350, y: 620, w: 540, h: 80, color: '#3f3f46' };
-
         this.setupEventListeners();
+    }
+
+    // Add this method right below the constructor
+    async loadRecipes() {
+        try {
+            const response = await fetch('js/config/recipes.json');
+            this.recipes = await response.json();
+            console.log("[Brewing] Recipes loaded from config!");
+        } catch (error) {
+            console.error("[Brewing] Failed to load recipes.json", error);
+        }
     }
 
     setupEventListeners() {
@@ -82,23 +89,16 @@ class BrewingPhase {
 
             // 1. Did they drop it in the Kettle?
             if (this.isHit(pos, this.kettle.x, this.kettle.y, this.kettle.w, this.kettle.h)) {
-                // For now, we only allow Tier 5 items to be brewed
-                if (sourceItem.tier === 5) {
-                    console.log(`Brewed a ${sourceItem.name}! Sending to Taproom.`);
+                if (this.recipes && this.recipes.brews[sourceItem.name]) {
+                    const brewData = this.recipes.brews[sourceItem.name];
+                    console.log(`Brewed ${brewData.ammoName}!`);
 
-                    // Tell playerState to add this to our ammo pouch
-                    gameEvents.emit('ADD_AMMO', {
-                        name: 'nIPLy Cold IPA', // We'll make this dynamic based on recipes later
-                        type: 'premium'
-                    });
-
-                    // The item is consumed! (We just leave this.dragState as null)
+                    // Add it to the Taproom Inventory
+                    gameEvents.emit('ADD_AMMO', { name: brewData.ammoName, type: brewData.type });
                 } else {
                     console.log("This item isn't ready to brew yet!");
-                    // Bounce it back to where they picked it up
-                    this.grid[startRow][startCol] = sourceItem;
+                    this.grid[startRow][startCol] = sourceItem; // Bounce it back
                 }
-
                 this.dragState = null;
                 return;
             }
@@ -187,13 +187,9 @@ class BrewingPhase {
     }
 
     upgradeItem(item) {
-        const newTier = item.tier + 1;
-        switch (newTier) {
-            case 2: return { name: 'Specialty Grain', tier: 2, color: '#92400e' };
-            case 3: return { name: 'Hop Pellet', tier: 3, color: '#16a34a' };
-            case 4: return { name: 'Liquid Yeast', tier: 4, color: '#fef08a' };
-            default: return { name: 'Craft Beer Ammo', tier: 5, color: '#eab308' };
-        }
+        if (!this.recipes || !this.recipes.merges[item.name]) return item;
+        const mergeData = this.recipes.merges[item.name];
+        return { name: mergeData.result, tier: item.tier + 1, color: mergeData.color };
     }
 
     init() {
@@ -214,109 +210,7 @@ class BrewingPhase {
     update(deltaTime) {
         if (!this.isActive) return;
     }
-
-    draw(ctx, canvas) {
-        if (!this.isActive) return;
-
-        // 1. Background
-        ctx.fillStyle = '#f4e8d1';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 2. Sidebar (Tips)
-        ctx.fillStyle = '#27272a';
-        ctx.fillRect(0, 0, 250, canvas.height);
-
-        ctx.fillStyle = '#dc2626';
-        ctx.font = 'bold 24px Oswald';
-        ctx.textAlign = 'left';
-        ctx.fillText('TIP INJECTION', 20, 40);
-
-        ctx.fillStyle = '#f4f4f5';
-        ctx.font = '18px Inter';
-        ctx.fillText(`Tips: $${playerState ? playerState.tips : 0}.00`, 20, 80);
-
-        const canAfford = playerState && playerState.canAfford(this.injectionCost);
-        ctx.strokeStyle = canAfford ? '#f4f4f5' : '#52525b';
-        ctx.fillStyle = canAfford ? '#f4f4f5' : '#52525b';
-        ctx.strokeRect(this.btnInject.x, this.btnInject.y, this.btnInject.w, this.btnInject.h);
-        ctx.fillText(`+ Galaxy Hop ($${this.injectionCost})`, 35, 152);
-
-        // 3. Draw Generators (The Source)
-        this.generators.forEach(gen => {
-            // Sack shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.fillRect(gen.x + 5, gen.y + 5, gen.w, gen.h);
-            // Sack body
-            ctx.fillStyle = gen.color;
-            ctx.fillRect(gen.x, gen.y, gen.w, gen.h);
-            // Label
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 16px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText(gen.name, gen.x + gen.w / 2, gen.y + gen.h / 2 + 6);
-        });
-
-        // 4. Draw the Grid
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                const x = this.gridOffset.x + (c * this.tileSize);
-                const y = this.gridOffset.y + (r * this.tileSize);
-
-                // Grid Cell outline
-                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, this.tileSize, this.tileSize);
-
-                const item = this.grid[r][c];
-                if (item) {
-                    this.drawItem(ctx, item, x, y, this.tileSize);
-                }
-            }
-        }
-        // 4.5 Draw the Brew Kettle
-        // Kettle Shadow/Depth
-        ctx.fillStyle = '#27272a';
-        ctx.fillRect(this.kettle.x, this.kettle.y + 10, this.kettle.w, this.kettle.h);
-        // Kettle Rim
-        ctx.fillStyle = this.kettle.color;
-        ctx.fillRect(this.kettle.x, this.kettle.y, this.kettle.w, this.kettle.h);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 24px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('DROP HERE TO BREW', this.kettle.x + this.kettle.w / 2, this.kettle.y + 45);
-        // 5. Draw the Dragged Item (Drawn LAST so it floats above everything)
-        if (this.dragState) {
-            // Center the item on the mouse cursor
-            const drawX = this.dragState.mouseX - (this.tileSize / 2);
-            const drawY = this.dragState.mouseY - (this.tileSize / 2);
-
-            // Add a drop shadow to sell the "lifting" effect
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 10;
-
-            this.drawItem(ctx, this.dragState.item, drawX, drawY, this.tileSize);
-
-            // Reset shadows so we don't mess up the next frame
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-        }
-    }
-
-    // Extracted the item drawing logic so we can use it for grid items AND dragged items
-    drawItem(ctx, item, x, y, size) {
-        ctx.fillStyle = item.color;
-        ctx.fillRect(x + 5, y + 5, size - 10, size - 10);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '14px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText(`T${item.tier}`, x + size / 2, y + size / 2 + 5);
-    }
+        
 }
 
 const brewingPhase = new BrewingPhase();

@@ -4,6 +4,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- NEW: Initialize the Renderer ---
+const renderer = new GameRenderer(canvas, ctx);
+
 // Initialize the Input Manager
 const inputManager = new InputManager(canvas);
 
@@ -32,13 +35,14 @@ function update(deltaTime) {
 // 4. The Render Loop (Drawing to Canvas)
 // --- Update the draw() function ---
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    renderer.clear();
 
     if (currentState === GAME_STATES.TAPROOM) {
-        // Pass the context and canvas to the phase so it can draw itself
-        taproomPhase.draw(ctx, canvas);
+        // Pass the entire taproom phase object to the renderer as state
+        renderer.drawTaproom(taproomPhase);
     } else if (currentState === GAME_STATES.BREWING) {
-        brewingPhase.draw(ctx, canvas);
+        // Pass the entire brewing phase object to the renderer as state
+        renderer.drawBrewing(brewingPhase);
     }
 }
 
