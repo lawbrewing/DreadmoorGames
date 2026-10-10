@@ -179,15 +179,37 @@ class GameRenderer {
             }
         }
 
-        // 4.5 Draw the Brew Kettle
+        // 4.5 Draw the Brew Kettle System
         this.ctx.fillStyle = '#27272a';
         this.ctx.fillRect(state.kettle.x, state.kettle.y + 10, state.kettle.w, state.kettle.h);
         this.ctx.fillStyle = state.kettle.color;
         this.ctx.fillRect(state.kettle.x, state.kettle.y, state.kettle.w, state.kettle.h);
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 24px Inter';
+
+        // Draw the slots and the items sitting in them
+        for (let i = 0; i < state.kettle.maxItems; i++) {
+            const slotX = state.kettle.x + 20 + (i * 90);
+            const slotY = state.kettle.y + 10;
+
+            // Empty slot outline
+            this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(slotX, slotY, 60, 60);
+
+            // Draw the item if it exists
+            if (state.kettle.items[i]) {
+                this.drawItem(state.kettle.items[i], slotX, slotY, 60);
+            }
+        }
+
+        // Draw the BREW Button
+        const canBrew = state.kettle.items.length > 0;
+        this.ctx.fillStyle = canBrew ? '#10b981' : '#52525b'; // Green if ready, Grey if empty
+        this.ctx.fillRect(state.kettle.btnX, state.kettle.btnY, state.kettle.btnW, state.kettle.btnH);
+
+        this.ctx.fillStyle = canBrew ? '#ffffff' : '#a1a1aa';
+        this.ctx.font = 'bold 20px Oswald';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('DROP HERE TO BREW', state.kettle.x + state.kettle.w / 2, state.kettle.y + 45);
+        this.ctx.fillText('BREW', state.kettle.btnX + state.kettle.btnW / 2, state.kettle.btnY + 32);
 
         // 5. Draw the Dragged Item
         if (state.dragState) {

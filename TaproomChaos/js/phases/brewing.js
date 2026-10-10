@@ -4,7 +4,7 @@ class BrewingPhase {
     constructor() {
         this.isActive = false;
         this.recipes = null;
-        this.loadRecipes(); // Fetch the JSON on boot
+        this.recipes = gameRecipes;
 
         // Grid configuration
         this.cols = 6;
@@ -17,27 +17,27 @@ class BrewingPhase {
         this.injectionCost = 15;
         this.btnInject = { x: 20, y: 120, w: 200, h: 50 };
 
-        // TWO Generators now!
+        // FOUR Generators!
         this.generators = [
             { id: 'grain', name: 'Grain Sack', x: 350, y: 30, w: 100, h: 100, color: '#b45309', produces: 'Base Malt' },
-            { id: 'water', name: 'Water Tap', x: 470, y: 30, w: 100, h: 100, color: '#0ea5e9', produces: 'Tap Water' }
+            { id: 'water', name: 'Water Tap', x: 470, y: 30, w: 100, h: 100, color: '#0ea5e9', produces: 'Tap Water' },
+            { id: 'adjunct', name: 'Adjunct Shelf', x: 590, y: 30, w: 100, h: 100, color: '#8b5cf6', produces: 'Random' },
+            // NEW: The Liquor Cabinet
+            { id: 'spirits', name: 'Liquor Cabinet', x: 710, y: 30, w: 100, h: 100, color: '#be123c', produces: 'Well Liquor' }
         ];
 
-        this.kettle = { x: 350, y: 620, w: 540, h: 80, color: '#3f3f46' };
+        // The Brew Kettle now has slots and a button
+        this.kettle = {
+            x: 350, y: 620, w: 540, h: 80, color: '#3f3f46',
+            items: [], // Holds dropped items
+            maxItems: 3,
+            btnX: 740, btnY: 635, btnW: 130, btnH: 50 // The physical Brew button
+        };
+
+        // --- ADD THIS LINE! ---
         this.setupEventListeners();
     }
-
-    // Add this method right below the constructor
-    async loadRecipes() {
-        try {
-            const response = await fetch('js/config/recipes.json');
-            this.recipes = await response.json();
-            console.log("[Brewing] Recipes loaded from config!");
-        } catch (error) {
-            console.error("[Brewing] Failed to load recipes.json", error);
-        }
-    }
-
+        
     setupEventListeners() {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
@@ -48,7 +48,13 @@ class BrewingPhase {
                 return;
             }
 
-            // 2. Did they click a Generator?
+            // 2. Did they click the Brew Button?
+            if (this.isHit(pos, this.kettle.btnX, this.kettle.btnY, this.kettle.btnW, this.kettle.btnH)) {
+                this.brewKettle();
+                return;
+            }
+
+            // 3. Did they click a Generator? (This is probably what got deleted!)
             for (let gen of this.generators) {
                 if (this.isHit(pos, gen.x, gen.y, gen.w, gen.h)) {
                     this.tapGenerator(gen);
@@ -56,9 +62,9 @@ class BrewingPhase {
                 }
             }
 
-            // 3. Did they click an item on the grid to pick it up?
+            // 4. Did they click an item on the grid to pick it up?
             const { col, row, valid } = this.getGridCoords(pos.x, pos.y);
-            if (valid && this.grid[row][col]) {
+            if (valid && this.grid[row] && this.grid[row][col]) {
                 // Pick it up!
                 this.dragState = {
                     item: this.grid[row][col],
@@ -75,7 +81,6 @@ class BrewingPhase {
 
         gameEvents.on('DRAG_MOVE', (pos) => {
             if (!this.isActive || !this.dragState) return;
-            // Update the dragged item's visual coordinates to follow the mouse
             this.dragState.mouseX = pos.x;
             this.dragState.mouseY = pos.y;
         });
@@ -83,28 +88,27 @@ class BrewingPhase {
         gameEvents.on('DRAG_END', (pos) => {
             if (!this.isActive || !this.dragState) return;
 
+            const { col, row, valid } = this.getGridCoords(pos.x, pos.y);
             const sourceItem = this.dragState.item;
             const startCol = this.dragState.startCol;
             const startRow = this.dragState.startRow;
 
             // 1. Did they drop it in the Kettle?
             if (this.isHit(pos, this.kettle.x, this.kettle.y, this.kettle.w, this.kettle.h)) {
-                if (this.recipes && this.recipes.brews[sourceItem.name]) {
-                    const brewData = this.recipes.brews[sourceItem.name];
-                    console.log(`Brewed ${brewData.ammoName}!`);
-
-                    // Add it to the Taproom Inventory
-                    gameEvents.emit('ADD_AMMO', { name: brewData.ammoName, type: brewData.type });
+                // Does the kettle have an open slot?
+                if (this.kettle.items.length < this.kettle.maxItems) {
+                    this.kettle.items.push(sourceItem);
+                    console.log(`Added ${sourceItem.name} to kettle.`);
                 } else {
-                    console.log("This item isn't ready to brew yet!");
-                    this.grid[startRow][startCol] = sourceItem; // Bounce it back
+                    console.log("Kettle is full!");
+                    this.grid[startRow][startCol] = sourceItem; // Bounce back
                 }
+
                 this.dragState = null;
                 return;
             }
 
             // 2. Otherwise, handle Grid Drops
-            const { col, row, valid } = this.getGridCoords(pos.x, pos.y);
             this.dragState = null;
 
             // Dropped out of bounds? Snap it back.
@@ -127,6 +131,28 @@ class BrewingPhase {
         });
     }
 
+    brewKettle() {
+        if (this.kettle.items.length === 0) return;
+
+        // 1. Get the names of everything in the kettle, sort alphabetically, and join with '+'
+        const ingredients = this.kettle.items.map(i => i.name).sort().join('+');
+        console.log(`Attempting to brew: ${ingredients}`);
+
+        // 2. Check the JSON dictionary
+        if (this.recipes && this.recipes.brews[ingredients]) {
+            const brewData = this.recipes.brews[ingredients];
+            console.log(`SUCCESS! Brewed ${brewData.ammoName}!`);
+            gameEvents.emit('ADD_AMMO', { name: brewData.ammoName, type: brewData.type });
+        } else {
+            // THE PUNISHMENT FOR BAD EXPERIMENTATION
+            console.log("FAILED! That combination is gross. Brewed Swill.");
+            gameEvents.emit('ADD_AMMO', { name: 'Swill', type: 'crowd_control' });
+        }
+
+        // 3. Empty the kettle for the next batch
+        this.kettle.items = [];
+    }
+
     // Helper: Check if a click hit a specific rectangle
     isHit(pos, x, y, w, h) {
         return pos.x >= x && pos.x <= x + w && pos.y >= y && pos.y <= y + h;
@@ -141,7 +167,6 @@ class BrewingPhase {
     }
 
     tapGenerator(gen) {
-        // Find the first empty slot on the board
         let targetCell = null;
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
@@ -154,15 +179,30 @@ class BrewingPhase {
         }
 
         if (targetCell) {
-            // Spawn the Tier 1 item
+            let itemName = gen.produces;
+            let itemColor = '#d97706';
+
+            // If it's the Adjunct shelf, pick a random ingredient!
+            if (gen.id === 'adjunct') {
+                const adjuncts = [
+                    { name: 'Marshmallow', color: '#fdf4ff' },
+                    { name: 'Raspberry', color: '#e11d48' },
+                    { name: 'Cacao Nibs', color: '#451a03' }
+                ];
+                const rand = adjuncts[Math.floor(Math.random() * adjuncts.length)];
+                itemName = rand.name;
+                itemColor = rand.color;
+            } else if (gen.id === 'water') {
+                itemColor = '#0ea5e9';
+            } else if (gen.id === 'spirits') {
+                itemColor = '#f43f5e'; // Bright red for Well Liquor
+            }
+
             this.grid[targetCell.r][targetCell.c] = {
-                name: gen.produces,
-                tier: 1,
-                color: '#d97706' // Amber base malt
+                name: itemName,
+                tier: 1, // Adjuncts are Tier 1 but don't merge!
+                color: itemColor
             };
-            console.log(`Generated ${gen.produces}`);
-        } else {
-            console.log("Grid full! Merge items to make space.");
         }
     }
 
@@ -209,6 +249,11 @@ class BrewingPhase {
 
     update(deltaTime) {
         if (!this.isActive) return;
+    }
+    shutdown() {
+        console.log("[Brewing] Shutting down phase.");
+        this.isActive = false;
+        this.dragState = null; // Drop anything we were holding
     }
         
 }

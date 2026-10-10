@@ -174,21 +174,31 @@ class TaproomPhase {
 
     spawnPatron() {
         const rand = Math.random();
-        let template;
+        const randomX = Math.floor(Math.random() * 1000) + 120;
 
-        if (rand > 0.8) {
-            template = { type: 'VIP', speed: 25, color: '#f59e0b' };
-        } else if (rand > 0.5) {
-            template = { type: 'Kid', speed: 45, color: '#3b82f6' }; // Kids run fast!
+        if (rand > 0.85) {
+            // SPAWN TETHERED PAIR (VIP + Spouse)
+            const vipId = Math.random().toString(); // Generate unique ID
+
+            // The VIP
+            this.patrons.push({
+                id: vipId, x: randomX, y: 150, type: 'VIP',
+                speed: 20, color: '#f59e0b', active: true,
+                hasSpouse: true, spouseSatisfied: false
+            });
+            // The Spouse (Spawns slightly behind and to the right)
+            this.patrons.push({
+                partnerId: vipId, x: randomX + 50, y: 120, type: 'Spouse',
+                speed: 20, color: '#ec4899', active: true // Pink!
+            });
+
+        } else if (rand > 0.6) {
+            this.patrons.push({ x: randomX, y: 150, type: 'VIP', speed: 25, color: '#f59e0b', active: true, hasSpouse: false });
+        } else if (rand > 0.4) {
+            this.patrons.push({ x: randomX, y: 150, type: 'Kid', speed: 45, color: '#3b82f6', active: true });
         } else {
-            template = { type: 'Old Timer', speed: 18, color: '#71717a' };
+            this.patrons.push({ x: randomX, y: 150, type: 'Old Timer', speed: 18, color: '#71717a', active: true });
         }
-
-        const randomX = Math.floor(Math.random() * 1080) + 100;
-        this.patrons.push({
-            x: randomX, y: 150, type: template.type,
-            speed: template.speed, color: template.color, active: true
-        });
     }
 
     triggerKidHorde() {
@@ -273,13 +283,42 @@ class TaproomPhase {
                     let floatColor = "#10b981"; // Default Green
 
                     // Evaluate the Serve!
-                    if (patron.type === 'VIP') {
-                        if (p.type === 'premium') {
-                            tipAmount = 15; floatText = "+$15 (Loved it!)";
+
+                    // 1. THE SPOUSE LOGIC
+                    if (patron.type === 'Spouse') {
+                        if (p.type === 'cocktail') {
+                            tipAmount = 20; floatText = "+$20 (Happy Wife!)"; floatColor = "#ec4899";
+                            // Find their VIP partner and buff them!
+                            const partner = this.patrons.find(pt => pt.id === patron.partnerId);
+                            if (partner) partner.spouseSatisfied = true;
+                        } else {
+                            tipAmount = 0; floatText = "Ew! We're leaving!"; floatColor = "#ef4444";
+                            // Make their VIP partner leave in anger too
+                            const partner = this.patrons.find(pt => pt.id === patron.partnerId);
+                            if (partner) partner.active = false;
+                        }
+                    }
+                    // 2. THE VIP LOGIC
+                    else if (patron.type === 'VIP') {
+                        // Did you ignore the spouse?!
+                        if (patron.hasSpouse && !patron.spouseSatisfied) {
+                            tipAmount = 0; floatText = "Serve my spouse first!"; floatColor = "#ef4444";
+                            // Force the spouse to leave angry too
+                            const spouse = this.patrons.find(pt => pt.partnerId === patron.id);
+                            if (spouse) spouse.active = false;
+                        }
+                        // Normal evaluation
+                        else if (p.type === 'premium') {
+                            if (patron.spouseSatisfied) {
+                                tipAmount = 45; floatText = "+$45 (Happy Wife, Happy Life!)"; floatColor = "#f59e0b"; // 3X MULTIPLIER!
+                            } else {
+                                tipAmount = 15; floatText = "+$15 (Loved it!)";
+                            }
                         } else {
                             tipAmount = 0; floatText = "Gross! (No Tip)"; floatColor = "#ef4444";
                         }
                     }
+                    // 3. THE CROWD LOGIC
                     else if (patron.type === 'Old Timer') {
                         tipAmount = 2; floatText = "+$2";
                     }
@@ -288,7 +327,7 @@ class TaproomPhase {
                             tipAmount = 10; floatText = "+$10 (Mom Tip!)";
                         } else {
                             tipAmount = 0; floatText = "YAY BEER! (Horde Incoming)"; floatColor = "#ef4444";
-                            this.triggerKidHorde(); // Uh oh.
+                            this.triggerKidHorde();
                         }
                     }
 
