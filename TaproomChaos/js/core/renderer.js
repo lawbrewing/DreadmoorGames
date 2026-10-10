@@ -88,27 +88,6 @@ class GameRenderer {
             this.ctx.strokeText(ft.text, ft.x, ft.y);
             this.ctx.globalAlpha = 1.0;
         });
-
-        // 7. Draw the HUD (Ammo)
-        this.ctx.fillStyle = 'rgba(9, 9, 11, 0.8)';
-        this.ctx.fillRect(10, 10, 280, 50 + (playerState.ammo.length * 35));
-        this.ctx.fillStyle = '#dc2626';
-        this.ctx.font = 'bold 24px Oswald';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText('ON TAP:', 25, 45);
-
-        let yOffset = 80;
-        playerState.ammo.forEach((ammo, index) => {
-            if (index === state.selectedAmmoIndex) {
-                this.ctx.fillStyle = '#f59e0b';
-                this.ctx.fillText(`► ${ammo.name} (x${ammo.count})`, 25, yOffset);
-            } else {
-                this.ctx.fillStyle = '#a1a1aa';
-                this.ctx.fillText(`  ${ammo.name} (x${ammo.count})`, 25, yOffset);
-            }
-            ammo.hitbox = { x: 25, y: yOffset - 16, w: 250, h: 24 };
-            yOffset += 35;
-        });
     }
 
     // --- BREWING RENDERING ---
@@ -116,40 +95,7 @@ class GameRenderer {
         // 1. Background
         this.ctx.fillStyle = '#f4e8d1';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 2. Sidebar (Tips)
-        this.ctx.fillStyle = '#27272a';
-        this.ctx.fillRect(0, 0, 250, this.canvas.width);
-
-        this.ctx.fillStyle = '#dc2626';
-        this.ctx.font = 'bold 24px Oswald';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText('TIP INJECTION', 20, 40);
-
-        this.ctx.fillStyle = '#f4f4f5';
-        this.ctx.font = '18px Inter';
-        this.ctx.fillText(`Tips: $${playerState ? playerState.tips : 0}.00`, 20, 80);
-
-        const canAfford = playerState && playerState.canAfford(state.injectionCost);
-        this.ctx.strokeStyle = canAfford ? '#f4f4f5' : '#52525b';
-        this.ctx.fillStyle = canAfford ? '#f4f4f5' : '#52525b';
-        this.ctx.strokeRect(state.btnInject.x, state.btnInject.y, state.btnInject.w, state.btnInject.h);
-        this.ctx.fillText(`+ Galaxy Hop ($${state.injectionCost})`, 35, 152);
-
-        // Keg Room Inventory
-        this.ctx.fillStyle = '#dc2626';
-        this.ctx.font = 'bold 20px Oswald';
-        this.ctx.fillText('INVENTORY:', 20, 240);
-        this.ctx.fillStyle = '#f4f4f5';
-        this.ctx.font = '16px Inter';
-        let invYOffset = 270;
-        if (playerState && playerState.ammo) {
-            playerState.ammo.forEach(ammo => {
-                this.ctx.fillText(`${ammo.name}: ${ammo.count}`, 20, invYOffset);
-                invYOffset += 25;
-            });
-        }
-
+          
         // 3. Draw Generators
         state.generators.forEach(gen => {
             this.ctx.fillStyle = 'rgba(0,0,0,0.1)';

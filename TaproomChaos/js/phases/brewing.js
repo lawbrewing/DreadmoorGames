@@ -14,7 +14,7 @@ class BrewingPhase {
         this.grid = [];
         this.dragState = null;
 
-        this.injectionCost = 15;
+        this.injectionCost = gameEconomy.injectionCost;
         this.btnInject = { x: 20, y: 120, w: 200, h: 50 };
 
         // FOUR Generators!
@@ -41,12 +41,6 @@ class BrewingPhase {
     setupEventListeners() {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
-
-            // 1. Did they click the Tip Injection Button?
-            if (this.isHit(pos, this.btnInject.x, this.btnInject.y, this.btnInject.w, this.btnInject.h)) {
-                this.handleInjectionClick();
-                return;
-            }
 
             // 2. Did they click the Brew Button?
             if (this.isHit(pos, this.kettle.btnX, this.kettle.btnY, this.kettle.btnW, this.kettle.btnH)) {
@@ -77,6 +71,9 @@ class BrewingPhase {
                 // Temporarily remove it from the grid so it doesn't draw twice
                 this.grid[row][col] = null;
             }
+        });
+        gameEvents.on('HUD_INJECT_CLICK', () => {
+            if (this.isActive) this.handleInjectionClick();
         });
 
         gameEvents.on('DRAG_MOVE', (pos) => {
@@ -142,11 +139,11 @@ class BrewingPhase {
         if (this.recipes && this.recipes.brews[ingredients]) {
             const brewData = this.recipes.brews[ingredients];
             console.log(`SUCCESS! Brewed ${brewData.ammoName}!`);
-            gameEvents.emit('ADD_AMMO', { name: brewData.ammoName, type: brewData.type });
+            gameEvents.emit('ADD_AMMO', { name: brewData.ammoName, type: brewData.type, count: 5 }); // Give 5 shots
         } else {
-            // THE PUNISHMENT FOR BAD EXPERIMENTATION
-            console.log("FAILED! That combination is gross. Brewed Swill.");
-            gameEvents.emit('ADD_AMMO', { name: 'Swill', type: 'crowd_control' });
+            // THE PUNISHMENT: You wasted ingredients, but you get 5 cheap Swill to defend yourself
+            console.log("TRASH BATCH! Brewed 5 Swill.");
+            gameEvents.emit('ADD_AMMO', { name: 'Swill', type: 'crowd_control', count: 5 });
         }
 
         // 3. Empty the kettle for the next batch

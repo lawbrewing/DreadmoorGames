@@ -9,6 +9,8 @@ class TaproomPhase {
         this.floatingTexts = [];
         this.spawnTimer = 0;
         this.spawnInterval = 2.5;
+        this.shiftDuration = 60; // A shift lasts 60 seconds
+        this.timeRemaining = this.shiftDuration;
 
         // Ammo Selection
         this.selectedAmmoIndex = 0; // Defaults to 0 (Swill)
@@ -29,21 +31,6 @@ class TaproomPhase {
     setupEventListeners() {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
-
-            // 1. Did they click the HUD to change ammo?
-            // The HUD lives in the top left corner
-            if (pos.x < 300 && pos.y < 300) {
-                playerState.ammo.forEach((ammo, index) => {
-                    if (ammo.hitbox && pos.y >= ammo.hitbox.y && pos.y <= ammo.hitbox.y + ammo.hitbox.h) {
-                        // Only let them select it if they actually have some
-                        if (ammo.count === 'Infinite' || ammo.count > 0) {
-                            this.selectedAmmoIndex = index;
-                            console.log(`Switched tap to: ${ammo.name}`);
-                        }
-                    }
-                });
-                return; // Stop here so they don't accidentally throw a beer
-            }
 
             // 2. Are they pulling back to shoot?
             // The Bar is at the bottom of the screen (y > 550)
@@ -77,21 +64,6 @@ class TaproomPhase {
             }
         });
 
-        gameEvents.on('DRAG_END', (pos) => {
-            if (!this.isAiming) return;
-            this.isAiming = false;
-
-            // Dragging DOWN and LEFT shoots UP and RIGHT
-            const dx = this.aimStart.x - pos.x;
-            const dy = this.aimStart.y - pos.y; // Negative dy means we shoot "into" the screen
-
-            const dragDistance = Math.sqrt(dx * dx + dy * dy);
-            if (dragDistance > 20) {
-                // vx is horizontal, vy is depth into the room, vz is the upward arc height
-                const vz = dragDistance * this.zMultiplier;
-                this.fireProjectile(this.aimStart.x, this.aimStart.y, dx * this.throwMultiplier, dy * this.throwMultiplier, vz);
-            }
-        });
         gameEvents.on('GLASS_SMASHED', (data) => {
             if (!this.isActive) return;
 
@@ -170,53 +142,81 @@ class TaproomPhase {
         this.isAiming = false;
         this.availableAmmo = playerState.ammo;
         this.floatingTexts = [];
+        this.timeRemaining = this.shiftDuration;
     }
 
     spawnPatron() {
         const rand = Math.random();
         const randomX = Math.floor(Math.random() * 1000) + 120;
 
-        if (rand > 0.85) {
-            // SPAWN TETHERED PAIR (VIP + Spouse)
-            const vipId = Math.random().toString(); // Generate unique ID
+        const stats = gamePopulation.stats;
+        const rates = gamePopulation.spawnRates;
+        const diffMult = progressionState.getDifficultyMultiplier();
 
-            // The VIP
-            this.patrons.push({
-                id: vipId, x: randomX, y: 150, type: 'VIP',
-                speed: 20, color: '#f59e0b', active: true,
-                hasSpouse: true, spouseSatisfied: false
-            });
-            // The Spouse (Spawns slightly behind and to the right)
-            this.patrons.push({
-                partnerId: vipId, x: randomX + 50, y: 120, type: 'Spouse',
-                speed: 20, color: '#ec4899', active: true // Pink!
-            });
+        // 1. TETHERED PAIR
+        if (rand < rates.tetheredPair) {
+            const vip = new Patron(randomX, 150, 'VIP', stats['VIP'].speed * diffMult, stats['VIP'].color);
+            vip.hasSpouse = true;
 
-        } else if (rand > 0.6) {
-            this.patrons.push({ x: randomX, y: 150, type: 'VIP', speed: 25, color: '#f59e0b', active: true, hasSpouse: false });
-        } else if (rand > 0.4) {
-            this.patrons.push({ x: randomX, y: 150, type: 'Kid', speed: 45, color: '#3b82f6', active: true });
-        } else {
-            this.patrons.push({ x: randomX, y: 150, type: 'Old Timer', speed: 18, color: '#71717a', active: true });
+            const spouse = new Patron(randomX + 50, 120, 'Spouse', stats['Spouse'].speed * diffMult, stats['Spouse'].color);
+
+            // Link their IDs together!
+            spouse.partnerId = vip.id;
+            vip.partnerId = spouse.id;
+
+            this.patrons.push(vip, spouse);
+        }
+        // 2. SOLO VIP
+        else if (rand < rates.tetheredPair + rates.vip) {
+            this.patrons.push(new Patron(randomX, 150, 'VIP', stats['VIP'].speed * diffMult, stats['VIP'].color));
+        }
+        // 3. KID
+        else if (rand < rates.tetheredPair + rates.vip + rates.kid) {
+            this.patrons.push(new Patron(randomX, 150, 'Kid', stats['Kid'].speed * diffMult, stats['Kid'].color));
+        }
+        // 4. OLD TIMER
+        else {
+            this.patrons.push(new Patron(randomX, 150, 'Old Timer', stats['Old Timer'].speed * diffMult, stats['Old Timer'].color));
         }
     }
 
     triggerKidHorde() {
         console.log("HORDE TRIGGERED!");
-        for (let i = 0; i < 4; i++) {
+        const kidStats = gamePopulation.stats['Kid'];
+        const diffMult = progressionState.getDifficultyMultiplier();
+
+        let currentHordeSize = gamePopulation.hordeSize;
+        if (progressionState.isBossRound()) {
+            currentHordeSize *= 2;
+        }
+
+        for (let i = 0; i < currentHordeSize; i++) {
             setTimeout(() => {
-                this.patrons.push({
-                    x: Math.floor(Math.random() * 1080) + 100,
-                    y: 100 - (i * 20), // Stagger them
-                    type: 'Kid', speed: 45, color: '#3b82f6', active: true
-                });
-            }, i * 400); // 400ms delay between each
+                this.patrons.push(new Patron(
+                    Math.floor(Math.random() * 1080) + 100,
+                    100 - (i * 20),
+                    'Kid',
+                    kidStats.speed * diffMult,
+                    kidStats.color
+                ));
+            }, i * gamePopulation.hordeDelayMs);
         }
     }
 
-    update(deltaTime) {
+    update(dt) {
         if (!this.isActive) return;
-        const dt = deltaTime / 1000;
+
+        // 1. COUNTDOWN LOGIC
+        this.timeRemaining -= dt;
+        if (this.timeRemaining <= 0) {
+            console.log("[Taproom] Shift over! Returning to Brewery.");
+
+            // --- ADD THIS LINE! ---
+            progressionState.advanceShift();
+
+            gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
+            return;
+        }
 
         // --- SPAWNING LOGIC ---
         this.spawnTimer -= dt;
@@ -228,25 +228,29 @@ class TaproomPhase {
 
         // --- MOVEMENT & ESCAPE LOGIC ---
         this.patrons = this.patrons.filter(patron => {
-            if (!patron.active) return false; // They were served, remove them!
+            if (!patron.active) return false;
 
-            patron.y += patron.speed * dt;
+            // Let the entity handle its own downward math
+            patron.update(dt);
 
             if (patron.y >= 540) {
-                gameEvents.emit('SPEND_TIPS', 5);
-                this.floatingTexts.push({
-                    x: patron.x, y: patron.y - 160, text: "-$5", color: "#ef4444", alpha: 1.0, life: 1.5
-                });
+                gameEvents.emit('SPEND_TIPS', gameEconomy.escapePenalty);
+
+                // Spawn a red penalty title
+                this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 160, `-$${gameEconomy.escapePenalty}`, "#ef4444"));
                 return false;
             }
             return true;
         });
 
-        // Move patrons toward the camera (increasing Y)
-        this.patrons.forEach(patron => {
-            patron.y += patron.speed * dt;
+        // --- FLOATING TEXT UPDATES ---
+        this.floatingTexts = this.floatingTexts.filter(text => {
+            // Let the entity handle its own floating and fading math
+            text.update(dt);
+            return text.active; // Delete it automatically when its life hits 0
         });
 
+        
         // Move projectiles in 3D space
         this.projectiles.forEach(p => {
             if (!p.active) return;
@@ -283,60 +287,53 @@ class TaproomPhase {
                     let floatColor = "#10b981"; // Default Green
 
                     // Evaluate the Serve!
+                    const tips = gameEconomy.tips;
 
                     // 1. THE SPOUSE LOGIC
                     if (patron.type === 'Spouse') {
                         if (p.type === 'cocktail') {
-                            tipAmount = 20; floatText = "+$20 (Happy Wife!)"; floatColor = "#ec4899";
-                            // Find their VIP partner and buff them!
+                            tipAmount = tips.spouseCocktail; floatText = `+$${tipAmount} (Happy Wife!)`; floatColor = "#ec4899";
                             const partner = this.patrons.find(pt => pt.id === patron.partnerId);
                             if (partner) partner.spouseSatisfied = true;
                         } else {
-                            tipAmount = 0; floatText = "Ew! We're leaving!"; floatColor = "#ef4444";
-                            // Make their VIP partner leave in anger too
+                            tipAmount = tips.badServe; floatText = "Ew! We're leaving!"; floatColor = "#ef4444";
                             const partner = this.patrons.find(pt => pt.id === patron.partnerId);
                             if (partner) partner.active = false;
                         }
                     }
                     // 2. THE VIP LOGIC
                     else if (patron.type === 'VIP') {
-                        // Did you ignore the spouse?!
                         if (patron.hasSpouse && !patron.spouseSatisfied) {
-                            tipAmount = 0; floatText = "Serve my spouse first!"; floatColor = "#ef4444";
-                            // Force the spouse to leave angry too
+                            tipAmount = tips.badServe; floatText = "Serve my spouse first!"; floatColor = "#ef4444";
                             const spouse = this.patrons.find(pt => pt.partnerId === patron.id);
                             if (spouse) spouse.active = false;
                         }
-                        // Normal evaluation
                         else if (p.type === 'premium') {
                             if (patron.spouseSatisfied) {
-                                tipAmount = 45; floatText = "+$45 (Happy Wife, Happy Life!)"; floatColor = "#f59e0b"; // 3X MULTIPLIER!
+                                tipAmount = tips.vipCombo; floatText = `+$${tipAmount} (Happy Wife, Happy Life!)`; floatColor = "#f59e0b";
                             } else {
-                                tipAmount = 15; floatText = "+$15 (Loved it!)";
+                                tipAmount = tips.vipPremium; floatText = `+$${tipAmount} (Loved it!)`;
                             }
                         } else {
-                            tipAmount = 0; floatText = "Gross! (No Tip)"; floatColor = "#ef4444";
+                            tipAmount = tips.badServe; floatText = "Gross! (No Tip)"; floatColor = "#ef4444";
                         }
                     }
                     // 3. THE CROWD LOGIC
                     else if (patron.type === 'Old Timer') {
-                        tipAmount = 2; floatText = "+$2";
+                        tipAmount = tips.oldTimer; floatText = `+$${tipAmount}`;
                     }
                     else if (patron.type === 'Kid') {
                         if (p.type === 'soda') {
-                            tipAmount = 10; floatText = "+$10 (Mom Tip!)";
+                            tipAmount = tips.kidSoda; floatText = `+$${tipAmount} (Mom Tip!)`;
                         } else {
-                            tipAmount = 0; floatText = "YAY BEER! (Horde Incoming)"; floatColor = "#ef4444";
+                            tipAmount = tips.badServe; floatText = "YAY BEER! (Horde Incoming)"; floatColor = "#ef4444";
                             this.triggerKidHorde();
                         }
                     }
 
                     if (tipAmount > 0) gameEvents.emit('EARN_TIPS', tipAmount);
 
-                    this.floatingTexts.push({
-                        x: patron.x, y: patron.y - 160,
-                        text: floatText, color: floatColor, alpha: 1.0, life: 2.0
-                    });
+                    this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 160, floatText, floatColor));
 
                     break;
                 }
@@ -357,16 +354,7 @@ class TaproomPhase {
 
         // Sort patrons so those closer to the bar (higher Y) are drawn on top of those further back
         this.patrons.sort((a, b) => a.y - b.y);
-
-        // Animate Floating Text
-        this.floatingTexts.forEach(ft => {
-            ft.life -= dt;
-            ft.y -= 40 * dt; // Float upward at 40 pixels per second
-            ft.alpha = Math.max(0, ft.life / 1.5); // Fade out as life drops
-        });
-
-        // Clean up dead text
-        this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
+                
     }
        
     /**

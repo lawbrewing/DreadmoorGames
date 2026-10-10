@@ -4,26 +4,26 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- NEW: Initialize the Renderer ---
+// Initialize Systems
 const renderer = new GameRenderer(canvas, ctx);
-
-// Initialize the Input Manager
+const hud = new GameHUD();
 const inputManager = new InputManager(canvas);
 
 // 2. Define the Game States
 const GAME_STATES = {
     LOADING: 'LOADING',
     MENU: 'MENU',
-    TAPROOM: 'TAPROOM', // The physics action phase
-    BREWING: 'BREWING'  // The merge puzzle phase
+    TAPROOM: 'TAPROOM',
+    BREWING: 'BREWING', // Added missing comma
+    GAME_OVER: 'GAME_OVER'
 };
 
-// For now, we'll force the game to start in the TAPROOM phase to test it
-let currentState = GAME_STATES.TAPROOM;
+// Start in the Taproom phase
+let currentState = GAME_STATES.BREWING;
 let lastTime = 0;
+hud.switchPhase(currentState);
 
 // 3. The Update Loop (Math & Logic)
-// --- Update the update() function ---
 function update(deltaTime) {
     if (currentState === GAME_STATES.TAPROOM) {
         taproomPhase.update(deltaTime);
@@ -33,27 +33,44 @@ function update(deltaTime) {
 }
 
 // 4. The Render Loop (Drawing to Canvas)
-// --- Update the draw() function ---
 function draw() {
     renderer.clear();
 
     if (currentState === GAME_STATES.TAPROOM) {
-        // Pass the entire taproom phase object to the renderer as state
         renderer.drawTaproom(taproomPhase);
     } else if (currentState === GAME_STATES.BREWING) {
-        // Pass the entire brewing phase object to the renderer as state
         renderer.drawBrewing(brewingPhase);
     }
 }
 
 // 5. The Core Loop Heartbeat
 function gameLoop(timestamp) {
-    // Calculate how many milliseconds passed since the last frame (deltaTime)
-    // This ensures game speed stays consistent regardless of monitor refresh rate
-    let deltaTime = timestamp - lastTime;
+    // Fixed the mangled deltaTime calculation
+    if (!lastTime) lastTime = timestamp;
+    let deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
 
+    // --- BANKRUPTCY CHECK ---
+    if (playerState.tips < 0 && currentState !== GAME_STATES.GAME_OVER) {
+        console.log("BANKRUPT!");
+        currentState = GAME_STATES.GAME_OVER;
+
+        // Shut down both phases so gameplay freezes
+        if (typeof taproomPhase !== 'undefined') taproomPhase.shutdown();
+        if (typeof brewingPhase !== 'undefined') brewingPhase.shutdown();
+
+        // Throw up the Game Over UI
+        hud.showGameOver();
+        return; // Stop the game loop completely!
+    }
+
+    // Run Engine Updates
     update(deltaTime);
+
+    // Update HTML DOM
+    if (typeof hud !== 'undefined') hud.update();
+
+    // Draw Canvas
     draw();
 
     // Ask the browser to run this function again on the next frame
@@ -63,21 +80,24 @@ function gameLoop(timestamp) {
 // --- STATE TRANSITION LISTENERS ---
 gameEvents.on('CHANGE_STATE', (data) => {
     if (GAME_STATES[data.newState]) {
-
-        // 1. Shut down the current phase so it stops drawing/calculating
+        // 1. Shut down the current phase
         if (currentState === GAME_STATES.TAPROOM) {
             taproomPhase.shutdown();
         } else if (currentState === GAME_STATES.BREWING) {
             brewingPhase.shutdown();
         }
 
-        // 2. Flip the switch
+        // 2. Flip the internal switch
         currentState = data.newState;
         console.log(`[Main] State changed to: ${currentState}`);
 
-        // 3. Boot up the new phase
+        // 3. Flip the HTML HUD switch!
+        if (typeof hud !== 'undefined') {
+            hud.switchPhase(currentState);
+        }
+
+        // 4. Boot up the new phase
         if (currentState === GAME_STATES.TAPROOM) {
-            // Later we will pass the ammo list here
             taproomPhase.init();
         } else if (currentState === GAME_STATES.BREWING) {
             brewingPhase.init();
@@ -94,6 +114,10 @@ if (toggleBtn) {
     });
 }
 
-taproomPhase.init();
 // 6. Boot it up!
+if (currentState === GAME_STATES.TAPROOM) {
+    taproomPhase.init();
+} else if (currentState === GAME_STATES.BREWING) {
+    brewingPhase.init();
+}
 requestAnimationFrame(gameLoop);

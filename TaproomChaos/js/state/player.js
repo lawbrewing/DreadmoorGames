@@ -2,14 +2,11 @@
 
 class PlayerState {
     constructor() {
-        // Starting economy
-        this.tips = 0;
+        // Tie this directly to the config file we made earlier
+        this.tips = typeof gameEconomy !== 'undefined' ? gameEconomy.startingTips : 50;
 
-        // This will eventually hold our Tier 5 crafted beers
-        this.ammo = [
-            { name: 'Swill', type: 'crowd_control', count: 'Infinite' },
-            { name: 'nIPLy Cold IPA', type: 'premium', count: 5 }
-        ];
+        // Start with an EMPTY taplist! The player must brew before opening the doors.
+        this.ammo = [];
 
         this.setupEventListeners();
     }
@@ -21,7 +18,7 @@ class PlayerState {
             console.log(`Earned $${amount}. Total Tips: $${this.tips}`);
         });
 
-        // Listen for money being spent in the Brewing Phase
+        // Listen for money being spent/lost
         gameEvents.on('SPEND_TIPS', (amount) => {
             this.tips -= amount;
             console.log(`Spent $${amount}. Total Tips: $${this.tips}`);
@@ -29,12 +26,28 @@ class PlayerState {
 
         // Listen for new beer being crafted and added to the taplist
         gameEvents.on('ADD_AMMO', (beer) => {
-            // Check if we already have this beer type, just increase count
+            // Check how much ammo was passed in, default to 1 if not specified
+            const amountToAdd = beer.count || 1;
+
             const existing = this.ammo.find(a => a.name === beer.name);
-            if (existing && existing.count !== 'Infinite') {
-                existing.count++;
-            } else if (!existing) {
-                this.ammo.push({ name: beer.name, type: beer.type, count: 1 });
+            if (existing) {
+                existing.count += amountToAdd;
+            } else {
+                this.ammo.push({ name: beer.name, type: beer.type, count: amountToAdd });
+            }
+        });
+
+        // NEW: Listen for ammo being consumed in the taproom!
+        gameEvents.on('USE_AMMO', (beerName) => {
+            const existing = this.ammo.find(a => a.name === beerName);
+            if (existing) {
+                existing.count--;
+                // If we run out of this beer, remove it from the list
+                if (existing.count <= 0) {
+                    this.ammo = this.ammo.filter(a => a.name !== beerName);
+                    // Tell the taproom phase to reset its selection if we run out
+                    gameEvents.emit('AMMO_DEPLETED');
+                }
             }
         });
     }
