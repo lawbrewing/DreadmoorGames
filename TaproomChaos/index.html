@@ -33,7 +33,7 @@
                 <!-- Ammo items injected here via JS -->
             </ul>
         </div>
-
+    
         <!-- BREWING HUD -->
         <div id="brewingHUD" class="hud-panel" style="position: absolute; z-index: 100; display: none; top: 0; left: 0; width: 250px; height: 100%; background: #27272a; padding: 20px; color: #f4f4f5; box-sizing: border-box;">
             <h2 style="color: #dc2626; font-family: 'Oswald'; margin-top: 0;">TIP INJECTION</h2>
@@ -68,24 +68,32 @@
             </button>
         </div>
 
-        <!-- Engine Scripts will go here -->
+        <!-- 1. Core Systems -->
         <script src="js/core/events.js"></script>
+        <script src="js/core/audio.js"></script>
+        <script src="js/core/input.js"></script>
         <script src="js/core/renderer.js"></script>
-        <script src="js/utils/input.js"></script>
-        <!-- State Managers -->
-        <script src="js/state/player.js"></script>
-        <script src="js/state/progression.js"></script> <!-- ADD THIS -->
-        <!-- Configs -->
-        <script src="js/config/recipes.js"></script>
+
+        <!-- 2. Configs & Data (RECIPES GOES HERE!) -->
         <script src="js/config/economy.js"></script>
         <script src="js/config/population.js"></script>
-        <script src="js/ui/hud.js"></script>
-        <!-- Entities -->
+        <script src="js/config/recipes.js"></script> <!-- THIS MUST BE HERE -->
+        <!-- 3. State Managers -->
+        <script src="js/state/player.js"></script>
+        <script src="js/state/progression.js"></script>
+
+        <!-- 4. Entities -->
         <script src="js/entities/patron.js"></script>
         <script src="js/entities/title.js"></script>
-        <!-- Phases -->
-        <script src="js/phases/taproom.js"></script>
+
+        <!-- 5. UI -->
+        <script src="js/ui/hud.js"></script>
+
+        <!-- 6. Game Phases -->
         <script src="js/phases/brewing.js"></script>
+        <script src="js/phases/taproom.js"></script>
+
+        <!-- 7. Main Loop -->
         <script src="js/main.js"></script>
 </body>
 </html>

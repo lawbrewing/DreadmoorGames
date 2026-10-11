@@ -92,81 +92,103 @@ class GameRenderer {
 
     // --- BREWING RENDERING ---
     drawBrewing(state) {
-        // 1. Background
-        this.ctx.fillStyle = '#f4e8d1';
+        // 1. Draw Background
+        this.ctx.fillStyle = '#18181b';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-          
-        // 3. Draw Generators
-        state.generators.forEach(gen => {
-            this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            this.ctx.fillRect(gen.x + 5, gen.y + 5, gen.w, gen.h);
-            this.ctx.fillStyle = gen.color;
-            this.ctx.fillRect(gen.x, gen.y, gen.w, gen.h);
+
+        // 2. Draw the 6 Ingredient Sacks
+        state.sacks.forEach(sack => {
+            this.ctx.fillStyle = sack.color;
+            this.ctx.fillRect(sack.x, sack.y, sack.w, sack.h);
+
+            // Sack Labels
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 16px Inter';
+            this.ctx.font = '16px Inter';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(gen.name, gen.x + gen.w / 2, gen.y + gen.h / 2 + 6);
+            this.ctx.fillText(sack.category, sack.x + (sack.w / 2), sack.y + (sack.h / 2) + 6);
         });
 
-        // 4. Draw the Grid
+        // 3. Draw the Merge Grid
         for (let r = 0; r < state.rows; r++) {
             for (let c = 0; c < state.cols; c++) {
-                const x = state.gridOffset.x + (c * state.tileSize);
-                const y = state.gridOffset.y + (r * state.tileSize);
+                const cellX = state.gridOffset.x + (c * state.tileSize);
+                const cellY = state.gridOffset.y + (r * state.tileSize);
 
-                this.ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                // Draw cell background
+                this.ctx.strokeStyle = '#3f3f46';
                 this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(x, y, state.tileSize, state.tileSize);
+                this.ctx.strokeRect(cellX, cellY, state.tileSize, state.tileSize);
 
                 const item = state.grid[r][c];
                 if (item) {
-                    this.drawItem(item, x, y, state.tileSize);
+                    // Assign colors based on category so the puzzle makes sense visually
+                    let itemColor = '#52525b'; // Default Grey
+                    if (item.category === 'Water') itemColor = '#3b82f6';
+                    if (item.category === 'Grain') itemColor = '#eab308';
+                    if (item.category === 'Adjunct') itemColor = '#f97316';
+                    if (item.category === 'Yeast') itemColor = '#d9f99d';
+                    if (item.category === 'Hops') itemColor = '#22c55e';
+                    if (item.category === 'Specialty') itemColor = '#a855f7';
+
+                    this.ctx.fillStyle = itemColor;
+                    this.ctx.fillRect(cellX + 5, cellY + 5, state.tileSize - 10, state.tileSize - 10);
+
+                    // Draw the Ingredient Name! (Shrunk to fit the box)
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.font = 'bold 12px Inter';
+                    this.ctx.textAlign = 'center';
+
+                    // Word wrap hack: Split name if it has a space so it fits in the square
+                    const words = item.name.split(' ');
+                    if (words.length > 1) {
+                        this.ctx.fillText(words[0], cellX + (state.tileSize / 2), cellY + (state.tileSize / 2) - 6);
+                        this.ctx.fillText(words.slice(1).join(' '), cellX + (state.tileSize / 2), cellY + (state.tileSize / 2) + 8);
+                    } else {
+                        this.ctx.fillText(item.name, cellX + (state.tileSize / 2), cellY + (state.tileSize / 2) + 4);
+                    }
                 }
             }
         }
 
-        // 4.5 Draw the Brew Kettle System
-        this.ctx.fillStyle = '#27272a';
-        this.ctx.fillRect(state.kettle.x, state.kettle.y + 10, state.kettle.w, state.kettle.h);
+        // 4. Draw the Brew Kettle
         this.ctx.fillStyle = state.kettle.color;
         this.ctx.fillRect(state.kettle.x, state.kettle.y, state.kettle.w, state.kettle.h);
 
-        // Draw the slots and the items sitting in them
+        // Draw slots inside the kettle
         for (let i = 0; i < state.kettle.maxItems; i++) {
-            const slotX = state.kettle.x + 20 + (i * 90);
+            const slotX = state.kettle.x + 10 + (i * 70);
             const slotY = state.kettle.y + 10;
 
-            // Empty slot outline
-            this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            this.ctx.lineWidth = 2;
+            this.ctx.strokeStyle = '#52525b';
             this.ctx.strokeRect(slotX, slotY, 60, 60);
 
-            // Draw the item if it exists
+            // Draw item if it exists in this slot
             if (state.kettle.items[i]) {
-                this.drawItem(state.kettle.items[i], slotX, slotY, 60);
+                const kItem = state.kettle.items[i];
+                this.ctx.fillStyle = '#facc15';
+                this.ctx.fillRect(slotX + 5, slotY + 5, 50, 50);
+
+                // Draw initials so we can see what's in the kettle
+                this.ctx.fillStyle = '#000000';
+                this.ctx.font = 'bold 12px Inter';
+                this.ctx.fillText(kItem.name.substring(0, 5), slotX + 30, slotY + 35);
             }
         }
 
-        // Draw the BREW Button
-        const canBrew = state.kettle.items.length > 0;
-        this.ctx.fillStyle = canBrew ? '#10b981' : '#52525b'; // Green if ready, Grey if empty
+        // 5. Draw the physical "BREW" Button
+        this.ctx.fillStyle = '#10b981';
         this.ctx.fillRect(state.kettle.btnX, state.kettle.btnY, state.kettle.btnW, state.kettle.btnH);
-
-        this.ctx.fillStyle = canBrew ? '#ffffff' : '#a1a1aa';
+        this.ctx.fillStyle = '#ffffff';
         this.ctx.font = 'bold 20px Oswald';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('BREW', state.kettle.btnX + state.kettle.btnW / 2, state.kettle.btnY + 32);
+        this.ctx.fillText("BREW!", state.kettle.btnX + (state.kettle.btnW / 2), state.kettle.btnY + 32);
 
-        // 5. Draw the Dragged Item
-        if (state.dragState) {
-            const drawX = state.dragState.mouseX - (state.tileSize / 2);
-            const drawY = state.dragState.mouseY - (state.tileSize / 2);
-            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            this.ctx.shadowBlur = 15;
-            this.ctx.shadowOffsetX = 5;
-            this.ctx.shadowOffsetY = 10;
-            this.drawItem(state.dragState.item, drawX, drawY, state.tileSize);
-            this.ctx.shadowColor = 'transparent';
+        // 6. Draw the item currently being dragged (if any)
+        if (state.dragState && state.dragState.item) {
+            this.ctx.fillStyle = '#facc15';
+            this.ctx.fillRect(state.dragState.mouseX - 30, state.dragState.mouseY - 30, 60, 60);
+            this.ctx.fillStyle = '#000';
+            this.ctx.font = 'bold 12px Inter';
+            this.ctx.fillText(state.dragState.item.name.substring(0, 8), state.dragState.mouseX, state.dragState.mouseY + 4);
         }
     }
 
