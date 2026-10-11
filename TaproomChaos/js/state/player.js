@@ -24,6 +24,14 @@ class PlayerState {
             console.log(`Spent $${amount}. Total Tips: $${this.tips}`);
         });
 
+        // Listen for new recipes being discovered!
+        gameEvents.on('RECIPE_DISCOVERED', (recipeName) => {
+            if (!this.unlockedRecipes.includes(recipeName)) {
+                this.unlockedRecipes.push(recipeName);
+                console.log(`NEW RECIPE UNLOCKED: ${recipeName}`);
+            }
+        });
+
         // Listen for new beer being crafted and added to the taplist
         gameEvents.on('ADD_AMMO', (beer) => {
             // Check how much ammo was passed in, default to 1 if not specified

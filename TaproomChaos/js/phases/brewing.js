@@ -14,14 +14,14 @@ class BrewingPhase {
         this.grid = [];
         this.dragState = null;
 
-        // MOVED RIGHT: Shifted past the 250px HTML HUD
+        // 6 Specific Ingredient Bags (Now with variable costs!)
         this.sacks = [
-            { id: 'sack_water', category: 'Water', x: 280, y: 140, w: 80, h: 80, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
-            { id: 'sack_adjunct', category: 'Adjunct', x: 280, y: 240, w: 80, h: 80, color: '#f97316' },
-            { id: 'sack_yeast', category: 'Yeast', x: 380, y: 240, w: 80, h: 80, color: '#d9f99d' },
-            { id: 'sack_hops', category: 'Hops', x: 280, y: 340, w: 80, h: 80, color: '#22c55e' },
-            { id: 'sack_specialty', category: 'Specialty', x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 1, x: 280, y: 140, w: 80, h: 80, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 2, x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 3, x: 280, y: 240, w: 80, h: 80, color: '#f97316' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 4, x: 380, y: 240, w: 80, h: 80, color: '#d9f99d' },
+            { id: 'sack_hops', category: 'Hops', cost: 5, x: 280, y: 340, w: 80, h: 80, color: '#22c55e' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 8, x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
         ];
 
         // EXPANDED: Made the kettle wider and moved the Brew button to the far right edge
@@ -49,7 +49,7 @@ class BrewingPhase {
             for (let sack of this.sacks) {
                 if (pos.x >= sack.x && pos.x <= sack.x + sack.w &&
                     pos.y >= sack.y && pos.y <= sack.y + sack.h) {
-                    this.spawnItem(sack.category);
+                    this.spawnItem(sack.category, sack.cost); // PASS THE COST!
                     return;
                 }
             }
@@ -70,10 +70,6 @@ class BrewingPhase {
         });
 
         // HTML Button override just in case they click it
-        gameEvents.on('HUD_INJECT_CLICK', () => {
-            if (this.isActive) this.handleInjectionClick();
-        });
-
         gameEvents.on('DRAG_MOVE', (pos) => {
             if (!this.isActive || !this.dragState) return;
             this.dragState.mouseX = pos.x;
@@ -139,18 +135,15 @@ class BrewingPhase {
     }
 
     // --- NEW PUZZLE SPAWN LOGIC ---
-    spawnItem(category) {
-        // Costs $1 per pull
-        if (!playerState.canAfford(1)) {
-            console.log("Not enough tips to buy ingredients!");
+    spawnItem(category, cost) {
+        if (!playerState.canAfford(cost)) {
+            console.log(`Need $${cost} to pull from ${category}!`);
             return;
         }
 
         const emptyCell = this.findEmptyCell();
         if (emptyCell) {
-            gameEvents.emit('SPEND_TIPS', 1);
-
-            // Get the random drop from our new config engine!
+            gameEvents.emit('SPEND_TIPS', cost);
             const itemName = gameRecipes.getRandomDrop(category);
 
             this.grid[emptyCell.row][emptyCell.col] = {
@@ -176,35 +169,42 @@ class BrewingPhase {
     brewKettle() {
         if (this.kettle.items.length === 0) return;
 
-        // Pass an array of NAMES to the evaluator, not a joined string!
+        // Calculate the total cost of everything in the kettle
+        let totalBrewCost = 0;
+        this.kettle.items.forEach(item => {
+            totalBrewCost += gameRecipes.getIngredientCost(item.name);
+        });
+
+        // Do they have enough money to run the kettle?
+        if (!playerState.canAfford(totalBrewCost)) {
+            console.log(`You need $${totalBrewCost} to brew this batch!`);
+            // You might want to emit a floating text event here to warn them!
+            return;
+        }
+
+        // Charge them for the ingredients!
+        gameEvents.emit('SPEND_TIPS', totalBrewCost);
+
         const ingredients = this.kettle.items.map(item => item.name);
+        console.log(`Brewing with ${ingredients} (Cost: $${totalBrewCost})`);
 
-        console.log("Attempting to brew with:", ingredients);
-
-        // Let the config engine do the math!
         const brewResult = gameRecipes.evaluateBrew(ingredients);
 
         if (brewResult) {
             console.log(`SUCCESS! Brewed ${brewResult.name}!`);
             gameEvents.emit('ADD_AMMO', brewResult);
+
+            // --- NEW: Unlock it in the book! ---
+            if (brewResult.type !== 'crowd_control' && brewResult.type !== 'soda') {
+                gameEvents.emit('RECIPE_DISCOVERED', brewResult.name);
+            }
         } else {
+            // They paid the massive cost and got nothing but Swill
             console.log("FAILED! That recipe makes no sense. You get 5 Swill.");
             gameEvents.emit('ADD_AMMO', { name: 'Swill', type: 'crowd_control', count: 5 });
         }
 
-        // Empty the kettle
         this.kettle.items = [];
-    }
-
-    handleInjectionClick() {
-        const injectionCost = gameEconomy ? gameEconomy.injectionCost : 15;
-        if (!playerState.canAfford(injectionCost)) return;
-
-        const emptyCell = this.findEmptyCell();
-        if (!emptyCell) return;
-
-        gameEvents.emit('SPEND_TIPS', injectionCost);
-        this.grid[emptyCell.row][emptyCell.col] = { id: Math.random().toString(), name: 'Galaxy Hop', category: 'Specialty' };
     }
 
     isHit(pos, x, y, w, h) {
