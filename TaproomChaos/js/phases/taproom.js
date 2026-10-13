@@ -136,13 +136,21 @@ class TaproomPhase {
 
     init(ammoList = []) {
         this.isActive = true;
-        this.patrons = []; // Start empty!
-        this.spawnTimer = 0.5; // First patron walks in almost instantly
+        this.patrons = [];
+        this.spawnTimer = 0.5;
         this.projectiles = [];
         this.isAiming = false;
         this.availableAmmo = playerState.ammo;
         this.floatingTexts = [];
         this.timeRemaining = this.shiftDuration;
+
+        // Read the forecast modifier to set the door pace!
+        const mod = (typeof progressionState !== 'undefined' && progressionState.forecast)
+            ? progressionState.forecast.modifier
+            : 'none';
+
+        // Crowd spikes pack the room much faster (1.4s instead of 2.5s)
+        this.spawnInterval = (mod === 'crowd_spike') ? 1.4 : 2.5;
     }
 
     spawnPatron() {
@@ -150,8 +158,31 @@ class TaproomPhase {
         const randomX = Math.floor(Math.random() * 1000) + 120;
 
         const stats = gamePopulation.stats;
-        const rates = gamePopulation.spawnRates;
-        const diffMult = progressionState.getDifficultyMultiplier();
+        // Clone the default rates so we can skew them for this shift without breaking the config
+        const rates = { ...gamePopulation.spawnRates };
+        let diffMult = progressionState.getDifficultyMultiplier();
+
+        const mod = (typeof progressionState !== 'undefined' && progressionState.forecast)
+            ? progressionState.forecast.modifier
+            : 'none';
+
+        // Apply Forecast Modifiers to Spawn Rates & Speed
+        if (mod === 'speed_spike') {
+            diffMult += 0.25; // Everyone rushes the bar 25% faster!
+        } else if (mod === 'kid_spike') {
+            rates.kid = 0.45; // Huge wave of kids
+            rates.tetheredPair = 0.10;
+            rates.vip = 0.15;
+        } else if (mod === 'vip_spike') {
+            rates.tetheredPair = 0.30; // Conventions & IPOs bring couples and high rollers
+            rates.vip = 0.45;
+            rates.kid = 0.05;
+        } else if (mod === 'old_timer_spike') {
+            // Classic car show / Bingo night: 75% of the bar will be Old Timers!
+            rates.tetheredPair = 0.05;
+            rates.vip = 0.10;
+            rates.kid = 0.10;
+        }
 
         // 1. TETHERED PAIR
         if (rand < rates.tetheredPair) {
@@ -160,7 +191,6 @@ class TaproomPhase {
 
             const spouse = new Patron(randomX + 50, 120, 'Spouse', stats['Spouse'].speed * diffMult, stats['Spouse'].color);
 
-            // Link their IDs together!
             spouse.partnerId = vip.id;
             vip.partnerId = spouse.id;
 
@@ -178,6 +208,28 @@ class TaproomPhase {
         else {
             this.patrons.push(new Patron(randomX, 150, 'Old Timer', stats['Old Timer'].speed * diffMult, stats['Old Timer'].color));
         }
+    }
+
+    // Helper: Check if a crafted beer matches the current weather craving
+    isWeatherMatch(beerName, modifier) {
+        if (!beerName) return false;
+
+        const darkStyles = [
+            'NOT Burnt Marshmallow (Pastry Stout)', 'Mocha Pastry Stout',
+            'Barrel-Aged Stout', 'Baltic Porter', 'Dark Mild',
+            'Winter Ale', 'Brown Ale'
+        ];
+
+        const crispHoppyStyles = [
+            'nIPLy (Cold IPA)', 'Arctic Blast (Cold IPA)', 'Hopped Up (IPA)',
+            'Double IPA', 'NEIPA', 'Milkshake IPA', 'Classic Pilsner',
+            'Helles Lager', 'Kolsch', 'Cream Ale', 'Raspberry Cabana (Sour)',
+            'Cherry Limeade Sour', 'Mojito Sour'
+        ];
+
+        if (modifier === 'stout_bonus' && darkStyles.includes(beerName)) return true;
+        if (modifier === 'ipa_bonus' && crispHoppyStyles.includes(beerName)) return true;
+        return false;
     }
 
     triggerKidHorde() {
@@ -304,18 +356,37 @@ class TaproomPhase {
                     // 2. THE VIP LOGIC
                     else if (patron.type === 'VIP') {
                         if (patron.hasSpouse && !patron.spouseSatisfied) {
-                            tipAmount = tips.badServe; floatText = "Serve my spouse first!"; floatColor = "#ef4444";
+                            tipAmount = tips.badServe;
+                            floatText = "Serve my spouse first!";
+                            floatColor = "#ef4444";
                             const spouse = this.patrons.find(pt => pt.partnerId === patron.id);
                             if (spouse) spouse.active = false;
                         }
                         else if (p.type === 'premium') {
+                            const mod = (typeof progressionState !== 'undefined' && progressionState.forecast)
+                                ? progressionState.forecast.modifier
+                                : 'none';
+                            const weatherMatch = this.isWeatherMatch(p.name, mod);
+
                             if (patron.spouseSatisfied) {
-                                tipAmount = tips.vipCombo; floatText = `+$${tipAmount} (Happy Wife, Happy Life!)`; floatColor = "#f59e0b";
+                                tipAmount = tips.vipCombo;
+                                floatText = `+$${tipAmount} (Happy Wife, Happy Life!)`;
+                                floatColor = "#f59e0b";
                             } else {
-                                tipAmount = tips.vipPremium; floatText = `+$${tipAmount} (Loved it!)`;
+                                tipAmount = tips.vipPremium;
+                                floatText = `+$${tipAmount} (Loved it!)`;
+                            }
+
+                            // APPLY 1.5x WEATHER CRAVING BONUS!
+                            if (weatherMatch) {
+                                tipAmount = Math.round(tipAmount * 1.5);
+                                floatText = `+$${tipAmount} (Weather Craving!)`;
+                                floatColor = "#38bdf8"; // Bright Ice/Sky Blue
                             }
                         } else {
-                            tipAmount = tips.badServe; floatText = "Gross! (No Tip)"; floatColor = "#ef4444";
+                            tipAmount = tips.badServe;
+                            floatText = "Gross! (No Tip)";
+                            floatColor = "#ef4444";
                         }
                     }
                     // 3. THE CROWD LOGIC
