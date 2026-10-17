@@ -343,21 +343,4 @@ class TaproomPhase {
     }
 }
 
-// Global UI Floating Text class (if you don't already have one)
-class FloatingTitle {
-    constructor(x, y, text, color) {
-        this.x = x;
-        this.y = y;
-        this.text = text;
-        this.color = color;
-        this.alpha = 1.0;
-        this.active = true;
-    }
-    update(dt) {
-        this.y -= 30 * dt;
-        this.alpha -= 0.8 * dt;
-        if (this.alpha <= 0) this.active = false;
-    }
-}
-
 const taproomPhase = new TaproomPhase();
