@@ -164,7 +164,7 @@ class TaproomPhase {
             }
         } else {
             const poolName = Math.random() > 0.5 ? window.POOL_HAZARDS : window.POOL_SODA;
-            const pool = poolName || ['KID', 'PREGNANT'];
+            const pool = poolName || ['kid', 'pregnant'];
             const rosterKey = pool[Math.floor(Math.random() * pool.length)];
             const roster = window.PATRON_ROSTER || {};
 
@@ -199,7 +199,7 @@ class TaproomPhase {
                 this.patrons.push(new Patron(
                     Math.floor(Math.random() * 800) + 150,
                     -64 - (i * 20),
-                    'KID', cfg
+                    'kid', cfg
                 ));
             }, i * 400);
         }
@@ -307,7 +307,7 @@ class TaproomPhase {
                         patron.state = 'fail';
 
                         // Check for Kid Horde trigger if they are given beer
-                        if (patron.rosterKey === 'KID' && p.type !== 'soda') {
+                        if (patron.rosterKey === 'kid' && p.type !== 'soda') {
                             this.triggerKidHorde();
                             floatText = "YAY BEER! (Horde Incoming)";
                         }
