@@ -7,7 +7,9 @@ class PlayerState {
 
         // Start with an EMPTY taplist! The player must brew before opening the doors.
         this.ammo = [];
-
+        this.unlockedRecipes = [];
+        this.unlockedKettles = 1; // Starts with 1 kettle, max 3
+        this.kettleCosts = [0, 50, 125];
         this.setupEventListeners();
     }
 

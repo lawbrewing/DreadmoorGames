@@ -14,23 +14,28 @@ class BrewingPhase {
         this.grid = [];
         this.dragState = null;
 
-        // 6 Specific Ingredient Bags (Now with variable costs!)
+        // 6 Specific Ingredient Bags (Balanced early costs)
         this.sacks = [
             { id: 'sack_water', category: 'Water', cost: 1, x: 280, y: 140, w: 80, h: 80, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 2, x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 3, x: 280, y: 240, w: 80, h: 80, color: '#f97316' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 4, x: 380, y: 240, w: 80, h: 80, color: '#d9f99d' },
-            { id: 'sack_hops', category: 'Hops', cost: 5, x: 280, y: 340, w: 80, h: 80, color: '#22c55e' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 8, x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
+            { id: 'sack_grain', category: 'Grain', cost: 1, x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 2, x: 280, y: 240, w: 80, h: 80, color: '#f97316' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 2, x: 380, y: 240, w: 80, h: 80, color: '#d9f99d' },
+            { id: 'sack_hops', category: 'Hops', cost: 3, x: 280, y: 340, w: 80, h: 80, color: '#22c55e' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 6, x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
         ];
 
-        // EXPANDED: Made the kettle wider and moved the Brew button to the far right edge
-        this.kettle = {
-            x: 500, y: 610, w: 660, h: 80, color: '#3f3f46',
-            items: [],
-            maxItems: 7,
-            btnX: 1020, btnY: 625, btnW: 130, btnH: 50
-        };
+        // 3-Kettle Brewhouse Array (Side-by-side along the bottom)
+        this.kettles = [
+            { id: 0, x: 460, y: 595, w: 250, h: 110, items: [], btnX: 625, btnY: 642, btnW: 75, btnH: 46 },
+            { id: 1, x: 730, y: 595, w: 250, h: 110, items: [], btnX: 895, btnY: 642, btnW: 75, btnH: 46 },
+            { id: 2, x: 1000, y: 595, w: 250, h: 110, items: [], btnX: 1165, btnY: 642, btnW: 75, btnH: 46 }
+        ];
+
+        // Floor Drain (Trash slot to prevent board deadlocks)
+        this.drain = { x: 280, y: 595, w: 150, h: 105 };
+
+        // Floating feedback text popups (+5 nIPLy, Merged!, etc.)
+        this.floatingTexts = [];
 
         this.setupEventListeners();
     }
@@ -39,17 +44,42 @@ class BrewingPhase {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
 
-            // 1. Did they click the Brew Button?
-            if (this.isHit(pos, this.kettle.btnX, this.kettle.btnY, this.kettle.btnW, this.kettle.btnH)) {
-                this.brewKettle();
-                return;
+            // 1. Check interactions across all 3 Kettles!
+            for (let i = 0; i < this.kettles.length; i++) {
+                const k = this.kettles[i];
+                const isUnlocked = i < playerState.unlockedKettles;
+
+                if (!isUnlocked) {
+                    // Clicked a LOCKED kettle -> Try to buy/unlock it!
+                    if (this.isHit(pos, k.x, k.y, k.w, k.h)) {
+                        this.unlockKettle(i);
+                        return;
+                    }
+                } else {
+                    // Clicked the BREW button on an unlocked kettle
+                    if (this.isHit(pos, k.btnX, k.btnY, k.btnW, k.btnH)) {
+                        this.brewKettle(i);
+                        return;
+                    }
+                    // Clicked inside the kettle vat to undo/pop the last ingredient back out
+                    if (this.isHit(pos, k.x, k.y, k.w - 90, k.h)) {
+                        if (k.items.length > 0) {
+                            const emptyCell = this.findEmptyCell();
+                            if (emptyCell) {
+                                const removedItem = k.items.pop();
+                                this.grid[emptyCell.row][emptyCell.col] = removedItem;
+                            }
+                        }
+                        return;
+                    }
+                }
             }
 
             // 2. Did they click a sack?
             for (let sack of this.sacks) {
                 if (pos.x >= sack.x && pos.x <= sack.x + sack.w &&
                     pos.y >= sack.y && pos.y <= sack.y + sack.h) {
-                    this.spawnItem(sack.category, sack.cost); // PASS THE COST!
+                    this.spawnItem(sack.category, sack.cost);
                     return;
                 }
             }
@@ -64,12 +94,10 @@ class BrewingPhase {
                     mouseX: pos.x,
                     mouseY: pos.y
                 };
-                // Temporarily remove it from the grid
                 this.grid[row][col] = null;
             }
         });
 
-        // HTML Button override just in case they click it
         gameEvents.on('DRAG_MOVE', (pos) => {
             if (!this.isActive || !this.dragState) return;
             this.dragState.mouseX = pos.x;
@@ -84,17 +112,27 @@ class BrewingPhase {
             const startCol = this.dragState.startCol;
             const startRow = this.dragState.startRow;
 
-            // 1. Did they drop it in the Kettle?
-            if (this.isHit(pos, this.kettle.x, this.kettle.y, this.kettle.w, this.kettle.h)) {
-                if (this.kettle.items.length < this.kettle.maxItems) {
-                    this.kettle.items.push(sourceItem);
-                    console.log(`Added ${sourceItem.name} to kettle.`);
-                } else {
-                    console.log("Kettle is full!");
-                    this.grid[startRow][startCol] = sourceItem; // Bounce back
-                }
+            // 0. NEW: Did they drop it into the Floor Drain to discard it?
+            if (this.isHit(pos, this.drain.x, this.drain.y, this.drain.w, this.drain.h)) {
+                this.floatingTexts.push(new FloatingTitle(
+                    this.drain.x + (this.drain.w / 2),
+                    this.drain.y,
+                    `Dumped ${sourceItem.name}`,
+                    '#94a3b8'
+                ));
                 this.dragState = null;
                 return;
+            }
+
+            // 1. Did they drop it into one of the Unlocked Kettles?
+            for (let i = 0; i < this.kettles.length; i++) {
+                const k = this.kettles[i];
+                if (i < playerState.unlockedKettles && this.isHit(pos, k.x, k.y - 15, k.w, k.h + 15)) {
+                    k.items.push(sourceItem);
+                    console.log(`Splashed ${sourceItem.name} into Kettle #${i + 1}!`);
+                    this.dragState = null;
+                    return;
+                }
             }
 
             // 2. Otherwise, handle Grid Drops
@@ -111,7 +149,7 @@ class BrewingPhase {
                 // Drop in empty space
                 this.grid[row][col] = sourceItem;
             } else if (targetItem.name === sourceItem.name) {
-                // Try to Merge using the new config engine!
+                // Try to Merge using the config engine!
                 const upgradedName = gameRecipes.getMergeResult(targetItem.name);
 
                 if (upgradedName) {
@@ -121,6 +159,10 @@ class BrewingPhase {
                         name: upgradedName,
                         category: sourceItem.category
                     };
+                    // Floating Merge Feedback!
+                    const cellCenterX = this.gridOffset.x + (col * this.tileSize) + (this.tileSize / 2);
+                    const cellCenterY = this.gridOffset.y + (row * this.tileSize) + 20;
+                    this.floatingTexts.push(new FloatingTitle(cellCenterX, cellCenterY, `✨ ${upgradedName}!`, '#facc15'));
                 } else {
                     // It's max level or un-mergeable, swap them
                     this.grid[row][col] = sourceItem;
@@ -134,7 +176,7 @@ class BrewingPhase {
         });
     }
 
-    // --- NEW PUZZLE SPAWN LOGIC ---
+    // --- PUZZLE SPAWN LOGIC ---
     spawnItem(category, cost) {
         if (!playerState.canAfford(cost)) {
             console.log(`Need $${cost} to pull from ${category}!`);
@@ -165,46 +207,67 @@ class BrewingPhase {
         return null; // Grid is full!
     }
 
-    // --- NEW DYNAMIC BREW LOGIC ---
-    brewKettle() {
-        if (this.kettle.items.length === 0) return;
+    unlockKettle(index) {
+        const k = this.kettles[index];
+        if (index !== playerState.unlockedKettles) {
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, "Unlock previous kettle first!", "#ef4444"));
+            return;
+        }
+        const cost = playerState.kettleCosts[index];
+        if (!playerState.canAfford(cost)) {
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Need $${cost}!`, "#ef4444"));
+            return;
+        }
+        gameEvents.emit('SPEND_TIPS', cost);
+        playerState.unlockedKettles++;
+        this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Kettle #${playerState.unlockedKettles} Online!`, "#4ade80"));
+    }
 
-        // Calculate the total cost of everything in the kettle
-        let totalBrewCost = 0;
-        this.kettle.items.forEach(item => {
-            totalBrewCost += gameRecipes.getIngredientCost(item.name);
-        });
+    brewKettle(kettleIndex) {
+        const k = this.kettles[kettleIndex];
+        if (!k || k.items.length === 0) return;
 
-        // Do they have enough money to run the kettle?
-        if (!playerState.canAfford(totalBrewCost)) {
-            console.log(`You need $${totalBrewCost} to brew this batch!`);
-            // You might want to emit a floating text event here to warn them!
+        // Baseline Check: Single ingredients cannot be brewed!
+        if (k.items.length < 2) {
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, "Need at least 2 ingredients!", "#ef4444"));
             return;
         }
 
-        // Charge them for the ingredients!
+        let totalBrewCost = 0;
+        k.items.forEach(item => {
+            totalBrewCost += gameRecipes.getIngredientCost(item.name);
+        });
+
+        if (!playerState.canAfford(totalBrewCost)) {
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Need $${totalBrewCost} to Brew!`, "#ef4444"));
+            return;
+        }
+
         gameEvents.emit('SPEND_TIPS', totalBrewCost);
 
-        const ingredients = this.kettle.items.map(item => item.name);
-        console.log(`Brewing with ${ingredients} (Cost: $${totalBrewCost})`);
-
+        const ingredients = k.items.map(item => item.name);
         const brewResult = gameRecipes.evaluateBrew(ingredients);
 
         if (brewResult) {
-            console.log(`SUCCESS! Brewed ${brewResult.name}!`);
             gameEvents.emit('ADD_AMMO', brewResult);
+            let popupColor = '#4ade80';
+            if (brewResult.type === 'crowd_control') popupColor = '#a1a1aa';
+            if (brewResult.type === 'soda') popupColor = '#38bdf8';
 
-            // --- NEW: Unlock it in the book! ---
             if (brewResult.type !== 'crowd_control' && brewResult.type !== 'soda') {
+                const isNew = !playerState.unlockedRecipes.includes(brewResult.name);
                 gameEvents.emit('RECIPE_DISCOVERED', brewResult.name);
+                const prefix = isNew ? '📖 NEW: ' : '+5 ';
+                this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `${prefix}${brewResult.name}!`, '#facc15'));
+            } else {
+                this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `+${brewResult.count} ${brewResult.name}`, popupColor));
             }
         } else {
-            // They paid the massive cost and got nothing but Swill
-            console.log("FAILED! That recipe makes no sense. You get 5 Swill.");
-            gameEvents.emit('ADD_AMMO', { name: 'Swill', type: 'crowd_control', count: 5 });
+            // Ruined batch! Money is lost, no free Swill is given.
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `-$${totalBrewCost} (Ruined Batch — Wasted!)`, '#ef4444'));
         }
 
-        this.kettle.items = [];
+        k.items = [];
     }
 
     isHit(pos, x, y, w, h) {
@@ -212,7 +275,6 @@ class BrewingPhase {
     }
 
     getGridCoords(x, y) {
-        // FIXED THE MANGLED MATH HERE
         const col = Math.floor((x - this.gridOffset.x) / this.tileSize);
         const row = Math.floor((y - this.gridOffset.y) / this.tileSize);
         const valid = col >= 0 && col < this.cols && row >= 0 && row < this.rows;
@@ -234,8 +296,11 @@ class BrewingPhase {
         }
     }
 
-    update(deltaTime) {
+    update(dt) {
         if (!this.isActive) return;
+
+        this.floatingTexts.forEach(ft => ft.update(dt));
+        this.floatingTexts = this.floatingTexts.filter(ft => ft.active);
     }
 
     shutdown() {

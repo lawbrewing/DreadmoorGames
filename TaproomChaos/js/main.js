@@ -14,11 +14,11 @@ const GAME_STATES = {
     LOADING: 'LOADING',
     MENU: 'MENU',
     TAPROOM: 'TAPROOM',
-    BREWING: 'BREWING', // Added missing comma
+    BREWING: 'BREWING',
     GAME_OVER: 'GAME_OVER'
 };
 
-// Start in the Taproom phase
+// Start in the Brewing phase
 let currentState = GAME_STATES.BREWING;
 let lastTime = 0;
 hud.switchPhase(currentState);
@@ -45,9 +45,8 @@ function draw() {
 
 // 5. The Core Loop Heartbeat
 function gameLoop(timestamp) {
-    // Fixed the mangled deltaTime calculation
     if (!lastTime) lastTime = timestamp;
-    let deltaTime = (timestamp - lastTime) / 1000;
+    let deltaTime = (timestamp - lastTime) / 1000; // Fixed delta time calculation
     lastTime = timestamp;
 
     // --- BANKRUPTCY CHECK ---
@@ -120,4 +119,5 @@ if (currentState === GAME_STATES.TAPROOM) {
 } else if (currentState === GAME_STATES.BREWING) {
     brewingPhase.init();
 }
+
 requestAnimationFrame(gameLoop);

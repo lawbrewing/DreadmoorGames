@@ -190,52 +190,8 @@ class GameRenderer {
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 2. Draw the 6 Ingredient Dispensers / Sacks
-        state.sacks.forEach(sack => {
-            // Drop shadow
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-            ctx.beginPath();
-            ctx.roundRect(sack.x + 2, sack.y + 4, sack.w, sack.h, 12);
-            ctx.fill();
-
-            const grad = ctx.createLinearGradient(sack.x, sack.y, sack.x, sack.y + sack.h);
-            grad.addColorStop(0, '#3f3f46');
-            grad.addColorStop(1, '#18181b');
-
-            ctx.fillStyle = grad;
-            ctx.strokeStyle = sack.color;
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.roundRect(sack.x, sack.y, sack.w, sack.h, 12);
-            ctx.fill();
-            ctx.stroke();
-
-            // Top specular highlight rim
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.roundRect(sack.x + 2, sack.y + 2, sack.w - 4, sack.h - 4, 10);
-            ctx.stroke();
-
-            // Representative Level 3 Icon on Generator Button
-            this.drawCustomIcon(sack.x + (sack.w / 2), sack.y + 28, sack.category, sack.category, sack.color, 0.85, 3);
-
-            // Category Label
-            ctx.fillStyle = '#f4f4f5';
-            ctx.font = 'bold 11.5px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText(sack.category, sack.x + (sack.w / 2), sack.y + sack.h - 21);
-
-            // Cost Pill Badge
-            ctx.fillStyle = 'rgba(9, 9, 11, 0.75)';
-            ctx.beginPath();
-            ctx.roundRect(sack.x + 12, sack.y + sack.h - 17, sack.w - 24, 14, 5);
-            ctx.fill();
-
-            ctx.fillStyle = sack.color;
-            ctx.font = 'bold 10.5px Inter';
-            ctx.fillText(`$${sack.cost || 1}`, sack.x + (sack.w / 2), sack.y + sack.h - 6);
-        });
+        // 2. Draw the 6 Custom Ingredient Dispensers
+        state.sacks.forEach(sack => this.drawGeneratorSack(sack));
 
         // 3. Draw the Stainless Merge Grid Tray
         const trayX = state.gridOffset.x - 10;
@@ -272,77 +228,354 @@ class GameRenderer {
             }
         }
 
-        // 4. Draw the Copper/Steel Brew Kettle Vat
-        const kGrad = ctx.createLinearGradient(state.kettle.x, state.kettle.y, state.kettle.x, state.kettle.y + state.kettle.h);
-        kGrad.addColorStop(0, '#451a03');
-        kGrad.addColorStop(0.5, '#27272a');
-        kGrad.addColorStop(1, '#18181b');
+        // 4. Draw the 3-Kettle Brewhouse Line (With Visual Tier Upgrades!)
+        const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
 
-        ctx.fillStyle = kGrad;
-        ctx.strokeStyle = '#b45309';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(state.kettle.x, state.kettle.y, state.kettle.w, state.kettle.h, 12);
-        ctx.fill();
-        ctx.stroke();
+        // Draw overhead connecting copper steam manifold pipe between unlocked kettles
+        if (unlockedCount > 1) {
+            const firstK = state.kettles[0];
+            const lastUnlockedK = state.kettles[unlockedCount - 1];
+            const pipeStartX = firstK.x + 30;
+            const pipeEndX = lastUnlockedK.x + lastUnlockedK.w - 30;
+            const pipeY = firstK.y + 52;
 
-        // Draw slots inside the kettle
-        for (let i = 0; i < state.kettle.maxItems; i++) {
-            const slotX = state.kettle.x + 12 + (i * 70);
-            const slotY = state.kettle.y + 10;
+            // Outer Copper/Gold Manifold Pipe
+            this.ctx.strokeStyle = unlockedCount === 3 ? '#f59e0b' : '#b45309';
+            this.ctx.lineWidth = 12;
+            this.ctx.lineCap = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(pipeStartX, pipeY);
+            this.ctx.lineTo(pipeEndX, pipeY);
+            this.ctx.stroke();
 
-            ctx.fillStyle = '#09090b';
-            ctx.strokeStyle = '#52525b';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(slotX, slotY, 60, 60, 8);
-            ctx.fill();
-            ctx.stroke();
+            // Pipe Specular Highlight
+            this.ctx.strokeStyle = unlockedCount === 3 ? '#fef08a' : '#fbbf24';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pipeStartX, pipeY - 2);
+            this.ctx.lineTo(pipeEndX, pipeY - 2);
+            this.ctx.stroke();
+        }
 
-            if (state.kettle.items[i]) {
-                this.drawIngredientTile(slotX - 4, slotY - 4, 68, state.kettle.items[i], true);
+        state.kettles.forEach((kettle, idx) => {
+            const kx = kettle.x;
+            const ky = kettle.y;
+            const kw = kettle.w;
+            const kh = kettle.h;
+            const isUnlocked = idx < unlockedCount;
+
+            if (!isUnlocked) {
+                // --- LOCKED KETTLE SLOT (Blueprint / Padlock) ---
+                this.ctx.fillStyle = 'rgba(24, 24, 27, 0.6)';
+                this.ctx.strokeStyle = idx === 1 ? '#b45309' : '#38bdf8';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([6, 6]);
+                this.ctx.beginPath();
+                this.ctx.roundRect(kx, ky + 10, kw, kh - 10, 12);
+                this.ctx.fill();
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                const unlockCost = (typeof playerState !== 'undefined') ? playerState.kettleCosts[idx] : 50;
+                const isNext = idx === unlockedCount;
+                const tierTitle = idx === 1 ? '🔒 COPPER BOIL KETTLE' : '🔒 SMART PRO BREW VAT';
+
+                this.ctx.fillStyle = isNext ? '#facc15' : '#71717a';
+                this.ctx.font = 'bold 15px Oswald';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(tierTitle, kx + (kw / 2), ky + 46);
+
+                this.ctx.font = 'bold 12px Inter';
+                this.ctx.fillStyle = isNext ? '#4ade80' : '#52525b';
+                this.ctx.fillText(
+                    isNext ? `Click to Upgrade ($${unlockCost})` : `Unlock Kettle #${idx} First`,
+                    kx + (kw / 2),
+                    ky + 72
+                );
+
+                const reqShift = idx === 1 ? 'Rec. by Shift 5 (Copper Tier)' : 'Rec. by Shift 10 (Digital Tier)';
+                this.ctx.font = 'italic 10px Inter';
+                this.ctx.fillStyle = '#a1a1aa';
+                this.ctx.fillText(reqShift, kx + (kw / 2), ky + 94);
+                return;
             }
-        }
 
-        // 5. Calculate Dynamic Kettle Brew Cost & Draw the "BREW!" Button
-        let brewCost = 0;
-        if (typeof gameRecipes !== 'undefined') {
-            state.kettle.items.forEach(item => {
-                brewCost += gameRecipes.getIngredientCost(item.name);
-            });
-        }
+            // --- DETERMINE VISUAL TIER PALETTE ---
+            const kettleBodyGrad = this.ctx.createLinearGradient(kx, ky, kx + kw, ky);
+            let rimColor = '#71717a';
+            let borderStroke = '#71717a';
+            let rivetColor = '#a1a1aa';
 
-        const btnGrad = ctx.createLinearGradient(
-            state.kettle.btnX, state.kettle.btnY,
-            state.kettle.btnX, state.kettle.btnY + state.kettle.btnH
-        );
-        if (state.kettle.items.length > 0) {
-            btnGrad.addColorStop(0, '#22c55e');
-            btnGrad.addColorStop(1, '#15803d');
-        } else {
-            btnGrad.addColorStop(0, '#52525b');
-            btnGrad.addColorStop(1, '#27272a');
-        }
+            if (idx === 0) {
+                // KETTLE #1: Forged Steel Mash Tun (Gains brass trim once Brewhouse reaches Level 2+)
+                kettleBodyGrad.addColorStop(0, '#27272a');
+                kettleBodyGrad.addColorStop(0.25, '#52525b');
+                kettleBodyGrad.addColorStop(0.5, '#3f3f46');
+                kettleBodyGrad.addColorStop(0.85, '#27272a');
+                kettleBodyGrad.addColorStop(1, '#18181b');
+                rimColor = unlockedCount >= 2 ? '#d97706' : '#71717a';
+                borderStroke = unlockedCount === 3 ? '#facc15' : '#71717a';
+                rivetColor = unlockedCount >= 2 ? '#fbbf24' : '#a1a1aa';
+            } else if (idx === 1) {
+                // KETTLE #2: Artisanal Hammered Copper Kettle
+                kettleBodyGrad.addColorStop(0, '#451a03');
+                kettleBodyGrad.addColorStop(0.25, '#b45309');
+                kettleBodyGrad.addColorStop(0.5, '#d97706');
+                kettleBodyGrad.addColorStop(0.8, '#92400e');
+                kettleBodyGrad.addColorStop(1, '#451a03');
+                rimColor = '#f59e0b';
+                borderStroke = '#fbbf24';
+                rivetColor = '#fde68a';
+            } else {
+                // KETTLE #3: High-Tech Chrome & Neon Smart Vat
+                kettleBodyGrad.addColorStop(0, '#0f172a');
+                kettleBodyGrad.addColorStop(0.25, '#475569');
+                kettleBodyGrad.addColorStop(0.5, '#64748b');
+                kettleBodyGrad.addColorStop(0.8, '#334155');
+                kettleBodyGrad.addColorStop(1, '#0f172a');
+                rimColor = '#38bdf8';
+                borderStroke = '#38bdf8';
+                rivetColor = '#7dd3fc';
+            }
 
-        ctx.fillStyle = btnGrad;
-        ctx.strokeStyle = state.kettle.items.length > 0 ? '#86efac' : '#71717a';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(state.kettle.btnX, state.kettle.btnY, state.kettle.btnW, state.kettle.btnH, 8);
-        ctx.fill();
-        ctx.stroke();
+            // Draw Kettle Belly
+            this.ctx.fillStyle = kettleBodyGrad;
+            this.ctx.strokeStyle = borderStroke;
+            this.ctx.lineWidth = 2.5;
+            this.ctx.beginPath();
+            this.ctx.moveTo(kx, ky + 18);
+            this.ctx.lineTo(kx + kw, ky + 18);
+            this.ctx.bezierCurveTo(kx + kw + 6, ky + kh - 8, kx + kw - 10, ky + kh + 10, kx + kw - 20, ky + kh + 10);
+            this.ctx.lineTo(kx + 20, ky + kh + 10);
+            this.ctx.bezierCurveTo(kx + 10, ky + kh + 10, kx - 6, ky + kh - 8, kx, ky + 18);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.stroke();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        if (brewCost > 0) {
-            ctx.font = 'bold 18px Oswald';
-            ctx.fillText('BREW!', state.kettle.btnX + (state.kettle.btnW / 2), state.kettle.btnY + 24);
-            ctx.font = 'bold 12px Inter';
-            ctx.fillStyle = '#dcfce7';
-            ctx.fillText(`Cost: $${brewCost}`, state.kettle.btnX + (state.kettle.btnW / 2), state.kettle.btnY + 42);
-        } else {
-            ctx.font = 'bold 20px Oswald';
-            ctx.fillText('BREW!', state.kettle.btnX + (state.kettle.btnW / 2), state.kettle.btnY + 32);
+            // Draw Rivet Band across the upper belly
+            this.ctx.fillStyle = rivetColor;
+            for (let rx = kx + 18; rx < kx + kw - 15; rx += 28) {
+                this.ctx.beginPath();
+                this.ctx.arc(rx, ky + 36, 2, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            // --- TIER-SPECIFIC HARDWARE ATTACHMENTS ---
+            const hasItems = kettle.items.length > 0;
+
+            // Copper Kettle (#2) & Upgraded Kettle (#1) get an Analog Steam Pressure Gauge
+            if (idx === 1 || (idx === 0 && unlockedCount >= 2)) {
+                const gx = kx + 2;
+                const gy = ky + 58;
+                // Brass gauge casing
+                this.ctx.fillStyle = '#fef3c7';
+                this.ctx.strokeStyle = '#b45309';
+                this.ctx.lineWidth = 2.5;
+                this.ctx.beginPath();
+                this.ctx.arc(gx, gy, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Red pressure needle (tilts high when items are inside!)
+                this.ctx.strokeStyle = '#dc2626';
+                this.ctx.lineWidth = 1.8;
+                this.ctx.beginPath();
+                this.ctx.moveTo(gx, gy);
+                this.ctx.lineTo(hasItems ? gx + 6 : gx - 5, hasItems ? gy - 5 : gy - 4);
+                this.ctx.stroke();
+            }
+
+            // Smart Pro Vat (#3) gets a Glowing Sight-Glass & Digital PID Temp Readout
+            if (idx === 2) {
+                // Vertical Neon Sight-Glass Strip
+                this.ctx.fillStyle = hasItems ? '#22d3ee' : '#1e293b';
+                this.ctx.strokeStyle = '#94a3b8';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.beginPath();
+                this.ctx.roundRect(kx + 12, ky + 44, 8, 42, 4);
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                // Digital PID Screen on the top-left shoulder
+                this.ctx.fillStyle = '#09090b';
+                this.ctx.strokeStyle = '#38bdf8';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.fillRect(kx - 8, ky + 46, 28, 16);
+                this.ctx.strokeRect(kx - 8, ky + 46, 28, 16);
+
+                this.ctx.fillStyle = hasItems ? '#4ade80' : '#38bdf8';
+                this.ctx.font = 'bold 9px Inter';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(hasItems ? '152°' : 'RDY', kx + 6, ky + 57);
+            }
+
+            // Kettle Open Mouth Rim
+            this.ctx.fillStyle = rimColor;
+            this.ctx.strokeStyle = '#18181b';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.ellipse(kx + (kw / 2), ky + 18, (kw / 2) + 2, 16, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            // Inner Wort Liquid Opening
+            const wortGrad = this.ctx.createRadialGradient(
+                kx + (kw / 2), ky + 18, 4,
+                kx + (kw / 2), ky + 18, kw / 2
+            );
+            if (hasItems) {
+                wortGrad.addColorStop(0, '#f59e0b');
+                wortGrad.addColorStop(0.7, '#92400e');
+                wortGrad.addColorStop(1, '#1c1917');
+            } else {
+                wortGrad.addColorStop(0, '#27272a');
+                wortGrad.addColorStop(1, '#09090b');
+            }
+            this.ctx.fillStyle = wortGrad;
+            this.ctx.beginPath();
+            this.ctx.ellipse(kx + (kw / 2), ky + 18, (kw / 2) - 6, 12, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw Floating Mini-Tiles inside this Kettle
+            const count = kettle.items.length;
+            if (count > 0) {
+                const poolStartX = kx + 22;
+                const poolWidth = kw - 110; // Leaves room for the gauge on left & BREW button on right
+                const tileW = Math.min(44, Math.floor(poolWidth / count) - 2);
+                const spacing = Math.min(44, Math.floor(poolWidth / count));
+
+                kettle.items.forEach((item, index) => {
+                    const itemX = poolStartX + (index * spacing);
+                    const bobY = ky + 28 + ((index % 2 === 0) ? -2 : 2);
+                    this.drawIngredientTile(itemX, bobY, Math.max(30, tileW), item, true);
+                });
+
+                this.ctx.fillStyle = '#e4e4e7';
+                this.ctx.font = '10px Inter';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`${count} in vat (click to undo)`, kx + 24, ky + kh);
+
+                // LIVE RECIPE PREVIEW PILL (Above the Kettle Mouth)
+                if (count > 0 && typeof gameRecipes !== 'undefined') {
+                    const ingNames = kettle.items.map(i => i.name);
+
+                    // If there's only 1 ingredient, warn them they need at least 2
+                    let pillText = '⚠️ Need at least 2 ingredients';
+                    let pillBg = 'rgba(127, 29, 29, 0.92)';
+                    let pillBorder = '#ef4444';
+
+                    if (kettle.items.length >= 2) {
+                        const preview = gameRecipes.evaluateBrew(ingNames);
+                        if (preview) {
+                            const isKnown = (typeof playerState !== 'undefined') && playerState.unlockedRecipes.includes(preview.name);
+                            if (preview.type === 'soda' || preview.type === 'crowd_control' || isKnown) {
+                                pillText = `✓ Ready: ${preview.name}`;
+                                pillBg = 'rgba(20, 83, 45, 0.92)';
+                                pillBorder = '#4ade80';
+                            } else {
+                                pillText = '✨ Mystery Valid Recipe!';
+                                pillBg = 'rgba(88, 28, 135, 0.92)';
+                                pillBorder = '#c084fc';
+                            }
+                        } else {
+                            // 2+ ingredients, but it doesn't match any valid recipe -> Ruined batch warning!
+                            pillText = '❌ Invalid Recipe (Trash Batch)';
+                            pillBg = 'rgba(127, 29, 29, 0.92)';
+                            pillBorder = '#ef4444';
+                        }
+                    }
+
+                    this.ctx.fillStyle = pillBg;
+                    this.ctx.strokeStyle = pillBorder;
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.beginPath();
+                    this.ctx.roundRect(kx + 12, ky - 12, kw - 24, 20, 10);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.font = 'bold 10px Inter';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(pillText, kx + (kw / 2), ky + 2);
+                }
+            } else {
+                const emptyLabel = idx === 0 ? 'STEEL TUN #1' : (idx === 1 ? 'COPPER KETTLE #2' : 'SMART VAT #3');
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                this.ctx.font = 'bold 11px Inter';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(emptyLabel, kx + (kw / 2) - 30, ky + 66);
+            }
+
+            // 5. Draw this Kettle's Individual "BREW!" Button
+            let brewCost = 0;
+            if (typeof gameRecipes !== 'undefined') {
+                kettle.items.forEach(item => {
+                    brewCost += gameRecipes.getIngredientCost(item.name);
+                });
+            }
+
+            this.ctx.fillStyle = hasItems ? '#16a34a' : '#27272a';
+            this.ctx.strokeStyle = hasItems ? '#86efac' : borderStroke;
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.roundRect(kettle.btnX, kettle.btnY, kettle.btnW, kettle.btnH, 6);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.textAlign = 'center';
+            if (brewCost > 0) {
+                this.ctx.font = 'bold 14px Oswald';
+                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 20);
+                this.ctx.font = 'bold 11px Inter';
+                this.ctx.fillStyle = '#dcfce7';
+                this.ctx.fillText(`$${brewCost}`, kettle.btnX + (kettle.btnW / 2), kettle.btnY + 36);
+            } else {
+                this.ctx.font = 'bold 15px Oswald';
+                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 28);
+            }
+        });
+
+        // --- MISSING PIECE #2: 5B. Draw the Industrial Floor Drain (Trash Slot) ---
+        if (state.drain) {
+            const dx = state.drain.x;
+            const dy = state.drain.y;
+            const dw = state.drain.w;
+            const dh = state.drain.h;
+
+            this.ctx.fillStyle = '#18181b';
+            this.ctx.strokeStyle = '#52525b';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.roundRect(dx, dy, dw, dh, 12);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            // Circular Steel Grate in Center
+            const gcx = dx + (dw / 2);
+            const gcy = dy + 44;
+            this.ctx.fillStyle = '#09090b';
+            this.ctx.strokeStyle = '#71717a';
+            this.ctx.lineWidth = 2.5;
+            this.ctx.beginPath();
+            this.ctx.arc(gcx, gcy, 24, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            // Grate Bars
+            for (let gx = -14; gx <= 14; gx += 7) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(gcx + gx, gcy - 18);
+                this.ctx.lineTo(gcx + gx, gcy + 18);
+                this.ctx.stroke();
+            }
+
+            this.ctx.fillStyle = '#a1a1aa';
+            this.ctx.font = 'bold 11px Oswald';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('FLOOR DRAIN', gcx, dy + dh - 20);
+            this.ctx.font = '10px Inter';
+            this.ctx.fillStyle = '#71717a';
+            this.ctx.fillText('(Drag here to dump)', gcx, dy + dh - 7);
         }
 
         // 6. Draw the item currently being dragged
@@ -354,6 +587,126 @@ class GameRenderer {
                 state.dragState.item
             );
         }
+
+        // --- MISSING PIECE #3: 7. Draw Brewing Floating Feedback Popups ---
+        if (state.floatingTexts) {
+            state.floatingTexts.forEach(ft => {
+                this.ctx.save();
+                this.ctx.globalAlpha = Math.max(0, ft.alpha);
+                this.ctx.font = 'bold 20px Oswald';
+                this.ctx.textAlign = 'center';
+                this.ctx.strokeStyle = '#000000';
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeText(ft.text, ft.x, ft.y);
+                this.ctx.fillStyle = ft.color || '#ffffff';
+                this.ctx.fillText(ft.text, ft.x, ft.y);
+                this.ctx.restore();
+            });
+        }
+    }
+
+    drawGeneratorSack(sack) {
+        const ctx = this.ctx;
+        const { x, y, w, h, category, color, cost } = sack;
+        const cx = x + (w / 2);
+        const cy = y + 32;
+
+        ctx.save();
+
+        // Base Shadow & Container Plate
+        const bgGrad = ctx.createLinearGradient(x, y, x, y + h);
+        bgGrad.addColorStop(0, '#27272a');
+        bgGrad.addColorStop(1, '#09090b');
+        ctx.fillStyle = bgGrad;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        // Category-Specific Dispenser Silhouette
+        if (category === 'Water') {
+            // Brass & Blue Tap Spigot
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 16, cy - 6);
+            ctx.lineTo(cx + 4, cy - 6);
+            ctx.quadraticCurveTo(cx + 12, cy - 6, cx + 12, cy + 4);
+            ctx.stroke();
+            // Red valve wheel on top
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx - 4, cy - 14);
+            ctx.lineTo(cx + 8, cy - 14);
+            ctx.stroke();
+            // Falling droplet
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(cx + 12, cy + 12, 4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (category === 'Grain' || category === 'Adjunct') {
+            // Open Rolled-Cuff Burlap Sack
+            ctx.fillStyle = category === 'Grain' ? '#a16207' : '#9a3412';
+            ctx.strokeStyle = '#1c1917';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(cx - 18, cy - 6, 36, 24, 6);
+            ctx.fill();
+            ctx.stroke();
+            // Overflowing golden grain mound at top
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - 6, 16, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        } else if (category === 'Yeast') {
+            // Lab Propagator Jar with Pressure Lid
+            ctx.fillStyle = 'rgba(163, 230, 53, 0.25)';
+            ctx.strokeStyle = '#d9f99d';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(cx - 13, cy - 10, 26, 26, 5);
+            ctx.fill();
+            ctx.stroke();
+            // Bubbling yeast slurry inside
+            ctx.fillStyle = '#a3e635';
+            ctx.fillRect(cx - 11, cy + 2, 22, 12);
+        } else if (category === 'Hops') {
+            // Strapped Burlap Hop Bale with Leaf Crest
+            ctx.fillStyle = '#14532d';
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 2;
+            ctx.fillRect(cx - 16, cy - 10, 32, 24);
+            ctx.strokeRect(cx - 16, cy - 10, 32, 24);
+            this.drawCustomIcon(cx, cy + 2, 'Hops', 'Citra', '#4ade80', 0.65, 3);
+        } else {
+            // Wooden Specialty Smuggler Crate
+            ctx.fillStyle = '#4c1d95';
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2;
+            ctx.fillRect(cx - 17, cy - 10, 34, 24);
+            ctx.strokeRect(cx - 17, cy - 10, 34, 24);
+            // Diagonal crate slat
+            ctx.beginPath();
+            ctx.moveTo(cx - 17, cy - 10);
+            ctx.lineTo(cx + 17, cy + 14);
+            ctx.stroke();
+        }
+
+        // Category Title & Price Tag
+        ctx.fillStyle = '#f4f4f5';
+        ctx.font = 'bold 11px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(category.toUpperCase(), cx, y + h - 19);
+
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px Inter';
+        ctx.fillText(`$${cost || 1}`, cx, y + h - 5);
+
+        ctx.restore();
     }
 
     drawIngredientTile(x, y, size, item, isMini = false) {

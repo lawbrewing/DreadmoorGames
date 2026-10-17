@@ -1,17 +1,14 @@
 // js/config/economy.js
 
 const gameEconomy = {
-    startingTips: 50,
-    injectionCost: 15, // Cost to force-spawn a Galaxy Hop
-    escapePenalty: 5,  // Money lost when a patron reaches the bar
+    startingTips: 65, // A slightly safer buffer to learn the ropes without immediate bankruptcy
 
-    // Payouts for successful serves
     tips: {
-        vipPremium: 15,
-        vipCombo: 45,      // The "Happy Wife, Happy Life" multiplier
-        spouseCocktail: 20,
-        kidSoda: 10,
-        oldTimer: 2,
-        badServe: 0
+        swill: 4,          // Reliable early baseline to cover production costs and leave a small profit
+        soda: 6,           // Quick refreshment for kids and casual patrons
+        badServe: 0,       // Patron leaves disgusted (No tip)
+        standard: 12,      // Solid payout for standard craft beers
+        vipPremium: 28,    // High reward for satisfying VIPs with complex styles
+        vipCombo: 45       // Massive payout when keeping tethered couples happy
     }
 };
