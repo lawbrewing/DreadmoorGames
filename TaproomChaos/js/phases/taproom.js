@@ -187,7 +187,7 @@ class TaproomPhase {
         console.log("HORDE TRIGGERED!");
         const diffMult = progressionState.getDifficultyMultiplier();
         const roster = window.PATRON_ROSTER || {};
-        const config = roster['KID'] || { speed: 45, patience: 35, craves: ['soda'], tipBase: 6 };
+        const config = roster['kid'] || { speed: 45, patience: 35, craves: ['soda'], tipBase: 6 };
 
         let currentHordeSize = 5;
         if (progressionState.isBossRound()) currentHordeSize *= 2;
