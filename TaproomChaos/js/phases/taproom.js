@@ -126,7 +126,6 @@ class TaproomPhase {
 
     // --- NEW: SPAWNER USING PATRON_ROSTER ---
     spawnPatron() {
-        // Fetch difficulty to scale speeds
         let diffMult = 1.0;
         if (typeof progressionState !== 'undefined') {
             diffMult = progressionState.getDifficultyMultiplier();
@@ -137,42 +136,58 @@ class TaproomPhase {
         const isParty = Math.random() > 0.5;
 
         if (isParty) {
-            // PARTY COMBO LOGIC: 30% chance for a Trio, 70% chance for a Duo
             const groupSize = Math.random() > 0.7 ? 3 : 2;
             const groupId = 'party_' + Math.random().toString(36).substr(2, 5);
-            const centerX = Math.floor(Math.random() * 600) + 200; // Keep the group centered
+            const centerX = Math.floor(Math.random() * 600) + 200;
 
             for (let i = 0; i < groupSize; i++) {
-                const rosterKey = POOL_PARTY[Math.floor(Math.random() * POOL_PARTY.length)];
-                // Deep copy config to prevent modifying the base blueprint
-                const config = JSON.parse(JSON.stringify(PATRON_ROSTER[rosterKey]));
+                // Explicitly use window.POOL_PARTY and window.PATRON_ROSTER
+                const pool = window.POOL_PARTY || ['REGULAR', 'GIRL', 'BLACK', 'CRIP'];
+                const rosterKey = pool[Math.floor(Math.random() * pool.length)];
+                const roster = window.PATRON_ROSTER || {};
+
+                if (!roster[rosterKey]) {
+                    console.error(`[Taproom] Roster key not found: ${rosterKey}`);
+                    continue;
+                }
+
+                const config = JSON.parse(JSON.stringify(roster[rosterKey]));
                 config.speed *= diffMult;
 
-                // Space them out 80px apart side-by-side
                 const startX = centerX + ((i - 1) * 80);
                 const startY = -64 - (Math.random() * 30);
 
                 const patron = new Patron(startX, startY, rosterKey, config);
                 patron.groupId = groupId;
                 this.patrons.push(patron);
+                console.log(`[Taproom] Spawned Party Patron: ${rosterKey} at X:${startX}`);
             }
         } else {
-            // SOLO PATRON LOGIC
-            const pool = Math.random() > 0.5 ? POOL_HAZARDS : POOL_SODA;
+            const poolName = Math.random() > 0.5 ? window.POOL_HAZARDS : window.POOL_SODA;
+            const pool = poolName || ['KID', 'PREGNANT'];
             const rosterKey = pool[Math.floor(Math.random() * pool.length)];
-            const config = JSON.parse(JSON.stringify(PATRON_ROSTER[rosterKey]));
+            const roster = window.PATRON_ROSTER || {};
+
+            if (!roster[rosterKey]) {
+                console.error(`[Taproom] Roster key not found: ${rosterKey}`);
+                return;
+            }
+
+            const config = JSON.parse(JSON.stringify(roster[rosterKey]));
             config.speed *= diffMult;
 
             const startX = Math.floor(Math.random() * 800) + 150;
             const patron = new Patron(startX, -64, rosterKey, config);
             this.patrons.push(patron);
+            console.log(`[Taproom] Spawned Solo Patron: ${rosterKey} at X:${startX}`);
         }
     }
 
     triggerKidHorde() {
         console.log("HORDE TRIGGERED!");
         const diffMult = progressionState.getDifficultyMultiplier();
-        const config = PATRON_ROSTER['KID'];
+        const roster = window.PATRON_ROSTER || {};
+        const config = roster['KID'] || { speed: 45, patience: 35, craves: ['soda'], tipBase: 6 };
 
         let currentHordeSize = 5;
         if (progressionState.isBossRound()) currentHordeSize *= 2;
