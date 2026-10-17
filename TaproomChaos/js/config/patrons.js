@@ -126,7 +126,10 @@ const PATRON_ROSTER = {
     'HOLIDAY_SANTA': { spriteFolder: 'assets/sprites/holiday santa/', filePrefix: 'holiday santa', speed: 20, patience: 65, craves: ['premium'], isBoss: true, hasFullAnimations: false, tipBase: 60 }
 };
 
-// Spawn Pools
-const POOL_PARTY = ['REGULAR', 'GIRL', 'BLACK', 'CRIP']; // Used to build groups of 2 or 3
-const POOL_SODA = ['KID', 'PREGNANT'];
-const POOL_HAZARDS = ['KAREN', 'HIPSTER', 'VIKING'];
+// --- SPAWN POOLS (Exposed globally so taproom.js can read them) ---
+window.POOL_PARTY = ['REGULAR', 'GIRL', 'BLACK', 'CRIP'];
+window.POOL_SODA = ['KID', 'PREGNANT'];
+window.POOL_HAZARDS = ['KAREN', 'HIPSTER', 'VIKING'];
+
+// Ensure your PATRON_ROSTER is also globally accessible if it isn't already:
+window.PATRON_ROSTER = PATRON_ROSTER;
