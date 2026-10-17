@@ -54,7 +54,7 @@ class SpriteManager {
                     const img = new Image();
                     
                     // Build the path: assets/sprites/viking/viking_walk.png
-                    img.src = `${p.spriteFolder}${p.filePrefix}_${animData.file}`;
+                    img.src = `${p.spriteFolder}${animData.file}`;
                     
                     img.onload = () => {
                         loadedCount++;

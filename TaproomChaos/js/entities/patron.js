@@ -2,7 +2,7 @@
 
 class Patron {
     constructor(x, y, rosterKey, config) {
-        // Unique ID for combo pairing
+        // Unique ID for individual tracking
         this.id = Math.random().toString(36).substr(2, 9);
 
         this.x = x;
@@ -21,22 +21,25 @@ class Patron {
         this.craves = config.craves || ['premium'];
         this.tipBase = config.tipBase || 12;
 
-        // Animation & Gameplay State
-        this.active = true;
-        this.state = 'walk'; // states: 'walk', 'idle', 'drink', 'angry', 'happy'
+        // --- NEW: Animation Engine Properties ---
+        this.state = 'walk'; // states: 'walk', 'idle', 'drink', 'angry', 'happy', 'fail'
+        this.animFrame = 0;
+        this.animSpeed = 8; // Adjust to make the walking legs move faster/slower
 
-        // Spouse combo properties
-        this.hasSpouse = false;
-        this.partnerId = null;
-        this.spouseSatisfied = false;
+        // --- NEW: Upgraded Party/Combo Properties (Groups of 2-3) ---
+        this.groupId = null; // Will be assigned by the Taproom spawner
+        this.receivedPreferredDrink = false; // Tracks if they got their favorite!
     }
 
     update(dt) {
         if (!this.active) return;
 
+        // Advance the animation frame! (Crucial for SpriteManager to cycle images)
+        this.animFrame += this.animSpeed * dt;
+
         // 1. Move towards the bar if in 'walk' state
         if (this.state === 'walk') {
-            this.y += this.speed * dt; // Fixed the math typo here!
+            this.y += this.speed * dt; // Syntax fixed!
 
             // NOTE: We will tell them to stop walking and switch to 'idle' 
             // inside taproom.js when they hit the bar counter!
@@ -48,8 +51,7 @@ class Patron {
 
             if (this.currentPatience <= 0) {
                 // Time ran out!
-                this.state = 'angry';
-                // Trigger penalty logic here later
+                this.state = 'fail'; // Maps to 'hurt.png' to show they are upset
             }
         }
     }
