@@ -46,7 +46,7 @@ function draw() {
 // 5. The Core Loop Heartbeat
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
-    let deltaTime = (timestamp - lastTime) / 1000; // Fixed delta time calculation
+    let deltaTime = (timestamp - lastTime) / 1000; // Syntax fixed!
     lastTime = timestamp;
 
     // --- BANKRUPTCY CHECK ---
@@ -113,11 +113,16 @@ if (toggleBtn) {
     });
 }
 
-// 6. Boot it up!
-if (currentState === GAME_STATES.TAPROOM) {
-    taproomPhase.init();
-} else if (currentState === GAME_STATES.BREWING) {
-    brewingPhase.init();
-}
+// 6. Boot it up! (Wait for sprites to load first!)
+spriteManager.preloadAll(PATRON_ROSTER).then(() => {
+    console.log("[Engine] All Patron Spritesheets Loaded!");
 
-requestAnimationFrame(gameLoop);
+    if (currentState === GAME_STATES.TAPROOM) {
+        taproomPhase.init();
+    } else if (currentState === GAME_STATES.BREWING) {
+        brewingPhase.init();
+    }
+
+    // Start the heartbeat
+    requestAnimationFrame(gameLoop);
+});
