@@ -4,18 +4,18 @@ class SpriteManager {
     constructor() {
         this.images = {}; // Stores the loaded Image objects
         this.isLoaded = false;
-        
+
         // Standard LPC Grid Rules (Frames per row, total rows)
         this.animations = {
-            'walk':  { file: 'walk.png',      frames: 9,  rows: 4 },
-            'idle':  { file: 'spellcast.png', frames: 7,  rows: 4 }, // Safe fallback for waiting
-            'drink': { file: 'thrust.png',    frames: 8,  rows: 4 }, // Safe fallback for reaching/catching
-            'angry': { file: 'slash.png',     frames: 6,  rows: 4 }, // Safe fallback for mad swiping
-            'happy': { file: 'shoot.png',     frames: 13, rows: 4 }, // Safe fallback for tossing a tip
-            'fail':  { file: 'hurt.png',      frames: 6,  rows: 1 }, // Safe fallback for getting hit by Swill
-            
+            'walk': { file: 'walk.png', frames: 9, rows: 4 },
+            'idle': { file: 'spellcast.png', frames: 7, rows: 4 }, // Safe fallback for waiting
+            'drink': { file: 'thrust.png', frames: 8, rows: 4 }, // Safe fallback for reaching/catching
+            'angry': { file: 'slash.png', frames: 6, rows: 4 }, // Safe fallback for mad swiping
+            'happy': { file: 'shoot.png', frames: 13, rows: 4 }, // Safe fallback for tossing a tip
+            'fail': { file: 'hurt.png', frames: 6, rows: 1 }, // Safe fallback for getting hit by Swill
+
             // Extra animations (Only used if patron config hasFullAnimations === true)
-            'emote': { file: 'emote.png',     frames: 3,  rows: 4 } 
+            'emote': { file: 'emote.png', frames: 3, rows: 4 }
         };
 
         // Standard LPC Direction Row Mapping
@@ -52,10 +52,10 @@ class SpriteManager {
 
                     const animData = this.animations[animKey];
                     const img = new Image();
-                    
-                    // Build the path: assets/sprites/viking/viking_walk.png
+
+                    // Build the path: assets/sprites/viking/walk.png
                     img.src = `${p.spriteFolder}${animData.file}`;
-                    
+
                     img.onload = () => {
                         loadedCount++;
                         if (loadedCount === totalToLoad) {
@@ -63,7 +63,7 @@ class SpriteManager {
                             resolve();
                         }
                     };
-                    
+
                     img.onerror = () => {
                         console.warn(`Missing Sprite: ${img.src}`);
                         loadedCount++; // Keep loading even if one fails
@@ -73,7 +73,7 @@ class SpriteManager {
                         }
                     };
 
-                    // Store in memory vault using a unique key like 'VIKING_walk'
+                    // Store in memory vault using a unique key like 'viking_walk'
                     this.images[`${key}_${animKey}`] = img;
                 });
             });
@@ -104,10 +104,10 @@ class SpriteManager {
         // 3. Grid Math (LPC standards: 64x64 pixels per frame)
         const animData = this.animations[safeState];
         const row = this.dirs[dirText] || 2; // Default to DOWN
-        
+
         // Ensure row doesn't exceed image bounds (hurt.png is only 1 row)
-        const safeRow = Math.min(row, animData.rows - 1); 
-        
+        const safeRow = Math.min(row, animData.rows - 1);
+
         // Loop the frame index to fit within the animation length
         const safeCol = Math.floor(frameIndex) % animData.frames;
 
