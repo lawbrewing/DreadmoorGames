@@ -30,61 +30,53 @@ class GameRenderer {
             ctx.stroke();
         }
 
-        // 2. Patrons (Stylized Character Busts instead of raw rectangles)
+        // 2. Patrons (ANIMATED SPRITES via SpriteManager)
         state.patrons.forEach(patron => {
-            const scale = 0.5 + (patron.y / this.canvas.height);
-            const width = 64 * scale;
-            const height = 135 * scale;
-            const px = patron.x;
-            const py = patron.y;
+            // Fallbacks to prevent NaN gradient crashes
+            const px = patron.x || 0;
+            const py = patron.y || 0;
+            const cHeight = this.canvas.height || 600;
+
+            // Depth Scale: Patrons get bigger as they approach the foreground
+            const scale = 0.6 + (py / cHeight) * 0.7;
+            const drawW = 64 * scale;
+            const drawH = 64 * scale;
 
             // Floor Shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
             ctx.beginPath();
-            ctx.ellipse(px, py, width * 0.55, 10 * scale, 0, 0, Math.PI * 2);
+            ctx.ellipse(px, py, drawW * 0.35, 8 * scale, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Torso / Shoulders (Rounded jacket silhouette)
-            const bodyH = height * 0.68;
-            const bodyY = py - bodyH;
-            const torsoGrad = ctx.createLinearGradient(px - width / 2, bodyY, px + width / 2, py);
-            torsoGrad.addColorStop(0, patron.color || '#3b82f6');
-            torsoGrad.addColorStop(1, '#09090b');
+            const drawX = px - (drawW / 2);
+            const drawY = py - drawH;
 
-            ctx.fillStyle = torsoGrad;
-            ctx.strokeStyle = '#18181b';
-            ctx.lineWidth = 2.5 * scale;
-            ctx.beginPath();
-            ctx.roundRect(px - width / 2, bodyY, width, bodyH, [18 * scale, 18 * scale, 6 * scale, 6 * scale]);
-            ctx.fill();
-            ctx.stroke();
+            // Ask the SpriteManager to render the specific frame!
+            if (typeof spriteManager !== 'undefined' && spriteManager.isLoaded && patron.rosterKey) {
+                // They walk UP to the bar, and face DOWN when waiting for their drink
+                const dir = patron.state === 'walk' ? 'UP' : 'DOWN';
+                const frame = patron.animFrame || 0;
 
-            // V-Neck Shirt Collar detail
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.beginPath();
-            ctx.moveTo(px - 10 * scale, bodyY);
-            ctx.lineTo(px + 10 * scale, bodyY);
-            ctx.lineTo(px, bodyY + 18 * scale);
-            ctx.closePath();
-            ctx.fill();
-
-            // Head
-            const headR = 19 * scale;
-            const headY = bodyY - headR + (4 * scale);
-            ctx.fillStyle = '#fde68a';
-            ctx.strokeStyle = '#18181b';
-            ctx.lineWidth = 2.5 * scale;
-            ctx.beginPath();
-            ctx.arc(px, headY, headR, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+                ctx.save();
+                ctx.translate(drawX, drawY);
+                ctx.scale(scale, scale); // Scale the 64x64 sprite to create depth
+                spriteManager.drawSprite(ctx, patron.rosterKey, patron.state, dir, frame, 0, 0);
+                ctx.restore();
+            } else {
+                // Fallback box if sprites are still loading or blocked by CORS
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(drawX, drawY, drawW, drawH);
+            }
 
             // Patron Type Pill Badge above head
-            const labelY = headY - headR - (14 * scale);
-            ctx.font = `bold ${Math.floor(13 * scale)}px Inter`;
-            const textW = ctx.measureText(patron.type).width + (14 * scale);
+            const labelY = drawY - (5 * scale);
+            ctx.font = `bold ${Math.floor(12 * scale)}px Inter`;
+            const textStr = patron.type ? patron.type.toUpperCase() : 'PATRON';
+            const textW = ctx.measureText(textStr).width + (14 * scale);
+
             ctx.fillStyle = 'rgba(9, 9, 11, 0.85)';
-            ctx.strokeStyle = patron.color || '#ffffff';
+            // Turn the border Red if their patience is running low!
+            ctx.strokeStyle = patron.currentPatience < 15 ? '#ef4444' : '#10b981';
             ctx.lineWidth = 1.5 * scale;
             ctx.beginPath();
             ctx.roundRect(px - textW / 2, labelY - 12 * scale, textW, 18 * scale, 6 * scale);
@@ -93,7 +85,7 @@ class GameRenderer {
 
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
-            ctx.fillText(patron.type, px, labelY + (2 * scale));
+            ctx.fillText(textStr, px, labelY + (2 * scale));
         });
 
         // 3. The Mahogany Bar (Foreground)
@@ -112,40 +104,44 @@ class GameRenderer {
 
         // 4. Draw Projectiles (Sliding Frothy Pint Mugs!)
         state.projectiles.forEach(p => {
+            // NaN Fallbacks for projectiles just to be completely safe
+            const px = p.x || 0;
+            const py = p.y || 0;
+            const pz = p.z || 0;
+            const r = p.radius || 15;
+            const renderY = py - pz;
+
             // Drop shadow on floor
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.beginPath();
-            ctx.ellipse(p.x, p.y, p.radius, p.radius * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(px, py, r, r * 0.5, 0, 0, Math.PI * 2);
             ctx.fill();
-
-            const renderY = p.y - p.z;
-            const r = p.radius;
 
             // Glass handle
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(p.x + r * 0.75, renderY, r * 0.45, -Math.PI / 2, Math.PI / 2);
+            ctx.arc(px + r * 0.75, renderY, r * 0.45, -Math.PI / 2, Math.PI / 2);
             ctx.stroke();
 
             // Golden Pint Body
-            const beerGrad = ctx.createLinearGradient(p.x - r, renderY - r, p.x + r, renderY + r);
+            const beerGrad = ctx.createLinearGradient(px - r, renderY - r, px + r, renderY + r);
             beerGrad.addColorStop(0, '#facc15');
             beerGrad.addColorStop(1, '#ca8a04');
             ctx.fillStyle = beerGrad;
             ctx.strokeStyle = '#fef08a';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(p.x - r * 0.8, renderY - r, r * 1.6, r * 1.9, 4);
+            ctx.roundRect(px - r * 0.8, renderY - r, r * 1.6, r * 1.9, 4);
             ctx.fill();
             ctx.stroke();
 
             // Frothy Foam Head
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(p.x - r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
-            ctx.arc(p.x, renderY - r - 2, r * 0.55, 0, Math.PI * 2);
-            ctx.arc(p.x + r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
+            ctx.arc(px - r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
+            ctx.arc(px, renderY - r - 2, r * 0.55, 0, Math.PI * 2);
+            ctx.arc(px + r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
             ctx.fill();
         });
 

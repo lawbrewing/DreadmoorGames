@@ -39,7 +39,7 @@
         <div id="brewingHUD" class="hud-panel" style="position: absolute; z-index: 100; display: none; top: 0; left: 0; width: 250px; height: 100%; background: #27272a; padding: 20px; color: #f4f4f5; box-sizing: border-box;">
             <h2 style="color: #dc2626; font-family: 'Oswald'; margin-top: 0;">BREWERY BALANCE</h2>
             <p id="hudTips" style="font-family: 'Inter'; font-size: 18px;">Tips: $0.00</p>
-            
+
             <h2 style="color: #dc2626; font-family: 'Oswald'; margin-top: 40px;">INVENTORY</h2>
             <ul id="inventoryList" style="list-style: none; padding: 0; font-family: 'Inter';">
             </ul>
@@ -81,7 +81,11 @@
     <script src="js/core/renderer.js"></script>
     <script src="js/config/economy.js"></script>
     <script src="js/config/population.js"></script>
+    <!-- 1. Data & Configs -->
     <script src="js/config/recipes.js"></script>
+    <script src="js/config/patrons.js"></script>  <!-- ADD PATRONS CONFIG HERE -->
+    <!-- 2. Core Engine & Managers -->
+    <script src="js/engine/SpriteManager.js"></script>
     <script src="js/state/player.js"></script>
     <script src="js/state/progression.js"></script>
     <script src="js/entities/patron.js"></script>
