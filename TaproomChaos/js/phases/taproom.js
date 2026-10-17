@@ -119,6 +119,9 @@ class TaproomPhase {
             ? progressionState.forecast.modifier : 'none';
 
         this.spawnInterval = (mod === 'crowd_spike') ? 1.4 : 2.5;
+        // --- ADD THESE TWO LINES TO FORCE IMMEDIATE SPAWNS ---
+        this.spawnPatron();
+        this.spawnPatron();
     }
 
     // --- NEW: SPAWNER USING PATRON_ROSTER ---
