@@ -5,6 +5,7 @@ class GameHUD {
         // Main Panels
         this.taproomHUD = document.getElementById('taproomHUD');
         this.brewingHUD = document.getElementById('brewingHUD');
+        this.btnToggleHUD = document.getElementById('btnToggleHUD'); // NEW: Mobile Menu Button
 
         // Brewing Elements
         this.hudTips = document.getElementById('hudTips');
@@ -19,7 +20,7 @@ class GameHUD {
         this.btnRestart = document.getElementById('btnRestart');
         this.btnStartShift = document.getElementById('btnStartShift');
 
-        // NEW: Recipe Book & Forecast Elements
+        // Recipe Book & Forecast Elements
         this.forecastTicker = document.getElementById('forecastTicker');
         this.btnOpenRecipeBook = document.getElementById('btnOpenRecipeBook');
         this.btnCloseRecipeBook = document.getElementById('btnCloseRecipeBook');
@@ -45,7 +46,6 @@ class GameHUD {
             });
         }
 
-        // NEW: Recipe Book Listeners
         if (this.btnOpenRecipeBook) {
             this.btnOpenRecipeBook.addEventListener('click', () => {
                 this.renderRecipeBook();
@@ -63,13 +63,24 @@ class GameHUD {
     switchPhase(phaseName) {
         if (phaseName === 'TAPROOM') {
             if (this.taproomHUD) this.taproomHUD.style.display = 'block';
-            if (this.brewingHUD) this.brewingHUD.style.display = 'none';
             if (this.forecastTicker) this.forecastTicker.style.display = 'none';
+
+            // MOBILE FIX: Hide the toggle button and slide the brewing drawer away!
+            if (this.btnToggleHUD) this.btnToggleHUD.style.display = 'none';
+            if (this.brewingHUD) {
+                this.brewingHUD.classList.remove('open');
+                this.brewingHUD.style.pointerEvents = 'none'; // Prevent invisible clicks
+            }
         } else {
             if (this.taproomHUD) this.taproomHUD.style.display = 'none';
-            if (this.brewingHUD) this.brewingHUD.style.display = 'block';
 
-            // Show and update the forecast!
+            // MOBILE FIX: Show the toggle button and auto-open the drawer for brewing!
+            if (this.btnToggleHUD) this.btnToggleHUD.style.display = 'block';
+            if (this.brewingHUD) {
+                this.brewingHUD.style.pointerEvents = 'auto';
+                this.brewingHUD.classList.add('open');
+            }
+
             if (this.forecastTicker) {
                 this.forecastTicker.style.display = 'block';
                 if (typeof progressionState !== 'undefined' && progressionState.forecast) {
@@ -81,31 +92,21 @@ class GameHUD {
 
     renderRecipeBook(unlockedList = null) {
         const container = this.recipeListContainer || document.getElementById('recipeListContainer');
-        if (!container) {
-            console.warn("recipeListContainer element not found in DOM!");
-            return;
-        }
+        if (!container) return;
         container.innerHTML = '';
 
-        // Fallback to playerState.unlockedRecipes if no explicit list is passed
         const recipesToRender = (unlockedList && unlockedList.length > 0)
             ? unlockedList
             : (typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []);
 
-        // --- PROGRESS HEADER ---
         const totalMasterRecipes = (typeof gameRecipes !== 'undefined' && gameRecipes.recipeList) ? gameRecipes.recipeList.length : 25;
         const unlockedCount = recipesToRender.length;
 
         const headerDiv = document.createElement('div');
         headerDiv.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #27272a;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-            border: 1px solid #52525b;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #27272a; padding: 10px 14px; margin-bottom: 12px;
+            border-radius: 6px; border: 1px solid #52525b;
         `;
         headerDiv.innerHTML = `
             <span style="color: #f4f4f5; font-weight: bold; font-size: 13px;">📖 BREWHOUSE LOG</span>
@@ -122,32 +123,16 @@ class GameHUD {
         }
 
         recipesToRender.forEach(recipeName => {
-            const recipeData = typeof gameRecipes !== 'undefined'
-                ? gameRecipes.recipeList.find(r => r.name === recipeName)
-                : null;
-
+            const recipeData = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList.find(r => r.name === recipeName) : null;
             const recipeType = recipeData ? recipeData.type : 'premium';
-            const tacticalHint = typeof gameRecipes !== 'undefined'
-                ? gameRecipes.getForecastHint(recipeName, recipeType)
-                : 'Reliable craft beer for steady tips.';
-
-            // Format the ingredients array nicely into a comma-separated list
-            const ingredientsString = recipeData && recipeData.ingredients
-                ? recipeData.ingredients.join(', ')
-                : 'Standard Baseline Ingredients';
-
-            // --- GET THE STYLE ICON! ---
-            const styleIcon = typeof gameRecipes !== 'undefined'
-                ? gameRecipes.getStyleIcon(recipeName, recipeType)
-                : '🍺';
+            const tacticalHint = typeof gameRecipes !== 'undefined' ? gameRecipes.getForecastHint(recipeName, recipeType) : 'Reliable craft beer for steady tips.';
+            const ingredientsString = recipeData && recipeData.ingredients ? recipeData.ingredients.join(', ') : 'Standard Baseline Ingredients';
+            const styleIcon = typeof gameRecipes !== 'undefined' ? gameRecipes.getStyleIcon(recipeName, recipeType) : '🍺';
 
             const card = document.createElement('div');
             card.style.cssText = `
-                background: #18181b;
-                border: 1px solid #3f3f46;
-                padding: 12px;
-                margin-bottom: 10px;
-                border-radius: 6px;
+                background: #18181b; border: 1px solid #3f3f46;
+                padding: 12px; margin-bottom: 10px; border-radius: 6px;
             `;
 
             card.innerHTML = `
@@ -160,14 +145,13 @@ class GameHUD {
     }
 
     update() {
-        // 1. Update tips
         if (this.hudTips && typeof playerState !== 'undefined') {
             if (this.lastTips !== playerState.tips) {
                 this.lastTips = playerState.tips;
                 this.hudTips.innerText = `Tips: $${this.lastTips}`;
             }
         }
-        // 1B. Update Brewing Phase Stockpile (Inventory List)
+
         if (this.inventoryList && typeof playerState !== 'undefined') {
             const currentInvStr = JSON.stringify(playerState.ammo);
             if (this.lastInventory !== currentInvStr) {
@@ -176,23 +160,15 @@ class GameHUD {
 
                 playerState.ammo.forEach(ammo => {
                     const li = document.createElement('li');
-
-                    // Color-code by drink type
-                    let badgeColor = '#a1a1aa'; // Swill
+                    let badgeColor = '#a1a1aa';
                     if (ammo.type === 'premium') badgeColor = '#facc15';
                     if (ammo.type === 'cocktail') badgeColor = '#f43f5e';
                     if (ammo.type === 'soda') badgeColor = '#38bdf8';
 
                     li.style.cssText = `
-                        background: #18181b;
-                        border-left: 4px solid ${badgeColor};
-                        padding: 8px 10px;
-                        margin-bottom: 8px;
-                        border-radius: 4px;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        font-size: 13px;
+                        background: #18181b; border-left: 4px solid ${badgeColor};
+                        padding: 8px 10px; margin-bottom: 8px; border-radius: 4px;
+                        display: flex; justify-content: space-between; align-items: center; font-size: 13px;
                     `;
 
                     const countText = ammo.count === Infinity ? '∞' : `x${ammo.count}`;
@@ -204,21 +180,15 @@ class GameHUD {
                 });
             }
         }
-        // 2. Update Taproom specific HUD
+
         if (typeof currentState !== 'undefined' && currentState === 'TAPROOM' && typeof taproomPhase !== 'undefined') {
             const seconds = Math.ceil(taproomPhase.timeRemaining);
             if (this.lastTime !== seconds && this.hudTimer) {
                 this.lastTime = seconds;
                 this.hudTimer.innerText = `${progressionState.getShiftName()} | TIME LEFT: ${seconds}s`;
-
-                if (progressionState.isBossRound()) {
-                    this.hudTimer.style.color = '#ef4444';
-                } else {
-                    this.hudTimer.style.color = '#facc15';
-                }
+                this.hudTimer.style.color = progressionState.isBossRound() ? '#ef4444' : '#facc15';
             }
 
-            // 3. Update Ammo List (Clickable + Number Key Hints!)
             if (typeof playerState !== 'undefined' && this.ammoList) {
                 const currentAmmoStr = JSON.stringify(playerState.ammo) + '_' + taproomPhase.selectedAmmoIndex;
                 if (this.lastAmmo !== currentAmmoStr) {
@@ -231,16 +201,12 @@ class GameHUD {
                         const isSelected = index === taproomPhase.selectedAmmoIndex;
 
                         li.style.cssText = `
-                            cursor: pointer;
-                            pointer-events: auto;
-                            padding: 6px 10px;
-                            margin-bottom: 5px;
-                            border-radius: 6px;
+                            cursor: pointer; pointer-events: auto; padding: 6px 10px;
+                            margin-bottom: 5px; border-radius: 6px;
                             background: ${isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(39, 39, 42, 0.7)'};
                             border: 2px solid ${isSelected ? '#10b981' : 'transparent'};
                             color: ${isSelected ? '#10b981' : '#f4f4f5'};
-                            font-size: 16px;
-                            user-select: none;
+                            font-size: 16px; user-select: none;
                         `;
 
                         li.innerText = `[${index + 1}] ${isSelected ? '▶ ' : ''}${ammo.name} (${countStr})`;

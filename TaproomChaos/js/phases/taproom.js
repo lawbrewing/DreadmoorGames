@@ -6,7 +6,9 @@ class TaproomPhase {
         this.projectiles = [];
         this.availableAmmo = [];
         this.isActive = false;
+        this.isTransitioning = false;
         this.floatingTexts = [];
+        this.darts = [];
         this.spawnTimer = 0;
         this.spawnInterval = 4.5;
         this.maxPatrons = 13;
@@ -14,73 +16,76 @@ class TaproomPhase {
         this.timeRemaining = this.shiftDuration;
         this.selectedAmmoIndex = 0;
 
-        // Slingshot State
         this.isAiming = false;
         this.aimStart = { x: 0, y: 0 };
         this.aimCurrent = { x: 0, y: 0 };
 
-        // Fake 3D Physics Constants
         this.gravity = 1500;
-        this.throwMultiplier = 7.0;
-        this.zMultiplier = 2.5;
-
         this.setupEventListeners();
     }
 
     setupEventListeners() {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
-            if (pos.y > 550) {
+            if (pos.y > 350) {
                 this.isAiming = true;
                 this.aimStart = { x: pos.x, y: pos.y };
-                this.aimCurrent = { x: pos.x, y: pos.y };
             }
+        });
+
+        gameEvents.on('DRAG_MOVE', (pos) => {
+            if (!this.isAiming) return;
+            this.aimCurrent = { x: pos.x, y: pos.y };
         });
 
         gameEvents.on('DRAG_END', (pos) => {
             if (!this.isAiming) return;
             this.isAiming = false;
 
-            const dx = pos.x - this.aimStart.x;
-            const dy = pos.y - this.aimStart.y;
+            const swipeDx = pos.x - this.aimStart.x;
+            const swipeDy = pos.y - this.aimStart.y;
 
-            if (dy < -20) {
-                const dragDistance = Math.sqrt(dx * dx + dy * dy);
-                const throwMult = 4.0;
-                const zMult = 1.5;
-                this.fireProjectile(this.aimStart.x, this.aimStart.y, dx * throwMult, dy * throwMult, dragDistance * zMult);
+            if (Math.abs(swipeDx) < 10 && Math.abs(swipeDy) < 10 && pos.y > 600) {
+                if (this.availableAmmo && this.availableAmmo.length > 0) {
+                    const sackWidth = 1280 / this.availableAmmo.length;
+                    this.selectedAmmoIndex = Math.max(0, Math.min(this.availableAmmo.length - 1, Math.floor(pos.x / sackWidth)));
+                }
+                return;
             }
+
+            if (swipeDy < -20) {
+                const swipeDistance = Math.hypot(swipeDx, swipeDy);
+                const bartenderX = 1280 / 2;
+                const bartenderY = 650;
+                const throwMult = 4.5;
+                const zMult = 1.8;
+                this.fireProjectile(bartenderX, bartenderY, swipeDx * throwMult, swipeDy * throwMult, swipeDistance * zMult);
+            }
+        });
+
+        gameEvents.on('DART_THROWN', (pos) => {
+            if (!this.isActive) return;
+            this.darts.push({
+                x: pos.x, y: pos.y,
+                targetX: 1040, targetY: 100,
+                progress: 0
+            });
         });
 
         gameEvents.on('GLASS_SMASHED', (data) => {
             if (!this.isActive) return;
 
-            let splashRadius = 0;
-            let pushbackForce = 0;
-
-            if (data.type === 'Swill') {
-                splashRadius = 180;
-                pushbackForce = 120;
-            } else if (data.type === 'Pastry Stout') {
-                splashRadius = 80;
-                pushbackForce = 40;
-            } else {
-                splashRadius = 40;
-                pushbackForce = 10;
-            }
+            let splashRadius = data.type === 'Swill' ? 180 : (data.type === 'Pastry Stout' ? 80 : 40);
+            let pushbackForce = data.type === 'Swill' ? 120 : (data.type === 'Pastry Stout' ? 40 : 10);
 
             this.patrons.forEach(patron => {
                 const dx = patron.x - data.x;
                 const dy = patron.y - data.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance <= splashRadius && patron.state !== 'happy') {
+                if (distance <= splashRadius && patron.currentState === 'ENTER') {
                     patron.y -= pushbackForce;
-                    if (patron.x > data.x) {
-                        patron.x += pushbackForce / 4;
-                    } else {
-                        patron.x -= pushbackForce / 4;
-                    }
+                    patron.x += (patron.x > data.x) ? pushbackForce / 4 : -pushbackForce / 4;
                     if (patron.y < 150) patron.y = 150;
                 }
             });
@@ -89,43 +94,36 @@ class TaproomPhase {
 
     fireProjectile(x, y, vx, vy, vz) {
         const currentAmmo = playerState.ammo[this.selectedAmmoIndex];
-
         if (currentAmmo.count !== 'Infinite') {
             currentAmmo.count--;
-            if (currentAmmo.count <= 0) {
-                this.selectedAmmoIndex = 0;
-            }
+            if (currentAmmo.count <= 0) this.selectedAmmoIndex = 0;
         }
 
         this.projectiles.push({
             x: x, y: y, z: 0, vx: vx, vy: vy, vz: vz,
-            name: currentAmmo.name,
-            type: currentAmmo.type || 'crowd_control',
-            radius: 12,
-            active: true
+            name: currentAmmo.name, type: currentAmmo.type || 'crowd_control', radius: 12, active: true
         });
     }
 
     init(ammoList = []) {
         this.isActive = true;
+        this.isTransitioning = false;
         this.patrons = [];
         this.spawnTimer = 1.5;
         this.projectiles = [];
+        this.darts = [];
         this.isAiming = false;
         this.availableAmmo = playerState.ammo;
         this.floatingTexts = [];
         this.timeRemaining = this.shiftDuration;
 
-        const mod = (typeof progressionState !== 'undefined' && progressionState.forecast)
-            ? progressionState.forecast.modifier : 'none';
-
+        const mod = (typeof progressionState !== 'undefined' && progressionState.forecast) ? progressionState.forecast.modifier : 'none';
         this.spawnInterval = (mod === 'crowd_spike') ? 2.0 : 3.5;
         this.maxPatrons = 6;
     }
 
     spawnPatron(forcedKey = null, groupId = null) {
         let rosterKey = forcedKey;
-
         if (!rosterKey) {
             const activeKeys = this.patrons.map(p => p.rosterKey);
             let availableRoster = Object.keys(PATRON_ROSTER).filter(k => !PATRON_ROSTER[k].isBoss && !activeKeys.includes(k));
@@ -137,7 +135,7 @@ class TaproomPhase {
         const config = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[rosterKey] : null;
         if (!config) return;
 
-        const w = 1280; // Hardcoded to internal logical resolution
+        const w = 1280;
         const destX = (w * 0.15) + Math.random() * (w * 0.7);
         const destY = 480 + (Math.random() * 30);
 
@@ -145,23 +143,13 @@ class TaproomPhase {
         const useSideDoor = Math.random() < 0.2;
 
         if (useSideDoor) {
-            startX = w - 90;
-            startY = 240;
-            if (destX < w * 0.5) {
-                path = [{ x: w - 160, y: 340 }, { x: w * 0.45, y: 420 }, { x: destX, y: destY }];
-            } else {
-                path = [{ x: w - 160, y: 380 }, { x: destX, y: destY }];
-            }
+            startX = w - 90; startY = 240;
+            path = (destX < w * 0.5) ? [{ x: w - 160, y: 340 }, { x: w * 0.45, y: 420 }, { x: destX, y: destY }] : [{ x: w - 160, y: 380 }, { x: destX, y: destY }];
         } else {
-            startX = w / 2;
-            startY = 130;
-            if (destX < w * 0.4) {
-                path = [{ x: (w / 2) - 40, y: 170 }, { x: 230, y: 250 }, { x: destX, y: 420 }, { x: destX, y: destY }];
-            } else if (destX > w * 0.6) {
-                path = [{ x: (w / 2) + 40, y: 180 }, { x: w - 230, y: 340 }, { x: destX, y: 420 }, { x: destX, y: destY }];
-            } else {
-                path = [{ x: (w / 2) + (Math.random() * 40 - 20), y: 220 }, { x: destX, y: destY }];
-            }
+            startX = w / 2; startY = 130;
+            if (destX < w * 0.4) path = [{ x: (w / 2) - 40, y: 170 }, { x: 230, y: 250 }, { x: destX, y: 420 }, { x: destX, y: destY }];
+            else if (destX > w * 0.6) path = [{ x: (w / 2) + 40, y: 180 }, { x: w - 230, y: 340 }, { x: destX, y: 420 }, { x: destX, y: destY }];
+            else path = [{ x: (w / 2) + (Math.random() * 40 - 20), y: 220 }, { x: destX, y: destY }];
         }
 
         const patron = new Patron(startX, startY, rosterKey, { ...config, speed: config.speed ? config.speed * 1.5 : 35 });
@@ -171,61 +159,62 @@ class TaproomPhase {
     }
 
     triggerKidHorde() {
-        console.log("HORDE TRIGGERED!");
         let currentHordeSize = progressionState.isBossRound() ? 10 : 5;
         for (let i = 0; i < currentHordeSize; i++) {
-            setTimeout(() => {
-                this.spawnPatron('kid', 'horde_group');
-            }, i * 650);
+            setTimeout(() => { this.spawnPatron('kid', 'horde_group'); }, i * 650);
         }
     }
 
     update(dt) {
         if (!this.isActive) return;
 
-        // 1. COUNTDOWN LOGIC
         this.timeRemaining -= dt;
         if (this.timeRemaining <= 0) {
-            progressionState.advanceShift();
-            gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
+            if (!this.isTransitioning) {
+                this.isTransitioning = true;
+                progressionState.advanceShift();
+                this.shutdown(); // MISSING METHOD RESTORED
+                gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
+            }
             return;
         }
 
-        // 2. SPAWNING LOGIC
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.patrons.length < this.maxPatrons) {
             this.spawnPatron();
             this.spawnTimer = this.spawnInterval + (Math.random() * 2.0);
         }
 
-        // 3. MOVEMENT & ESCAPE LOGIC
         this.patrons = this.patrons.filter(patron => {
             if (!patron.active) return false;
-
             patron.update(dt, this.patrons);
 
-            if (patron.state === 'walk' && patron.y >= 460) {
-                patron.state = 'idle';
-                patron.y = 460;
-            }
-
-            // PATIENCE RAN OUT (PENALTY)
-            if (patron.state === 'fail' && !patron.penaltyApplied) {
+            if (patron.currentState === 'ANGRY' && !patron.penaltyApplied) {
                 patron.penaltyApplied = true;
-                const penalty = typeof gameEconomy !== 'undefined' ? gameEconomy.escapePenalty : 10;
+
+                // FIXED: Guarantee the penalty is sent as a pure integer, never an object
+                let penalty = 10;
+                if (typeof gameEconomy !== 'undefined' && typeof gameEconomy.escapePenalty === 'number') {
+                    penalty = gameEconomy.escapePenalty;
+                }
+
                 gameEvents.emit('SPEND_TIPS', penalty);
                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `-$${penalty} (Left Angry!)`, "#ef4444"));
-
-                // patron.js now handles the exit natively via reactionTimer, no setTimeout needed here
             }
             return true;
         });
 
-        // 4. FLOATING TEXT & PARTICLE UPDATES
         this.floatingTexts = this.floatingTexts.filter(text => {
             if (text.update) text.update(dt);
             return text.active;
         });
+
+        if (this.darts) {
+            this.darts = this.darts.filter(d => {
+                d.progress += dt * 4.0; // Zip to the board
+                return d.progress < 1.0;
+            });
+        }
 
         if (!this.particles) this.particles = [];
         this.particles = this.particles.filter(p => {
@@ -236,7 +225,6 @@ class TaproomPhase {
             return p.life > 0;
         });
 
-        // 5. PROJECTILE PHYSICS & HIT DETECTION
         this.projectiles.forEach(p => {
             if (!p.active) return;
 
@@ -247,86 +235,74 @@ class TaproomPhase {
 
             for (let i = 0; i < this.patrons.length; i++) {
                 let patron = this.patrons[i];
-                if (!patron.active || patron.state === 'happy' || patron.state === 'fail' || patron.state === 'exit') continue;
+                if (!patron.active || patron.currentState !== 'ENTER' && patron.currentState !== 'IDLE') continue;
 
                 const scale = 0.5 + (patron.y / 720);
-                const patronWidth = 60 * scale;
-                const patronHeight = 140 * scale;
-                const patronDepth = 40;
-
-                const withinX = p.x > (patron.x - patronWidth / 2) && p.x < (patron.x + patronWidth / 2);
-                const withinY = p.y > (patron.y - patronDepth / 2) && p.y < (patron.y + patronDepth / 2);
-                const withinZ = p.z > 0 && p.z < patronHeight;
+                const withinX = p.x > (patron.x - (30 * scale)) && p.x < (patron.x + (30 * scale));
+                const withinY = p.y > (patron.y - 20) && p.y < (patron.y + 20);
+                const withinZ = p.z > 0 && p.z < (140 * scale);
 
                 if (withinX && withinY && withinZ) {
                     p.active = false;
 
-                    let tipAmount = 0;
-                    let floatText = "";
-                    let floatColor = "#10b981";
-
-                    const config = PATRON_ROSTER[patron.rosterKey];
-                    const baseTip = (patron && typeof patron.tipBase === 'number' && !isNaN(patron.tipBase))
-                        ? patron.tipBase
-                        : (config && config.tipBase ? config.tipBase : 12);
+                    const config = PATRON_ROSTER[patron.rosterKey] || {};
+                    const baseTip = (patron.tipBase) ? patron.tipBase : (config.tipBase ? config.tipBase : 12);
 
                     const isExactMatch = config.favoriteDrink && p.name === config.favoriteDrink;
                     const isStyleMatch = config.favoriteStyle && (p.name.includes(config.favoriteStyle) || p.type === config.favoriteStyle.toLowerCase());
                     const isCraved = config.craves && config.craves.includes(p.type);
 
+                    const assignActivity = (pt) => {
+                        const roll = Math.random();
+                        if (roll > 0.65) {
+                            pt.activity = 'DANCE';
+                            pt.waypoints = [{ x: 960 + (Math.random() * 160 - 80), y: 380 + (Math.random() * 60 - 30) }];
+                        } else if (roll > 0.3) {
+                            pt.activity = 'DARTS';
+                            pt.waypoints = [{ x: 1040 + (Math.random() * 40 - 20), y: 220 + (Math.random() * 20) }];
+                        } else {
+                            pt.activity = 'EXIT';
+                        }
+                    };
+
                     if (isExactMatch) {
-                        tipAmount = baseTip * 3;
-                        floatText = `+$${tipAmount} (Favorite!)`;
-                        floatColor = "#f59e0b";
+                        gameEvents.emit('EARN_TIPS', baseTip * 3);
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip * 3} (Favorite!)`, "#f59e0b"));
                         patron.receivedPreferredDrink = true;
-                        patron.state = 'happy';
-                        patron.reactionTimer = 1.2; // Trigger the cheer animation delay!
-
+                        patron.setState('CHEER');
+                        assignActivity(patron);
                         this.spawnCoinBurst(patron.x, patron.y - 80);
-
                     } else if (isStyleMatch) {
-                        tipAmount = baseTip * 2;
-                        floatText = `+$${tipAmount} (Great Style!)`;
-                        floatColor = "#38bdf8";
-                        patron.state = 'happy';
-                        patron.reactionTimer = 1.2;
-
+                        gameEvents.emit('EARN_TIPS', baseTip * 2);
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip * 2} (Great Style!)`, "#38bdf8"));
+                        patron.setState('CHEER');
+                        assignActivity(patron);
                     } else if (isCraved) {
-                        tipAmount = baseTip;
-                        floatText = `+$${tipAmount}`;
-                        floatColor = "#10b981";
-                        patron.state = 'happy';
-                        patron.reactionTimer = 1.2;
-
+                        gameEvents.emit('EARN_TIPS', baseTip);
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip}`, "#10b981"));
+                        patron.setState('CHEER');
+                        assignActivity(patron);
                     } else {
-                        tipAmount = 0;
-                        floatText = "Gross!";
-                        floatColor = "#ef4444";
-                        patron.state = 'fail';
-                        patron.reactionTimer = 1.2; // Trigger the angry tantrum delay!
-                        patron.penaltyApplied = true;
-
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, "Gross!", "#ef4444"));
+                        patron.setState('ANGRY');
                         if (patron.rosterKey === 'kid' && p.type !== 'soda') {
                             this.triggerKidHorde();
-                            floatText = "YAY BEER! (Horde Incoming)";
+                            this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 130, "YAY BEER! (Horde Incoming)", "#ef4444"));
                         }
                     }
 
-                    if (tipAmount > 0) gameEvents.emit('EARN_TIPS', tipAmount);
-                    this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, floatText, floatColor));
-
                     if (patron.groupId) {
                         const groupMembers = this.patrons.filter(pt => pt.groupId === patron.groupId);
-                        const allServed = groupMembers.every(pt => pt.state === 'happy' || pt.state === 'fail' || pt.state === 'exit');
+                        const allServed = groupMembers.every(pt => pt.currentState === 'CHEER' || pt.currentState === 'ANGRY' || pt.currentState === 'EXIT');
+                        if (allServed && groupMembers.every(pt => pt.receivedPreferredDrink)) {
+                            gameEvents.emit('EARN_TIPS', 75);
+                            this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 150, "PARTY COMBO! +$75", "#c084fc"));
+                            this.spawnCoinBurst(patron.x, patron.y - 120);
 
-                        if (allServed) {
-                            const allHappy = groupMembers.every(pt => pt.receivedPreferredDrink);
-                            if (allHappy) {
-                                gameEvents.emit('EARN_TIPS', 75);
-                                this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 150, "PARTY COMBO! +$75", "#c084fc"));
-                                this.spawnCoinBurst(patron.x, patron.y - 120);
-                            }
-                            // The individual reactionTimers handle the group exit automatically now!
+                            groupMembers.forEach((pt, idx) => {
+                                pt.activity = 'DARTS';
+                                pt.waypoints = [{ x: 1040 + ((idx - 1) * 40), y: 220 + (Math.random() * 10) }];
+                            });
                         }
                     }
                     break;
@@ -334,8 +310,7 @@ class TaproomPhase {
             }
 
             if (p.active && p.z <= 0) {
-                p.z = 0;
-                p.active = false;
+                p.z = 0; p.active = false;
                 gameEvents.emit('GLASS_SMASHED', { x: p.x, y: p.y, type: p.type });
             }
         });
@@ -347,22 +322,17 @@ class TaproomPhase {
     spawnCoinBurst(x, y) {
         if (!this.particles) this.particles = [];
         for (let i = 0; i < 12; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 400,
-                vy: (Math.random() - 1.0) * 450,
-                life: 1.0 + Math.random() * 0.5,
-                type: 'coin'
-            });
+            this.particles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 400, vy: (Math.random() - 1.0) * 450, life: 1.0 + Math.random() * 0.5, type: 'coin' });
         }
     }
 
+    // MISSING METHOD RESTORED
     shutdown() {
         console.log("[Taproom] Last call. Shutting down phase.");
         this.isActive = false;
         this.patrons = [];
         this.projectiles = [];
+        this.darts = [];
         this.isAiming = false;
     }
 }

@@ -115,16 +115,15 @@ class GameRenderer {
         ctx.fillStyle = neonColor; ctx.fillText("LAW BREWING", w / 2, 25);
         ctx.restore();
 
-        // --- 3. 3D TRUE-PERSPECTIVE FLOOR (WITH CLIPPING FIX) ---
-        ctx.save(); // Save before clipping
-
+        // --- 3. 3D TRUE-PERSPECTIVE FLOOR ---
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(leftWallEdge, horizonY);
         ctx.lineTo(rightWallEdge, horizonY);
         ctx.lineTo(w, barY);
         ctx.lineTo(0, barY);
         ctx.closePath();
-        ctx.clip(); // MAGIC: Everything drawn after this stays strictly on the floor!
+        ctx.clip();
 
         const floorGrad = ctx.createLinearGradient(0, horizonY, 0, barY);
         floorGrad.addColorStop(0, '#09090b');
@@ -134,7 +133,6 @@ class GameRenderer {
 
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'; ctx.lineWidth = 4;
         const vpX = w / 2;
-        // Expanded loop range drastically so corners are perfectly covered
         for (let i = -3000; i < w + 3000; i += 160) {
             ctx.beginPath(); ctx.moveTo(vpX, horizonY); ctx.lineTo(i, barY); ctx.stroke();
         }
@@ -145,8 +143,7 @@ class GameRenderer {
                 ctx.beginPath(); ctx.ellipse(fx, fy, 6, 12, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
             });
         }
-
-        ctx.restore(); // Remove clip
+        ctx.restore();
 
         // --- 4. AMBIENT LIGHTING OVERLAY ---
         ctx.save();
@@ -166,59 +163,171 @@ class GameRenderer {
 
         // --- 5. DYNAMIC SEASONAL PROPS & DEPTH-SORTED RENDERING ---
         let roomProps = [
-            { type: 'table', x: w * 0.30, y: 280, width: 150, height: 60 },
-            { type: 'table', x: w * 0.70, y: 360, width: 170, height: 70 }
+            // FIXED: renderY = -1 ensures the dance floor draws under ALL patrons so nobody goes transparent!
+            { type: 'dance_floor', x: 960, y: 380, width: 340, height: 160, renderY: -1 },
+            { type: 'pool_table', x: 350, y: 320, width: 220, height: 120 },
+            { type: 'dartboard', x: 1040, y: 100, width: 40, height: 50 }
         ];
 
         if (season === 'storm' || season === 'rain') {
             roomProps.push({ type: 'coat_rack', x: leftWallEdge - 40, y: 220, width: 40, height: 120 });
             roomProps.push({ type: 'egret_statue', x: w * 0.6, y: 170, width: 40, height: 90 });
-            roomProps.push({ type: 'flowers', x: w * 0.30, y: 270, width: 20, height: 30 }); // Left table
         } else if (season === 'summer') {
             roomProps.push({ type: 'chalk_board', x: leftWallEdge + 20, y: 190, width: 60, height: 80 });
             roomProps.push({ type: 'fan', x: 80, y: 350, width: 50, height: 100 });
-            roomProps.push({ type: 'pitcher', x: w * 0.70, y: 350, width: 20, height: 30 }); // Right table
-        } else if (season === 'fall' || season === 'oktoberfest') {
-            roomProps.push({ type: 'pumpkin', x: w * 0.30, y: 270, width: 30, height: 30 }); // Left table
-            roomProps.push({ type: 'steins', x: w * 0.72, y: 350, width: 40, height: 20 }); // Right table
         } else if (season === 'winter' || season === 'holiday') {
             roomProps.push({ type: 'pine_tree', x: leftWallEdge - 20, y: 200, width: 120, height: 180 });
             roomProps.push({ type: 'wood_stove', x: w - 100, y: 250, width: 80, height: 120 });
-            roomProps.push({ type: 'candles', x: w * 0.30, y: 270, width: 20, height: 20 }); // Both tables
-            roomProps.push({ type: 'candles', x: w * 0.70, y: 350, width: 20, height: 20 });
         }
 
         const renderables = [
             ...state.patrons.map(p => ({ ...p, isPatron: true, renderY: p.y || 0 })),
-            ...roomProps.map(prop => ({ ...prop, isProp: true, renderY: prop.y + (prop.height / 2) }))
+            // Map the prop renderY correctly (Dance floor is forced to -1)
+            ...roomProps.map(prop => ({ ...prop, isProp: true, renderY: prop.renderY !== undefined ? prop.renderY : prop.y + (prop.height / 2) }))
         ].sort((a, b) => a.renderY - b.renderY);
 
         renderables.forEach(item => {
             if (item.isProp) {
-                // Ensure props always draw at full opacity
                 ctx.globalAlpha = 1.0;
 
-                if (item.type === 'table') {
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, item.width / 2, item.height / 3, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - item.width / 3, item.y, 8, item.height / 2); ctx.fillRect(item.x + item.width / 3 - 8, item.y, 8, item.height / 2);
-                    ctx.fillStyle = '#451a03'; ctx.strokeStyle = '#78350f'; ctx.lineWidth = 4;
-                    ctx.beginPath(); ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                if (item.type === 'pool_table') {
+                    ctx.save();
+                    ctx.translate(item.x, item.y);
+                    ctx.scale(1, 0.5); // SQUASH Y-AXIS: Forces the table to lie flat on the floor
+
+                    const hw = item.width / 2;
+                    const hh = item.height / 2;
+
+                    // 1. Floor Shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.beginPath(); ctx.ellipse(0, 40, hw + 10, hh + 10, 0, 0, Math.PI * 2); ctx.fill();
+
+                    // 2. Thick Wooden Legs (Drawn on the floor)
+                    ctx.fillStyle = '#1c1917';
+                    ctx.fillRect(-hw + 15, 0, 16, 70);
+                    ctx.fillRect(hw - 30, 0, 16, 70);
+                    ctx.fillStyle = '#0c0a09'; // Back legs (darker)
+                    ctx.fillRect(-hw + 25, -hh + 10, 14, 70);
+                    ctx.fillRect(hw - 40, -hh + 10, 14, 70);
+
+                    // 3. Elevate the Tabletop 40px into the air!
+                    const tableZ = 40;
+                    ctx.translate(0, -tableZ);
+
+                    // Under-cabinet siding
+                    ctx.fillStyle = '#291509';
+                    ctx.beginPath(); ctx.roundRect(-hw, -hh + 10, item.width, item.height, 8); ctx.fill();
+
+                    // Top Wooden Frame (Outer Edge)
+                    ctx.fillStyle = '#451a03';
+                    ctx.beginPath(); ctx.roundRect(-hw, -hh, item.width, item.height, 8); ctx.fill();
+                    ctx.strokeStyle = '#78350f'; ctx.lineWidth = 6;
+                    ctx.stroke();
+
+                    // NEW: Inner Recessed Lip (Gives the rails 3D depth)
+                    ctx.fillStyle = '#271206';
+                    ctx.beginPath(); ctx.roundRect(-hw + 12, -hh + 12, item.width - 24, item.height - 24, 4); ctx.fill();
+
+                    // Green Felt
+                    ctx.fillStyle = '#064e3b';
+                    ctx.beginPath(); ctx.roundRect(-hw + 16, -hh + 16, item.width - 32, item.height - 32, 2); ctx.fill();
+
+                    // NEW: Felt Drop Shadow (Makes the rails cast a shadow onto the play surface)
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    // 6 Pockets
+                    ctx.fillStyle = '#09090b';
+                    [-hw + 16, 0, hw - 16].forEach(hx => {
+                        [-hh + 16, hh - 16].forEach(hy => {
+                            ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill();
+                            // Metallic accent on the pocket edges
+                            ctx.strokeStyle = '#52525b';
+                            ctx.lineWidth = 1.5;
+                            ctx.beginPath(); ctx.arc(hx, hy, 9, Math.PI, 0); ctx.stroke();
+                        });
+                    });
+
+                    // Scattered Balls
+                    const colors = ['#ef4444', '#3b82f6', '#facc15', '#a855f7', '#f8fafc', '#10b981', '#f97316', '#09090b'];
+                    for (let i = 0; i < 8; i++) {
+                        const bx = (Math.sin(i * 123) * (hw - 40));
+                        const by = (Math.cos(i * 321) * (hh - 30));
+
+                        // NEW: Draw ball shadow on the felt
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.beginPath();
+                        ctx.ellipse(bx + 2, by + 4, 5, 2.5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // NEW: Counter-Scale and Radial Light
+                        ctx.save();
+                        ctx.translate(bx, by);
+                        ctx.scale(1, 2); // UN-SQUASH the Y-axis so balls are perfect circles!
+
+                        const bGrad = ctx.createRadialGradient(-1.5, -1.5, 0.5, 0, 0, 4);
+                        bGrad.addColorStop(0, '#ffffff'); // Specular light reflection
+                        bGrad.addColorStop(0.3, colors[i % colors.length]); // Base ball color
+                        bGrad.addColorStop(1, '#000000'); // Shadowed bottom edge
+
+                        ctx.fillStyle = bGrad;
+                        ctx.beginPath();
+                        ctx.arc(0, -2, 4.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Force one ball to be the stark white Cue ball
+                        if (i === 4) {
+                            const cbGrad = ctx.createRadialGradient(-1.5, -1.5, 0.5, 0, 0, 4.5);
+                            cbGrad.addColorStop(0, '#ffffff');
+                            cbGrad.addColorStop(1, '#94a3b8');
+                            ctx.fillStyle = cbGrad;
+                            ctx.beginPath(); ctx.arc(0, -2, 4.5, 0, Math.PI * 2); ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+                    ctx.restore();
                 }
-                else if (item.type === 'flowers') {
-                    ctx.fillStyle = '#1e3a8a'; ctx.fillRect(item.x - 5, item.y, 10, 15);
-                    ctx.fillStyle = '#bef264'; ctx.beginPath(); ctx.arc(item.x, item.y - 5, 8, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(item.x - 5, item.y - 10, 6, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#60a5fa'; ctx.beginPath(); ctx.arc(item.x + 5, item.y - 8, 6, 0, Math.PI * 2); ctx.fill();
+                else if (item.type === 'dance_floor') {
+                    ctx.save();
+                    ctx.translate(item.x, item.y);
+                    ctx.scale(1, 0.45); // Fake 3D perspective
+                    ctx.rotate(Math.PI / 4);
+
+                    // FIXED: Bigger, classier Polished Marble Parquet
+                    const tiles = 8;
+                    const tSize = 35;
+                    const offset = (tiles * tSize) / 2;
+
+                    // Gold trim
+                    ctx.fillStyle = '#d97706';
+                    ctx.fillRect(-offset - 4, -offset - 4, (tiles * tSize) + 8, (tiles * tSize) + 8);
+
+                    for (let r = 0; r < tiles; r++) {
+                        for (let c = 0; c < tiles; c++) {
+                            const isDark = (r + c) % 2 === 0;
+                            ctx.fillStyle = isDark ? '#18181b' : '#27272a'; // Black/Charcoal Marble
+                            ctx.fillRect(r * tSize - offset, c * tSize - offset, tSize, tSize);
+
+                            // Subtle polish reflection
+                            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+                            ctx.beginPath(); ctx.moveTo(r * tSize - offset, c * tSize - offset);
+                            ctx.lineTo(r * tSize - offset + tSize, c * tSize - offset);
+                            ctx.lineTo(r * tSize - offset, c * tSize - offset + tSize); ctx.fill();
+                        }
+                    }
+                    ctx.restore();
                 }
-                else if (item.type === 'pitcher') {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.beginPath(); ctx.ellipse(item.x, item.y, 10, 15, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = 'rgba(56, 189, 248, 0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + 2, 8, 12, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(item.x + 10, item.y, 6, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(item.x - 18, item.y + 5, 6, 10); ctx.fillRect(item.x - 26, item.y + 8, 6, 10);
-                }
-                else if (item.type === 'candles') {
-                    ctx.fillStyle = '#fef08a'; ctx.fillRect(item.x - 8, item.y, 6, 12); ctx.fillRect(item.x + 2, item.y + 4, 6, 8);
-                    ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(item.x - 5, item.y - 2, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(item.x + 5, item.y + 2, 3, 0, Math.PI * 2); ctx.fill();
+                else if (item.type === 'dartboard') {
+                    // FIXED: Moved to the right wall so the HUD doesn't block it
+                    ctx.fillStyle = '#78350f'; // Wood cabinet
+                    ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
+                    ctx.fillStyle = '#000000'; // Board base
+                    ctx.beginPath(); ctx.arc(item.x, item.y, item.width / 2 - 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#f8fafc'; // White ring
+                    ctx.beginPath(); ctx.arc(item.x, item.y, item.width / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = '#ef4444'; // Red bullseye
+                    ctx.beginPath(); ctx.arc(item.x, item.y, 3, 0, Math.PI * 2); ctx.fill();
                 }
                 else if (item.type === 'coat_rack') {
                     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
@@ -244,14 +353,6 @@ class GameRenderer {
                     ctx.save(); ctx.translate(item.x, item.y - 10); ctx.rotate(Math.sin(time * 3) * 0.5);
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
                     ctx.restore();
-                }
-                else if (item.type === 'pumpkin') {
-                    ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#1c1917'; ctx.beginPath(); ctx.moveTo(item.x - 5, item.y - 2); ctx.lineTo(item.x, item.y + 3); ctx.lineTo(item.x + 5, item.y - 2); ctx.fill();
-                }
-                else if (item.type === 'steins') {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.fillRect(item.x - 15, item.y, 12, 18); ctx.fillRect(item.x + 5, item.y - 5, 12, 18);
-                    ctx.fillStyle = '#facc15'; ctx.fillRect(item.x - 13, item.y + 2, 8, 14); ctx.fillRect(item.x + 7, item.y - 3, 8, 14);
                 }
                 else if (item.type === 'pine_tree') {
                     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, item.width / 2.5, 15, 0, 0, Math.PI * 2); ctx.fill();
@@ -280,16 +381,14 @@ class GameRenderer {
                 const drawW = 64 * scale; const drawH = 64 * scale;
                 const patronConfig = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[item.rosterKey] : null;
 
-                // Grab the fade-in alpha mapped from patron.js
                 const patronAlpha = item.alpha !== undefined ? item.alpha : 1.0;
 
                 if (patronConfig && patronConfig.isBoss) {
                     ctx.save(); ctx.globalCompositeOperation = 'screen';
-                    ctx.globalAlpha = patronAlpha; // Apply fade to spotlight
+                    ctx.globalAlpha = patronAlpha;
                     const aura = ctx.createRadialGradient(px, py, 0, px, py, drawW * 1.2);
                     aura.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); aura.addColorStop(1, 'rgba(239, 68, 68, 0)');
                     ctx.fillStyle = aura; ctx.beginPath(); ctx.ellipse(px, py, drawW * 1.2, drawH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
-                    // Note: horizonY must be defined earlier in the drawTaproom method (const horizonY = 140;)
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.moveTo((w / 2) - 40, 140); ctx.lineTo((w / 2) + 40, 140); ctx.lineTo(px + drawW * 0.8, py); ctx.lineTo(px - drawW * 0.8, py); ctx.fill();
                     ctx.restore();
                 }
@@ -300,12 +399,23 @@ class GameRenderer {
                 const drawX = px - (drawW / 2); const drawY = py - drawH;
 
                 if (typeof spriteManager !== 'undefined' && spriteManager.isLoaded && item.rosterKey) {
-                    const dir = item.facing || 'DOWN';
-                    const spriteState = item.state === 'idle' ? 'walk' : item.state;
-                    const frame = item.state === 'idle' ? 0 : item.animFrame || 0;
+                    let spriteState = item.spriteRow || 'walk';
+                    let dir = item.facing || 'DOWN';
+                    let rawFrame = Math.floor(item.animFrame || 0);
 
-                    ctx.save(); ctx.translate(drawX, drawY); ctx.scale(scale, scale);
-                    ctx.globalAlpha = patronAlpha;
+                    let maxFrames = 9;
+                    if (spriteState === 'spellcast') maxFrames = 7;
+                    if (spriteState === 'thrust') maxFrames = 8;
+                    if (spriteState === 'slash') maxFrames = 6;
+                    if (spriteState === 'shoot') maxFrames = 13;
+
+                    let frame = rawFrame % maxFrames;
+
+                    ctx.save();
+                    ctx.translate(drawX, drawY);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = item.alpha !== undefined ? item.alpha : 1;
+
                     spriteManager.drawSprite(ctx, item.rosterKey, spriteState, dir, frame, 0, 0);
                     ctx.restore();
                 }
@@ -332,7 +442,6 @@ class GameRenderer {
                 ctx.strokeStyle = bubbleColor; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 8); ctx.closePath(); ctx.stroke();
                 ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
 
-                // Reset global alpha so subsequent items (like props) don't inherit transparency
                 ctx.globalAlpha = 1.0;
             }
         });
@@ -403,6 +512,27 @@ class GameRenderer {
                     ctx.fill();
                     ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
                 }
+                ctx.restore();
+            });
+        }
+
+        // --- 10. FLYING DARTS ---
+        if (state.darts) {
+            state.darts.forEach(d => {
+                const currentX = d.x + (d.targetX - d.x) * d.progress;
+                const currentY = d.y + (d.targetY - d.y) * d.progress;
+
+                ctx.save();
+                ctx.translate(currentX, currentY);
+                ctx.rotate(-Math.PI / 8);
+
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(-8, 0, 8, 2);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, -1, 10, 4);
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(16, -4); ctx.lineTo(16, 6); ctx.closePath(); ctx.fill();
+
                 ctx.restore();
             });
         }
