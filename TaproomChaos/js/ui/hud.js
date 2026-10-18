@@ -136,6 +136,11 @@ class GameHUD {
                 ? recipeData.ingredients.join(', ')
                 : 'Standard Baseline Ingredients';
 
+            // --- GET THE STYLE ICON! ---
+            const styleIcon = typeof gameRecipes !== 'undefined'
+                ? gameRecipes.getStyleIcon(recipeName, recipeType)
+                : '🍺';
+
             const card = document.createElement('div');
             card.style.cssText = `
                 background: #18181b;
@@ -146,7 +151,7 @@ class GameHUD {
             `;
 
             card.innerHTML = `
-                <div style="color: #facc15; font-weight: bold; font-size: 14px;">🍺 ${recipeName}</div>
+                <div style="color: #facc15; font-weight: bold; font-size: 14px;">${styleIcon} ${recipeName}</div>
                 <div style="color: #38bdf8; font-size: 11.5px; margin-top: 5px;">🧪 <b>Recipe:</b> ${ingredientsString}</div>
                 <div style="color: #a1a1aa; font-size: 11px; margin-top: 6px; line-height: 1.4;">📈 <b>Forecast Synergy:</b> ${tacticalHint}</div>
             `;

@@ -10,166 +10,402 @@ class GameRenderer {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    // --- TAPROOM RENDERING ---
+    // --- TAPROOM RENDERING (SEASONAL & ARCHITECTURAL OVERHAUL) ---
     drawTaproom(state) {
         const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const barY = 550;
+        const time = Date.now() / 1000;
 
-        // 1. Hardwood Taproom Floor with subtle plank lines
-        const floorGrad = ctx.createLinearGradient(0, 0, 0, 550);
-        floorGrad.addColorStop(0, '#09090b');
-        floorGrad.addColorStop(1, '#1c1917');
-        ctx.fillStyle = floorGrad;
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        const isBossRound = typeof progressionState !== 'undefined' && progressionState.isBossRound();
+        const season = (typeof progressionState !== 'undefined' && progressionState.forecast && progressionState.forecast.season)
+            ? progressionState.forecast.season.toLowerCase()
+            : 'summer';
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-        ctx.lineWidth = 2;
-        for (let y = 100; y < 540; y += 45) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(this.canvas.width, y);
-            ctx.stroke();
+        // --- 1. 3D ROOM ARCHITECTURE ---
+        const horizonY = 140;
+        const leftWallEdge = 180;
+        const rightWallEdge = w - 180;
+
+        ctx.fillStyle = '#18181b';
+        ctx.fillRect(leftWallEdge, 0, rightWallEdge - leftWallEdge, horizonY);
+
+        ctx.fillStyle = '#131316';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(leftWallEdge, 0); ctx.lineTo(leftWallEdge, horizonY); ctx.lineTo(0, barY); ctx.fill();
+        ctx.fillStyle = '#0f0f11';
+        ctx.beginPath(); ctx.moveTo(w, 0); ctx.lineTo(rightWallEdge, 0); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.fill();
+
+        const doorW = 120; const doorH = 100;
+        const doorX = (w / 2) - (doorW / 2); const doorY = 40;
+
+        ctx.fillStyle = '#291509'; ctx.fillRect(doorX, doorY, doorW, doorH);
+        ctx.strokeStyle = '#0c0a09'; ctx.lineWidth = 4; ctx.strokeRect(doorX, doorY, doorW, doorH);
+        ctx.beginPath(); ctx.moveTo(w / 2, doorY); ctx.lineTo(w / 2, doorY + doorH); ctx.stroke();
+        ctx.fillStyle = '#a1a1aa'; ctx.fillRect(doorX + 15, doorY + 50, 30, 6); ctx.fillRect((w / 2) + 15, doorY + 50, 30, 6);
+
+        ctx.fillStyle = '#291509';
+        ctx.beginPath(); ctx.moveTo(w - 120, 160); ctx.lineTo(w - 40, 240); ctx.lineTo(w - 40, 420); ctx.lineTo(w - 120, 310); ctx.fill();
+        ctx.strokeStyle = '#0c0a09'; ctx.lineWidth = 5; ctx.stroke();
+        ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.arc(w - 100, 260, 4, 0, Math.PI * 2); ctx.fill();
+
+        const winW = 160; const winH = 80; const winY = 30;
+        const leftWinX = doorX - winW - 30; const rightWinX = doorX + doorW + 30;
+
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(leftWinX, winY, winW, winH); ctx.fillRect(rightWinX, winY, winW, winH);
+        ctx.strokeStyle = '#27272a'; ctx.lineWidth = 6;
+        [leftWinX, rightWinX].forEach(wx => {
+            ctx.strokeRect(wx, winY, winW, winH);
+            ctx.beginPath(); ctx.moveTo(wx + (winW / 2), winY); ctx.lineTo(wx + (winW / 2), winY + winH); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wx, winY + (winH / 2)); ctx.lineTo(wx + winW, winY + (winH / 2)); ctx.stroke();
+        });
+
+        // --- 2. WEATHER & GLOBAL WALL DECORATIONS ---
+        ctx.save();
+        ctx.beginPath(); ctx.rect(leftWinX, winY, winW, winH); ctx.rect(rightWinX, winY, winW, winH); ctx.clip();
+        if (season === 'summer') {
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, w, horizonY);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath(); ctx.arc(leftWinX + (winW / 2) + Math.sin(time) * 20, winY + (winH / 2), 30, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(rightWinX + (winW / 2) + Math.sin(time) * 20, winY + (winH / 2), 30, 0, Math.PI * 2); ctx.fill();
+        } else if (season === 'storm' || season === 'rain') {
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, w, horizonY);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; ctx.lineWidth = 1.5;
+            for (let i = 0; i < 30; i++) {
+                const rx = ((i * 40 + time * 300) % w);
+                const ry = ((i * 15 + time * 400) % 100);
+                ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 10, ry + 20); ctx.stroke();
+            }
+        } else if (season === 'fall' || season === 'oktoberfest') {
+            const fallGrad = ctx.createLinearGradient(0, winY, 0, winY + winH);
+            fallGrad.addColorStop(0, '#ea580c'); fallGrad.addColorStop(1, '#7c2d12');
+            ctx.fillStyle = fallGrad; ctx.fillRect(0, 0, w, horizonY);
+        } else if (season === 'winter' || season === 'holiday') {
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, horizonY);
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 40; i++) {
+                const sx = ((i * 30 + Math.sin(time + i) * 15) % w);
+                const sy = ((i * 30 + time * 60) % 100) + 10;
+                ctx.beginPath(); ctx.arc(sx, sy, Math.random() * 2 + 1, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        ctx.restore();
+
+        if (season === 'summer') {
+            ctx.strokeStyle = '#27272a'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 20); ctx.quadraticCurveTo(w / 2, 100, w, 40); ctx.stroke();
+            ctx.fillStyle = '#fef08a';
+            for (let i = 1; i < 10; i++) {
+                const lx = (w / 10) * i; const ly = 20 + Math.sin(i / 3.1) * 35;
+                ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
+            }
+        } else if (season === 'fall' || season === 'oktoberfest') {
+            ctx.fillStyle = '#b91c1c';
+            for (let i = leftWallEdge; i < rightWallEdge; i += 60) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 30, 40); ctx.lineTo(i + 60, 0); ctx.fill();
+                ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.stroke();
+            }
         }
 
-        // 2. Patrons (ANIMATED SPRITES via SpriteManager)
-        state.patrons.forEach(patron => {
-            // Fallbacks to prevent NaN gradient crashes
-            const px = patron.x || 0;
-            const py = patron.y || 0;
-            const cHeight = this.canvas.height || 600;
+        ctx.save();
+        ctx.font = 'bold 22px "Rye", serif'; ctx.textAlign = 'center';
+        const neonColor = isBossRound ? '#ef4444' : '#4ade80';
+        ctx.shadowColor = neonColor; ctx.shadowBlur = 15 + Math.sin(time * 8) * 5;
+        ctx.fillStyle = neonColor; ctx.fillText("LAW BREWING", w / 2, 25);
+        ctx.restore();
 
-            // Depth Scale: Patrons get bigger as they approach the foreground
-            const scale = 0.6 + (py / cHeight) * 0.7;
-            const drawW = 64 * scale;
-            const drawH = 64 * scale;
+        // --- 3. 3D TRUE-PERSPECTIVE FLOOR (WITH CLIPPING FIX) ---
+        ctx.save(); // Save before clipping
 
-            // Floor Shadow
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-            ctx.beginPath();
-            ctx.ellipse(px, py, drawW * 0.35, 8 * scale, 0, 0, Math.PI * 2);
-            ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(leftWallEdge, horizonY);
+        ctx.lineTo(rightWallEdge, horizonY);
+        ctx.lineTo(w, barY);
+        ctx.lineTo(0, barY);
+        ctx.closePath();
+        ctx.clip(); // MAGIC: Everything drawn after this stays strictly on the floor!
 
-            const drawX = px - (drawW / 2);
-            const drawY = py - drawH;
+        const floorGrad = ctx.createLinearGradient(0, horizonY, 0, barY);
+        floorGrad.addColorStop(0, '#09090b');
+        floorGrad.addColorStop(1, '#291509');
+        ctx.fillStyle = floorGrad;
+        ctx.fill();
 
-            // Ask the SpriteManager to render the specific frame!
-            if (typeof spriteManager !== 'undefined' && spriteManager.isLoaded && patron.rosterKey) {
-                // They walk UP to the bar, and face DOWN when waiting for their drink
-                const dir = patron.state === 'walk' ? 'UP' : 'DOWN';
-                const frame = patron.animFrame || 0;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'; ctx.lineWidth = 4;
+        const vpX = w / 2;
+        // Expanded loop range drastically so corners are perfectly covered
+        for (let i = -3000; i < w + 3000; i += 160) {
+            ctx.beginPath(); ctx.moveTo(vpX, horizonY); ctx.lineTo(i, barY); ctx.stroke();
+        }
 
-                ctx.save();
-                ctx.translate(drawX, drawY);
-                ctx.scale(scale, scale); // Scale the 64x64 sprite to create depth
-                spriteManager.drawSprite(ctx, patron.rosterKey, patron.state, dir, frame, 0, 0);
-                ctx.restore();
+        if (season === 'winter' || season === 'holiday') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            [[doorX + 20, 160], [doorX + 50, 190], [doorX + 30, 230], [w - 100, 340], [w - 140, 370]].forEach(([fx, fy]) => {
+                ctx.beginPath(); ctx.ellipse(fx, fy, 6, 12, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+            });
+        }
+
+        ctx.restore(); // Remove clip
+
+        // --- 4. AMBIENT LIGHTING OVERLAY ---
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        if (isBossRound) {
+            ctx.fillStyle = '#4c0519'; ctx.beginPath(); ctx.moveTo(leftWallEdge, horizonY); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.lineTo(0, barY); ctx.fill();
+        } else {
+            let ambient = '#ffffff';
+            if (season === 'summer') ambient = '#fef08a';
+            if (season === 'storm') ambient = '#cbd5e1';
+            if (season === 'fall') ambient = '#fed7aa';
+            if (season === 'winter') ambient = '#bae6fd';
+            ctx.fillStyle = ambient;
+            ctx.beginPath(); ctx.moveTo(leftWallEdge, horizonY); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.lineTo(0, barY); ctx.fill();
+        }
+        ctx.restore();
+
+        // --- 5. DYNAMIC SEASONAL PROPS & DEPTH-SORTED RENDERING ---
+        let roomProps = [
+            { type: 'table', x: w * 0.30, y: 280, width: 150, height: 60 },
+            { type: 'table', x: w * 0.70, y: 360, width: 170, height: 70 }
+        ];
+
+        if (season === 'storm' || season === 'rain') {
+            roomProps.push({ type: 'coat_rack', x: leftWallEdge - 40, y: 220, width: 40, height: 120 });
+            roomProps.push({ type: 'egret_statue', x: w * 0.6, y: 170, width: 40, height: 90 });
+            roomProps.push({ type: 'flowers', x: w * 0.30, y: 270, width: 20, height: 30 }); // Left table
+        } else if (season === 'summer') {
+            roomProps.push({ type: 'chalk_board', x: leftWallEdge + 20, y: 190, width: 60, height: 80 });
+            roomProps.push({ type: 'fan', x: 80, y: 350, width: 50, height: 100 });
+            roomProps.push({ type: 'pitcher', x: w * 0.70, y: 350, width: 20, height: 30 }); // Right table
+        } else if (season === 'fall' || season === 'oktoberfest') {
+            roomProps.push({ type: 'pumpkin', x: w * 0.30, y: 270, width: 30, height: 30 }); // Left table
+            roomProps.push({ type: 'steins', x: w * 0.72, y: 350, width: 40, height: 20 }); // Right table
+        } else if (season === 'winter' || season === 'holiday') {
+            roomProps.push({ type: 'pine_tree', x: leftWallEdge - 20, y: 200, width: 120, height: 180 });
+            roomProps.push({ type: 'wood_stove', x: w - 100, y: 250, width: 80, height: 120 });
+            roomProps.push({ type: 'candles', x: w * 0.30, y: 270, width: 20, height: 20 }); // Both tables
+            roomProps.push({ type: 'candles', x: w * 0.70, y: 350, width: 20, height: 20 });
+        }
+
+        const renderables = [
+            ...state.patrons.map(p => ({ ...p, isPatron: true, renderY: p.y || 0 })),
+            ...roomProps.map(prop => ({ ...prop, isProp: true, renderY: prop.y + (prop.height / 2) }))
+        ].sort((a, b) => a.renderY - b.renderY);
+
+        renderables.forEach(item => {
+            if (item.isProp) {
+                // Ensure props always draw at full opacity
+                ctx.globalAlpha = 1.0;
+
+                if (item.type === 'table') {
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, item.width / 2, item.height / 3, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - item.width / 3, item.y, 8, item.height / 2); ctx.fillRect(item.x + item.width / 3 - 8, item.y, 8, item.height / 2);
+                    ctx.fillStyle = '#451a03'; ctx.strokeStyle = '#78350f'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                }
+                else if (item.type === 'flowers') {
+                    ctx.fillStyle = '#1e3a8a'; ctx.fillRect(item.x - 5, item.y, 10, 15);
+                    ctx.fillStyle = '#bef264'; ctx.beginPath(); ctx.arc(item.x, item.y - 5, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(item.x - 5, item.y - 10, 6, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#60a5fa'; ctx.beginPath(); ctx.arc(item.x + 5, item.y - 8, 6, 0, Math.PI * 2); ctx.fill();
+                }
+                else if (item.type === 'pitcher') {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.beginPath(); ctx.ellipse(item.x, item.y, 10, 15, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + 2, 8, 12, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(item.x + 10, item.y, 6, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(item.x - 18, item.y + 5, 6, 10); ctx.fillRect(item.x - 26, item.y + 8, 6, 10);
+                }
+                else if (item.type === 'candles') {
+                    ctx.fillStyle = '#fef08a'; ctx.fillRect(item.x - 8, item.y, 6, 12); ctx.fillRect(item.x + 2, item.y + 4, 6, 8);
+                    ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(item.x - 5, item.y - 2, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(item.x + 5, item.y + 2, 3, 0, Math.PI * 2); ctx.fill();
+                }
+                else if (item.type === 'coat_rack') {
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - 4, item.y - item.height / 2, 8, item.height);
+                    ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2 + 10); ctx.lineTo(item.x - 20, item.y); ctx.lineTo(item.x + 20, item.y + 10); ctx.fill();
+                }
+                else if (item.type === 'egret_statue') {
+                    ctx.fillStyle = '#f4f4f5'; ctx.beginPath(); ctx.ellipse(item.x, item.y, 15, 20, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(item.x + 5, item.y - 10); ctx.lineTo(item.x + 10, item.y - 40); ctx.lineWidth = 6; ctx.strokeStyle = '#f4f4f5'; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(item.x + 10, item.y - 40, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.moveTo(item.x + 18, item.y - 40); ctx.lineTo(item.x + 30, item.y - 38); ctx.lineTo(item.x + 18, item.y - 36); ctx.fill();
+                    ctx.fillStyle = '#713f12'; ctx.fillRect(item.x - 20, item.y + 15, 40, 10);
+                }
+                else if (item.type === 'chalk_board') {
+                    ctx.fillStyle = '#78350f'; ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
+                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - item.width / 2 + 4, item.y - item.height / 2 + 4, item.width - 8, item.height - 16);
+                    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(item.x - 10, item.y - 10); ctx.lineTo(item.x + 10, item.y - 15); ctx.stroke();
+                    ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(item.x - 15, item.y); ctx.lineTo(item.x + 5, item.y + 5); ctx.stroke();
+                }
+                else if (item.type === 'fan') {
+                    ctx.fillStyle = '#3f3f46'; ctx.fillRect(item.x - 4, item.y, 8, item.height / 2);
+                    ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.arc(item.x, item.y - 10, 20, 0, Math.PI * 2); ctx.fill();
+                    ctx.save(); ctx.translate(item.x, item.y - 10); ctx.rotate(Math.sin(time * 3) * 0.5);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+                else if (item.type === 'pumpkin') {
+                    ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#1c1917'; ctx.beginPath(); ctx.moveTo(item.x - 5, item.y - 2); ctx.lineTo(item.x, item.y + 3); ctx.lineTo(item.x + 5, item.y - 2); ctx.fill();
+                }
+                else if (item.type === 'steins') {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.fillRect(item.x - 15, item.y, 12, 18); ctx.fillRect(item.x + 5, item.y - 5, 12, 18);
+                    ctx.fillStyle = '#facc15'; ctx.fillRect(item.x - 13, item.y + 2, 8, 14); ctx.fillRect(item.x + 7, item.y - 3, 8, 14);
+                }
+                else if (item.type === 'pine_tree') {
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, item.width / 2.5, 15, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#14532d';
+                    ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2); ctx.lineTo(item.x - item.width / 2, item.y + item.height / 2); ctx.lineTo(item.x + item.width / 2, item.y + item.height / 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2 - 40); ctx.lineTo(item.x - item.width / 2.5, item.y + item.height / 4); ctx.lineTo(item.x + item.width / 2.5, item.y + item.height / 4); ctx.fill();
+                    ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.arc(item.x - 20, item.y + 40, 10, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(item.x - 24, item.y + 38, 4, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ef4444';
+                    for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(item.x - 30 + Math.random() * 60, item.y - 60 + Math.random() * 120, 3, 0, Math.PI * 2); ctx.fill(); }
+                }
+                else if (item.type === 'wood_stove') {
+                    ctx.fillStyle = '#18181b'; ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
+                    ctx.fillStyle = '#3f3f46'; ctx.fillRect(item.x - item.width / 2 + 10, item.y - item.height / 2 + 20, item.width - 20, item.height - 40);
+                    ctx.fillStyle = '#ea580c'; ctx.globalAlpha = 0.8 + Math.sin(time * 10) * 0.2;
+                    ctx.fillRect(item.x - item.width / 2 + 15, item.y - item.height / 2 + 60, item.width - 30, item.height - 85);
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillRect(item.x - 6, item.y - item.height / 2 - 40, 12, 40);
+                }
             } else {
-                // Fallback box if sprites are still loading or blocked by CORS
-                ctx.fillStyle = '#ff00ff';
-                ctx.fillRect(drawX, drawY, drawW, drawH);
+                // --- DRAW PATRONS ---
+                const px = item.x || 0; const py = item.y || 0;
+                let scale = 1.6 + (py / h) * 1.0;
+                if (item.rosterKey === 'kid') scale *= 0.65;
+
+                const drawW = 64 * scale; const drawH = 64 * scale;
+                const patronConfig = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[item.rosterKey] : null;
+
+                // Grab the fade-in alpha mapped from patron.js
+                const patronAlpha = item.alpha !== undefined ? item.alpha : 1.0;
+
+                if (patronConfig && patronConfig.isBoss) {
+                    ctx.save(); ctx.globalCompositeOperation = 'screen';
+                    ctx.globalAlpha = patronAlpha; // Apply fade to spotlight
+                    const aura = ctx.createRadialGradient(px, py, 0, px, py, drawW * 1.2);
+                    aura.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); aura.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                    ctx.fillStyle = aura; ctx.beginPath(); ctx.ellipse(px, py, drawW * 1.2, drawH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+                    // Note: horizonY must be defined earlier in the drawTaproom method (const horizonY = 140;)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.moveTo((w / 2) - 40, 140); ctx.lineTo((w / 2) + 40, 140); ctx.lineTo(px + drawW * 0.8, py); ctx.lineTo(px - drawW * 0.8, py); ctx.fill();
+                    ctx.restore();
+                }
+
+                ctx.globalAlpha = patronAlpha;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)'; ctx.beginPath(); ctx.ellipse(px, py, drawW * 0.35, 10 * scale, 0, 0, Math.PI * 2); ctx.fill();
+
+                const drawX = px - (drawW / 2); const drawY = py - drawH;
+
+                if (typeof spriteManager !== 'undefined' && spriteManager.isLoaded && item.rosterKey) {
+                    const dir = item.facing || 'DOWN';
+                    const spriteState = item.state === 'idle' ? 'walk' : item.state;
+                    const frame = item.state === 'idle' ? 0 : item.animFrame || 0;
+
+                    ctx.save(); ctx.translate(drawX, drawY); ctx.scale(scale, scale);
+                    ctx.globalAlpha = patronAlpha;
+                    spriteManager.drawSprite(ctx, item.rosterKey, spriteState, dir, frame, 0, 0);
+                    ctx.restore();
+                }
+
+                const bubbleY = drawY - (18 * scale);
+                let styleLookup = "premium";
+                if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
+                else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
+
+                let bubbleColor = '#d97706'; let hintIcon = '⭐';
+                if (styleLookup.includes('ipa')) { bubbleColor = '#22c55e'; hintIcon = '🌿'; }
+                else if (styleLookup.includes('stout') || styleLookup.includes('imperial')) { bubbleColor = '#451a03'; hintIcon = '☕'; }
+                else if (styleLookup.includes('porter') || styleLookup.includes('ale') || styleLookup.includes('mild')) { bubbleColor = '#b45309'; hintIcon = '🍺'; }
+                else if (styleLookup.includes('sour')) { bubbleColor = '#f43f5e'; hintIcon = '🍒'; }
+                else if (styleLookup.includes('lager') || styleLookup.includes('pilsner') || styleLookup.includes('oktoberfest')) { bubbleColor = '#facc15'; hintIcon = '🍻'; }
+                else if (styleLookup.includes('saison')) { bubbleColor = '#fb923c'; hintIcon = '🌾'; }
+                else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { bubbleColor = '#38bdf8'; hintIcon = '🥤'; }
+                else if (styleLookup.includes('cocktail')) { bubbleColor = '#c084fc'; hintIcon = '🍸'; }
+
+                const bubbleSize = Math.max(30, 20 * scale);
+                ctx.globalAlpha = patronAlpha;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'; ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(px - 6, bubbleY - 2); ctx.lineTo(px + 6, bubbleY - 2); ctx.lineTo(px, bubbleY + 8); ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = bubbleColor; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 8); ctx.closePath(); ctx.stroke();
+                ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
+
+                // Reset global alpha so subsequent items (like props) don't inherit transparency
+                ctx.globalAlpha = 1.0;
             }
-
-            // Patron Type Pill Badge above head
-            const labelY = drawY - (5 * scale);
-            ctx.font = `bold ${Math.floor(12 * scale)}px Inter`;
-            const textStr = patron.type ? patron.type.toUpperCase() : 'PATRON';
-            const textW = ctx.measureText(textStr).width + (14 * scale);
-
-            ctx.fillStyle = 'rgba(9, 9, 11, 0.85)';
-            // Turn the border Red if their patience is running low!
-            ctx.strokeStyle = patron.currentPatience < 15 ? '#ef4444' : '#10b981';
-            ctx.lineWidth = 1.5 * scale;
-            ctx.beginPath();
-            ctx.roundRect(px - textW / 2, labelY - 12 * scale, textW, 18 * scale, 6 * scale);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.fillText(textStr, px, labelY + (2 * scale));
         });
 
-        // 3. The Mahogany Bar (Foreground)
-        const barGrad = ctx.createLinearGradient(0, 540, 0, 720);
-        barGrad.addColorStop(0, '#451a03');
-        barGrad.addColorStop(0.15, '#291509');
-        barGrad.addColorStop(1, '#0c0a09');
-        ctx.fillStyle = barGrad;
-        ctx.fillRect(0, 550, this.canvas.width, 170);
+        // --- 6. THE BAR & FOREGROUND ---
+        const barGrad = ctx.createLinearGradient(0, barY, 0, h);
+        barGrad.addColorStop(0, '#291509'); barGrad.addColorStop(1, '#0c0a09');
+        ctx.fillStyle = barGrad; ctx.fillRect(0, barY, w, h - barY);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(0, barY, w, 20);
 
-        // Polished Bar Top Ledge & Brass Rail
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(0, 538, this.canvas.width, 12);
-        ctx.fillStyle = '#d97706';
-        ctx.fillRect(0, 536, this.canvas.width, 3);
+        let ledColor = '#facc15';
+        if (isBossRound) ledColor = `rgba(239, 68, 68, ${0.5 + Math.sin(time * 5) * 0.5})`;
+        else if (season === 'summer') ledColor = '#38bdf8';
+        else if (season === 'storm') ledColor = '#c084fc';
+        else if (season === 'fall') ledColor = '#ea580c';
+        else if (season === 'winter') ledColor = '#4ade80';
 
-        // 4. Draw Projectiles (Sliding Frothy Pint Mugs!)
+        ctx.shadowColor = ledColor; ctx.shadowBlur = 15; ctx.fillStyle = ledColor; ctx.fillRect(0, barY + 22, w, 4); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#b45309'; ctx.fillRect(0, barY + 70, w, 8);
+        ctx.fillStyle = '#fde68a'; ctx.fillRect(0, barY + 71, w, 2);
+
+        // --- 7. PROJECTILES ---
         state.projectiles.forEach(p => {
-            // NaN Fallbacks for projectiles just to be completely safe
-            const px = p.x || 0;
-            const py = p.y || 0;
-            const pz = p.z || 0;
-            const r = p.radius || 15;
-            const renderY = py - pz;
+            const px = p.x || 0; const py = p.y || 0; const pz = p.z || 0;
+            const r = p.radius || 15; const renderY = py - pz;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px + r * 0.75, renderY, r * 0.45, -Math.PI / 2, Math.PI / 2); ctx.stroke();
 
-            // Drop shadow on floor
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.beginPath();
-            ctx.ellipse(px, py, r, r * 0.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Glass handle
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(px + r * 0.75, renderY, r * 0.45, -Math.PI / 2, Math.PI / 2);
-            ctx.stroke();
-
-            // Golden Pint Body
             const beerGrad = ctx.createLinearGradient(px - r, renderY - r, px + r, renderY + r);
-            beerGrad.addColorStop(0, '#facc15');
-            beerGrad.addColorStop(1, '#ca8a04');
-            ctx.fillStyle = beerGrad;
-            ctx.strokeStyle = '#fef08a';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(px - r * 0.8, renderY - r, r * 1.6, r * 1.9, 4);
-            ctx.fill();
-            ctx.stroke();
+            beerGrad.addColorStop(0, '#facc15'); beerGrad.addColorStop(1, '#ca8a04');
+            if (p.type === 'porter' || p.type === 'stout') { beerGrad.addColorStop(0, '#451a03'); beerGrad.addColorStop(1, '#1c1917'); }
+            else if (p.type === 'sour') { beerGrad.addColorStop(0, '#f43f5e'); beerGrad.addColorStop(1, '#9f1239'); }
+            else if (p.type === 'soda' || p.type === 'mocktail') { beerGrad.addColorStop(0, '#38bdf8'); beerGrad.addColorStop(1, '#0284c7'); }
 
-            // Frothy Foam Head
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
+            ctx.fillStyle = beerGrad; ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.roundRect(px - r * 0.8, renderY - r, r * 1.6, r * 1.9, 4); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#ffffff'; ctx.beginPath();
             ctx.arc(px - r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
             ctx.arc(px, renderY - r - 2, r * 0.55, 0, Math.PI * 2);
-            ctx.arc(px + r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(px + r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2); ctx.fill();
         });
 
-        // 5. Draw Aiming Line
+        // --- 8. FOREGROUND AIMING & UI ---
         if (state.isAiming) {
-            ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)';
-            ctx.lineWidth = 4;
-            ctx.setLineDash([10, 10]);
-            ctx.beginPath();
-            ctx.moveTo(state.aimStart.x, state.aimStart.y);
-            ctx.lineTo(state.aimCurrent.x, state.aimCurrent.y);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)'; ctx.lineWidth = 4; ctx.setLineDash([10, 10]);
+            ctx.beginPath(); ctx.moveTo(state.aimStart.x, state.aimStart.y); ctx.lineTo(state.aimCurrent.x, state.aimCurrent.y); ctx.stroke();
             ctx.setLineDash([]);
         }
 
-        // 6. Draw Floating Text
         state.floatingTexts.forEach(ft => {
-            ctx.save();
-            ctx.fillStyle = ft.color;
-            ctx.globalAlpha = ft.alpha;
-            ctx.font = 'bold 28px Oswald';
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 4;
-            ctx.strokeText(ft.text, ft.x, ft.y);
-            ctx.fillText(ft.text, ft.x, ft.y);
+            ctx.save(); ctx.fillStyle = ft.color; ctx.globalAlpha = ft.alpha;
+            ctx.font = 'bold 28px Oswald'; ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000000'; ctx.lineWidth = 4;
+            ctx.strokeText(ft.text, ft.x, ft.y); ctx.fillText(ft.text, ft.x, ft.y);
             ctx.restore();
         });
+
+        // --- 9. PARTICLE EFFECTS (Coins!) ---
+        if (state.particles) {
+            state.particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, p.life * 1.5);
+                if (p.type === 'coin') {
+                    ctx.fillStyle = '#facc15';
+                    ctx.beginPath();
+                    const spinWidth = 8 * Math.abs(Math.sin(p.life * 15));
+                    ctx.ellipse(p.x, p.y, Math.max(1, spinWidth), 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
+                }
+                ctx.restore();
+            });
+        }
     }
 
     // --- BREWING RENDERING ---
@@ -463,8 +699,12 @@ class GameRenderer {
                         const preview = gameRecipes.evaluateBrew(ingNames);
                         if (preview) {
                             const isKnown = (typeof playerState !== 'undefined') && playerState.unlockedRecipes.includes(preview.name);
+
+                            // Get the matching style icon!
+                            const styleIcon = gameRecipes.getStyleIcon(preview.name, preview.type);
+
                             if (preview.type === 'soda' || preview.type === 'crowd_control' || isKnown) {
-                                pillText = `✓ Ready: ${preview.name}`;
+                                pillText = `${styleIcon} ${preview.name}`; // <-- Now shows the icon next to the name!
                                 pillBg = 'rgba(20, 83, 45, 0.92)';
                                 pillBorder = '#4ade80';
                             } else {
@@ -474,7 +714,7 @@ class GameRenderer {
                             }
                         } else {
                             // 2+ ingredients, but it doesn't match any valid recipe -> Ruined batch warning!
-                            pillText = '❌ Invalid Recipe (Trash Batch)';
+                            pillText = '❌ Trash Batch';
                             pillBg = 'rgba(127, 29, 29, 0.92)';
                             pillBorder = '#ef4444';
                         }
@@ -489,7 +729,7 @@ class GameRenderer {
                     this.ctx.stroke();
 
                     this.ctx.fillStyle = '#ffffff';
-                    this.ctx.font = 'bold 10px Inter';
+                    this.ctx.font = 'bold 11px Inter'; // Bumped font size slightly to make the emoji pop
                     this.ctx.textAlign = 'center';
                     this.ctx.fillText(pillText, kx + (kw / 2), ky + 2);
                 }
@@ -531,7 +771,7 @@ class GameRenderer {
             }
         });
 
-        // --- MISSING PIECE #2: 5B. Draw the Industrial Floor Drain (Trash Slot) ---
+        // 5B. Draw the Industrial Floor Drain (Trash Slot)
         if (state.drain) {
             const dx = state.drain.x;
             const dy = state.drain.y;
@@ -584,7 +824,7 @@ class GameRenderer {
             );
         }
 
-        // --- MISSING PIECE #3: 7. Draw Brewing Floating Feedback Popups ---
+        // 7. Draw Brewing Floating Feedback Popups
         if (state.floatingTexts) {
             state.floatingTexts.forEach(ft => {
                 this.ctx.save();

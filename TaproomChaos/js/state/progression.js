@@ -50,20 +50,59 @@ class ProgressionState {
             { message: "Sub-zero temperatures. Only the bravest regulars are out.", modifier: "none" }
         ];
 
-        // Build the active pool based on the shift
+        // Build the active pool and define the season based on the shift
         let activePool = [...generic];
+        let currentSeason = 'summer';
 
         if (this.shift <= 5) {
             activePool = activePool.concat(spring);
+            currentSeason = 'storm'; // Spring = Storm/Rain visual
         } else if (this.shift <= 10) {
             activePool = activePool.concat(summer);
+            currentSeason = 'summer'; // Bright and sunny
         } else if (this.shift <= 15) {
             activePool = activePool.concat(autumn);
+            currentSeason = 'fall'; // Amber sunset
         } else {
             activePool = activePool.concat(winter);
+            currentSeason = 'winter'; // Dark and snowing
         }
 
-        return activePool[Math.floor(Math.random() * activePool.length)];
+        const forecastData = activePool[Math.floor(Math.random() * activePool.length)];
+
+        // Return a combined object with the original forecast data PLUS the new season property
+        return {
+            ...forecastData,
+            season: currentSeason
+        };
+    }
+
+    isBossRound() {
+        // Boss rounds are exactly on shifts 5, 10, 15, and 20
+        return this.shift % 5 === 0;
+    }
+
+    getShiftName() {
+        if (this.shift === 5) return "BOSS: Spring Flood";
+        if (this.shift === 10) return "BOSS: Beer Garden Heatwave";
+        if (this.shift === 15) return "BOSS: Oktoberfest";
+        if (this.shift === 20) return "BOSS: New Year's Eve";
+        return `Year ${this.year} - Shift ${this.shift}`;
+    }
+
+    getDifficultyMultiplier() {
+        // 1. Base Multiplier: Starts at 1.0, increases by 20% every full Year survived
+        let mult = 1.0 + ((this.year - 1) * 0.2);
+
+        // 2. Intra-Year Creep: Increases enemy speed by 5% every normal shift
+        mult += (this.shift - 1) * 0.05;
+
+        // 3. Boss Spike: An immediate, massive 50% extra speed buff during Boss shifts
+        if (this.isBossRound()) {
+            mult += 0.5;
+        }
+
+        return mult;
     }
 
     isBossRound() {
