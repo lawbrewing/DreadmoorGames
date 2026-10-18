@@ -109,7 +109,6 @@ class TaproomPhase {
     init(ammoList = []) {
         this.isActive = true;
         this.patrons = [];
-        // Give a 1.5-second grace period before the very first patron enters so the screen isn't flooded instantly
         this.spawnTimer = 1.5;
         this.projectiles = [];
         this.isAiming = false;
@@ -120,24 +119,17 @@ class TaproomPhase {
         const mod = (typeof progressionState !== 'undefined' && progressionState.forecast)
             ? progressionState.forecast.modifier : 'none';
 
-        // Set a balanced spawn cadence (3.5s base, or 2.0s for crowd spikes)
         this.spawnInterval = (mod === 'crowd_spike') ? 2.0 : 3.5;
-        this.maxPatrons = 6; // Keep the room comfortably spaced out
+        this.maxPatrons = 6;
     }
 
-    // Update the spawner to use the perfect physical coordinates
     spawnPatron(forcedKey = null, groupId = null) {
         let rosterKey = forcedKey;
 
-        // If no specific character was asked for, pick a UNIQUE one!
         if (!rosterKey) {
             const activeKeys = this.patrons.map(p => p.rosterKey);
-            // Filter out bosses AND anyone currently standing in the room
             let availableRoster = Object.keys(PATRON_ROSTER).filter(k => !PATRON_ROSTER[k].isBoss && !activeKeys.includes(k));
-
-            // Fallback just in case the room is completely full of every character
             if (availableRoster.length === 0) availableRoster = Object.keys(PATRON_ROSTER).filter(k => !PATRON_ROSTER[k].isBoss);
-
             rosterKey = availableRoster[Math.floor(Math.random() * availableRoster.length)];
         }
 
@@ -145,7 +137,7 @@ class TaproomPhase {
         const config = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[rosterKey] : null;
         if (!config) return;
 
-        const w = (this.canvas && this.canvas.width) ? this.canvas.width : window.innerWidth;
+        const w = 1280; // Hardcoded to internal logical resolution
         const destX = (w * 0.15) + Math.random() * (w * 0.7);
         const destY = 480 + (Math.random() * 30);
 
@@ -153,22 +145,16 @@ class TaproomPhase {
         const useSideDoor = Math.random() < 0.2;
 
         if (useSideDoor) {
-            // SIDE DOOR: Spawns exactly in the blackness of the side door on the right wall
             startX = w - 90;
             startY = 240;
-
             if (destX < w * 0.5) {
                 path = [{ x: w - 160, y: 340 }, { x: w * 0.45, y: 420 }, { x: destX, y: destY }];
             } else {
                 path = [{ x: w - 160, y: 380 }, { x: destX, y: destY }];
             }
         } else {
-            // MAIN DOOR: Spawns at y=130 (inside the doorframe shadow)
             startX = w / 2;
             startY = 130;
-
-            // The left wall is at 180px. The right wall is at (w - 180px).
-            // These paths strictly force them to stay inside those bounds!
             if (destX < w * 0.4) {
                 path = [{ x: (w / 2) - 40, y: 170 }, { x: 230, y: 250 }, { x: destX, y: 420 }, { x: destX, y: destY }];
             } else if (destX > w * 0.6) {
@@ -184,15 +170,13 @@ class TaproomPhase {
         this.patrons.push(patron);
     }
 
-    // Update the Kid Horde to use the REAL doors with a stagger delay
     triggerKidHorde() {
         console.log("HORDE TRIGGERED!");
         let currentHordeSize = progressionState.isBossRound() ? 10 : 5;
-
         for (let i = 0; i < currentHordeSize; i++) {
             setTimeout(() => {
-                this.spawnPatron('kid', 'horde_group'); // Use the actual door logic!
-            }, i * 650); // Stagger them by 650ms so they don't spawn inside each other
+                this.spawnPatron('kid', 'horde_group');
+            }, i * 650);
         }
     }
 
@@ -210,7 +194,7 @@ class TaproomPhase {
         // 2. SPAWNING LOGIC
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.patrons.length < this.maxPatrons) {
-            this.spawnPatron(); // Call it empty so it picks a unique one
+            this.spawnPatron();
             this.spawnTimer = this.spawnInterval + (Math.random() * 2.0);
         }
 
@@ -220,7 +204,6 @@ class TaproomPhase {
 
             patron.update(dt, this.patrons);
 
-            // STOP AT THE BAR COUNTER (Y=460) AND WAIT
             if (patron.state === 'walk' && patron.y >= 460) {
                 patron.state = 'idle';
                 patron.y = 460;
@@ -233,7 +216,7 @@ class TaproomPhase {
                 gameEvents.emit('SPEND_TIPS', penalty);
                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `-$${penalty} (Left Angry!)`, "#ef4444"));
 
-                setTimeout(() => { patron.active = false; }, 600);
+                // patron.js now handles the exit natively via reactionTimer, no setTimeout needed here
             }
             return true;
         });
@@ -248,7 +231,7 @@ class TaproomPhase {
         this.particles = this.particles.filter(p => {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
-            p.vy += this.gravity * 0.8 * dt; // Gravity pulls coins down
+            p.vy += this.gravity * 0.8 * dt;
             p.life -= dt;
             return p.life > 0;
         });
@@ -264,7 +247,7 @@ class TaproomPhase {
 
             for (let i = 0; i < this.patrons.length; i++) {
                 let patron = this.patrons[i];
-                if (!patron.active || patron.state === 'happy' || patron.state === 'fail') continue;
+                if (!patron.active || patron.state === 'happy' || patron.state === 'fail' || patron.state === 'exit') continue;
 
                 const scale = 0.5 + (patron.y / 720);
                 const patronWidth = 60 * scale;
@@ -283,8 +266,6 @@ class TaproomPhase {
                     let floatColor = "#10b981";
 
                     const config = PATRON_ROSTER[patron.rosterKey];
-
-                    // --- ADD THIS LINE TO DEFINE BASETIP ---
                     const baseTip = (patron && typeof patron.tipBase === 'number' && !isNaN(patron.tipBase))
                         ? patron.tipBase
                         : (config && config.tipBase ? config.tipBase : 12);
@@ -299,37 +280,36 @@ class TaproomPhase {
                         floatColor = "#f59e0b";
                         patron.receivedPreferredDrink = true;
                         patron.state = 'happy';
+                        patron.reactionTimer = 1.2; // Trigger the cheer animation delay!
 
                         this.spawnCoinBurst(patron.x, patron.y - 80);
-                        this.patronExit(patron); // SPRINT AWAY!
 
                     } else if (isStyleMatch) {
                         tipAmount = baseTip * 2;
                         floatText = `+$${tipAmount} (Great Style!)`;
                         floatColor = "#38bdf8";
                         patron.state = 'happy';
+                        patron.reactionTimer = 1.2;
 
-                        this.patronExit(patron); // SPRINT AWAY!
                     } else if (isCraved) {
                         tipAmount = baseTip;
                         floatText = `+$${tipAmount}`;
                         floatColor = "#10b981";
                         patron.state = 'happy';
+                        patron.reactionTimer = 1.2;
 
-                        this.patronExit(patron); // SPRINT AWAY!
                     } else {
                         tipAmount = 0;
                         floatText = "Gross!";
                         floatColor = "#ef4444";
                         patron.state = 'fail';
+                        patron.reactionTimer = 1.2; // Trigger the angry tantrum delay!
                         patron.penaltyApplied = true;
 
                         if (patron.rosterKey === 'kid' && p.type !== 'soda') {
                             this.triggerKidHorde();
                             floatText = "YAY BEER! (Horde Incoming)";
                         }
-
-                        this.patronExit(patron); // SPRINT AWAY ANGRY!
                     }
 
                     if (tipAmount > 0) gameEvents.emit('EARN_TIPS', tipAmount);
@@ -337,7 +317,7 @@ class TaproomPhase {
 
                     if (patron.groupId) {
                         const groupMembers = this.patrons.filter(pt => pt.groupId === patron.groupId);
-                        const allServed = groupMembers.every(pt => pt.state === 'happy' || pt.state === 'fail');
+                        const allServed = groupMembers.every(pt => pt.state === 'happy' || pt.state === 'fail' || pt.state === 'exit');
 
                         if (allServed) {
                             const allHappy = groupMembers.every(pt => pt.receivedPreferredDrink);
@@ -346,11 +326,8 @@ class TaproomPhase {
                                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 150, "PARTY COMBO! +$75", "#c084fc"));
                                 this.spawnCoinBurst(patron.x, patron.y - 120);
                             }
-                            // Sprint the whole party out together!
-                            groupMembers.forEach(pt => this.patronExit(pt));
+                            // The individual reactionTimers handle the group exit automatically now!
                         }
-                    } else {
-                        // Solo patron already triggered patronExit above!
                     }
                     break;
                 }
@@ -367,49 +344,18 @@ class TaproomPhase {
         this.patrons.sort((a, b) => a.y - b.y);
     }
 
-    // --- NEW: PARTICLE EMITTER ---
     spawnCoinBurst(x, y) {
         if (!this.particles) this.particles = [];
         for (let i = 0; i < 12; i++) {
             this.particles.push({
                 x: x,
                 y: y,
-                vx: (Math.random() - 0.5) * 400, // Explode outward left/right
-                vy: (Math.random() - 1.0) * 450, // Explode upward
+                vx: (Math.random() - 0.5) * 400,
+                vy: (Math.random() - 1.0) * 450,
                 life: 1.0 + Math.random() * 0.5,
                 type: 'coin'
             });
         }
-    }
-
-    // --- SPRINT TO THE EXIT (SAFE FLOOR THRESHOLD) ---
-    patronExit(patron) {
-        if (!patron || !patron.active || patron.state === 'exit') return;
-
-        patron.state = 'exit';
-        const w = (this.canvas && this.canvas.width) ? this.canvas.width : window.innerWidth;
-
-        let exitPath = [];
-        const safeX = Math.max(100, Math.min(w - 100, patron.x));
-
-        // Choose exit route based on position
-        if (safeX > w * 0.65) {
-            // Right side: Dart out the side door
-            exitPath = [
-                { x: safeX, y: 380 },
-                { x: w - 120, y: 340 },
-                { x: w - 90, y: 280 } // Safely on the floor threshold of the side door
-            ];
-        } else {
-            // Center/Left side: Sprint straight back up to the main door floor line
-            exitPath = [
-                { x: safeX, y: 350 },
-                { x: w / 2, y: 200 },
-                { x: w / 2, y: 150 } // Safely on the floor threshold right in front of the back door
-            ];
-        }
-
-        patron.setPath(exitPath);
     }
 
     shutdown() {
