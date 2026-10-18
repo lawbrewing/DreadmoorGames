@@ -296,96 +296,6 @@ class AudioEngine {
     }
 }
 
-class LootLockerAPI {
-    constructor() {
-        this.baseURL = "https://api.lootlocker.io/game";
-        this.gameKey = "dev_acdf056df19c4541b2c45db4424aa16f";
-        this.leaderboardID = "36366";
-        this.sessionToken = "";
-
-        this.playerIdentifier = localStorage.getItem("ll_player_identifier") || "";
-        this.memberId = localStorage.getItem("ll_member_id") || "";
-        this.topScores = null;
-    }
-
-    async init() {
-        try {
-            const res = await fetch(`${this.baseURL}/v2/session/guest`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ game_key: this.gameKey, game_version: "1.0.0", player_identifier: this.playerIdentifier })
-            });
-            const data = await res.json();
-
-            // 👇 FIX: Trust the token instead of a success boolean
-            if (data.session_token) {
-                this.sessionToken = data.session_token;
-                this.playerIdentifier = data.player_identifier;
-
-                if (data.player_id) {
-                    this.memberId = data.player_id.toString();
-                } else {
-                    this.memberId = data.player_identifier;
-                }
-
-                localStorage.setItem("ll_player_identifier", this.playerIdentifier);
-                localStorage.setItem("ll_member_id", this.memberId);
-
-                this.topScores = await this.fetchScores(10);
-            }
-        } catch (e) { console.error("LootLocker Init Error:", e); }
-    }
-
-    async submitScore(score, playerName) {
-        if (!this.sessionToken) return;
-
-        const targetMemberId = (this.memberId && this.memberId !== "undefined") ? this.memberId : this.playerIdentifier;
-
-        try {
-            await fetch(`${this.baseURL}/player/name`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
-                body: JSON.stringify({ name: playerName })
-            });
-
-            const scoreRes = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/submit`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken },
-                body: JSON.stringify({ score: Math.floor(score), member_id: targetMemberId })
-            });
-
-            const scoreData = await scoreRes.json();
-
-            // 👇 FIX: Only throw an error if the HTTP network response is physically broken
-            if (!scoreRes.ok) {
-                console.error("❌ LOOTLOCKER REJECTED SCORE:", scoreData);
-            } else {
-                console.log("✅ SCORE SUBMITTED SUCCESSFULLY:", scoreData);
-            }
-
-        } catch (e) { console.error("LootLocker Submit Error:", e); }
-    }
-
-    async fetchScores(count = 10) {
-        if (!this.sessionToken) return [];
-        try {
-            const res = await fetch(`${this.baseURL}/leaderboards/${this.leaderboardID}/list?count=${count}`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json", "x-session-token": this.sessionToken }
-            });
-            const data = await res.json();
-
-            // 👇 FIX: Bypass the success check entirely and just grab the items
-            if (data.items) {
-                return data.items;
-            } else {
-                return [];
-            }
-        } catch (e) {
-            return [];
-        }
-    }
-}
 class Customer {
     constructor(typeKey, currentLevel = 1) { // Accept the level
         const type = CUSTOMER_TYPES[typeKey];
@@ -498,6 +408,7 @@ class Customer {
                 if (this.x >= this.targetX) {
                     this.x = this.targetX;
                     this.state = 'waiting';
+                    this.orderStartTime = Date.now();
                     return 'arrived';
                 }
             } else {
@@ -505,6 +416,7 @@ class Customer {
                 if (this.x <= this.targetX) {
                     this.x = this.targetX;
                     this.state = 'waiting';
+                    this.orderStartTime = Date.now();
                     return 'arrived';
                 }
             }
@@ -539,6 +451,14 @@ class Game {
     constructor() {
         this.started = false; this.score = 0; this.lives = 3;
         this.customers = []; this.menuAnim = { y: -600 };
+        // --- NEW: Stat Trackers ---
+        this.sessionStats = {
+            judgeFlights: 0,
+            fastestPourMs: 0,
+            longestPourStreak: 0,
+            mixedPours: 0
+        };
+        this.currentPourTimerStart = 0; // Tracks when a pour began
         this.activeCustomer = null;
         this.spawnTimer = 0;
         this.level = 1;
@@ -774,29 +694,40 @@ class Game {
             this.notifications.active = null;
 
             setTimeout(async () => {
-                let name = prompt("GAME OVER! Enter your initials (3 letters):", "AAA");
+                let name = prompt("GAME OVER! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
+                if (!name) name = "ANONYMOUS";
 
-                // Trigger the "Loading..." text on the UI
-                this.leaderboard.topScores = null;
+                const cleanName = name.trim().toUpperCase().substring(0, 15);
+                this.showLeaderboard = true; // Force switch to leaderboard view
+                this.leaderboard.topScores = null; // Set to loading state
 
-                if (name) {
-                    name = name.substring(0, 3).toUpperCase();
-                    // 1. Submit the score using the CURRENT player identity
-                    await this.leaderboard.submitScore(this.score, name);
+                try {
+                    await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_chaos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            player_name: cleanName,
+                            score: this.score,
+                            level_reached: this.level,
+                            stats: this.sessionStats
+                        })
+                    });
+
+                    // Fetch the updated leaderboard immediately after saving
+                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`);
+                    if (res.ok) {
+                        // Map the Pi JSON format back to what the draw function expects
+                        const rawData = await res.json();
+                        this.leaderboard.topScores = rawData.map((row, index) => ({
+                            rank: index + 1,
+                            player: { name: row.player_name },
+                            score: row.score
+                        }));
+                    }
+                } catch (e) {
+                    console.error("Failed to submit to Pi:", e);
+                    this.leaderboard.topScores = []; // Trigger empty state
                 }
-
-                // 2. ARCADE MODE FIX: Burn the identity AFTER the score is safely submitted
-                localStorage.removeItem("ll_player_identifier");
-                localStorage.removeItem("ll_member_id");
-                this.leaderboard.playerIdentifier = "";
-                this.leaderboard.memberId = "";
-
-                // We also MUST clear the session token, otherwise LootLocker still knows it's you!
-                this.leaderboard.sessionToken = "";
-
-                // 3. Generate a brand new identity & fetch updated scores for the Game Over screen
-                await this.leaderboard.init();
-
             }, 500);
         }
     }
@@ -820,6 +751,9 @@ class Game {
         this.notifications.queue = [];
         this.notifications.active = null;
         this.wallMedals = [];
+        // --- NEW: Reset Trackers ---
+        this.sessionStats = { judgeFlights: 0, fastestPourMs: 0, longestPourStreak: 0, mixedPours: 0 };
+        this.currentPourTimerStart = 0;
         this.audio.startBGM();
         this.spawnCustomer();
     }
@@ -998,14 +932,24 @@ class Game {
     }
 
     finishDrink(success) {
-        const c = this.activeCustomer; // <-- CHANGED THIS LINE
+        const c = this.activeCustomer;
         if (success) {
             if (!c.finishTimes) c.finishTimes = [];
             c.finishTimes[c.currentOrderIndex] = Date.now();
 
+            // --- NEW: Calculate Pour Speed from Order Time ---
+            let pourTime = Date.now() - c.orderStartTime;
+            if (this.sessionStats.fastestPourMs === 0 || pourTime < this.sessionStats.fastestPourMs) {
+                this.sessionStats.fastestPourMs = pourTime;
+            }
+
             c.currentOrderIndex++;
             c.currentDrinkProgress = 0;
             c.currentStepIndex = 0;
+
+            // --- NEW: Reset order clock for the NEXT drink in the flight ---
+            c.orderStartTime = Date.now();
+
             if (c.currentOrderIndex >= c.order.length) this.completeOrder(true);
         }
     }
@@ -1020,6 +964,17 @@ class Game {
         const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
 
         if (success && c.satisfaction > 0) {
+            // --- NEW: Check Pour Speed & Streak ---
+            let pourTime = Date.now() - this.currentPourTimerStart;
+            if (this.sessionStats.fastestPourMs === 0 || pourTime < this.sessionStats.fastestPourMs) {
+                this.sessionStats.fastestPourMs = pourTime;
+            }
+
+            // --- NEW: Track Mixed Pours ---
+            const recipe = c.order[c.currentOrderIndex - 1]; // Look at the drink that just finished
+            if (recipe && recipe.steps && recipe.steps.length > 1) {
+                this.sessionStats.mixedPours++;
+            }
             // --- SUCCESS ---
             if (isJudge) {
                 this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
@@ -1035,6 +990,10 @@ class Game {
 
             } else if (isKaren) {
                 this.combo++;
+                // --- NEW: Update Longest Streak ---
+                if (this.combo > this.sessionStats.longestPourStreak) {
+                    this.sessionStats.longestPourStreak = this.combo;
+                }
                 let earned = Math.floor((200 + (this.combo * 10)) * patienceMult);
                 this.score += earned;
 
@@ -1046,6 +1005,10 @@ class Game {
                 this.customersServedThisLevel++;
             } else {
                 this.combo++;
+                // --- NEW: Update Longest Streak ---
+                if (this.combo > this.sessionStats.longestPourStreak) {
+                    this.sessionStats.longestPourStreak = this.combo;
+                }
                 let earned = Math.floor(((50 * c.order.length) + (this.combo * 10)) * patienceMult);
                 this.score += earned;
 
@@ -1752,10 +1715,21 @@ class Game {
                             this.resetGame();
                         } else if (pos.y >= 720 && pos.y <= 810) {
                             this.showLeaderboard = true;
-                            this.leaderboard.topScores = null;
-                            this.leaderboard.topScores = await this.leaderboard.fetchScores(10);
-                        } else if (pos.y >= 840 && pos.y <= 930) {
-                            window.location.href = 'landing.html';
+                            this.leaderboard.topScores = null; // Loading state
+
+                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`)
+                                .then(res => res.ok ? res.json() : [])
+                                .then(rawData => {
+                                    this.leaderboard.topScores = rawData.map((row, index) => ({
+                                        rank: index + 1,
+                                        player: { name: row.player_name },
+                                        score: row.score
+                                    }));
+                                })
+                                .catch(e => {
+                                    console.error("Failed to fetch leaderboard:", e);
+                                    this.leaderboard.topScores = [];
+                                });
                         }
                     }
                 }
@@ -2064,21 +2038,59 @@ class Game {
                 ctx.fillText("BACK", WORLD.w / 2, 960);
 
             } else {
+                // 1. Shifted Title and Score up to make room
                 ctx.textAlign = "center";
                 ctx.font = "bold 120px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#f00";
-                ctx.fillText("GAME OVER", WORLD.w / 2, 400);
+                ctx.fillText("GAME OVER", WORLD.w / 2, 260); // Moved up
 
                 ctx.font = "bold 60px 'Bebas Neue', monospace";
                 ctx.fillStyle = "#ffcc00";
-                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 520);
+                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 340); // Moved up
 
+                // --- NEW: SESSION STATS BOX ---
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.strokeStyle = "#555";
+                ctx.lineWidth = 4;
+
+                let boxW = 800;
+                let boxH = 150;
+                let boxX = WORLD.w / 2 - boxW / 2;
+                let boxY = 400; // Positioned right above the buttons
+
+                ctx.fillRect(boxX, boxY, boxW, boxH);
+                ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+                ctx.font = "40px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#aaa";
+                ctx.textAlign = "left";
+
+                // Labels
+                ctx.fillText("LONGEST STREAK:", boxX + 40, boxY + 65);
+                ctx.fillText("MIXED POURS:", boxX + 40, boxY + 120);
+                ctx.fillText("FASTEST POUR:", boxX + 440, boxY + 65);
+                ctx.fillText("JUDGE FLIGHTS:", boxX + 440, boxY + 120);
+
+                // Values
+                ctx.fillStyle = "#00ff66"; // Neon green for stats
+                ctx.textAlign = "right";
+                ctx.fillText(`${this.sessionStats.longestPourStreak}`, boxX + 380, boxY + 65);
+                ctx.fillText(`${this.sessionStats.mixedPours}`, boxX + 380, boxY + 120);
+
+                let pourSecs = (this.sessionStats.fastestPourMs / 1000).toFixed(2);
+                let pourDisplay = this.sessionStats.fastestPourMs === 0 ? "--" : `${pourSecs}s`;
+                ctx.fillText(`${pourDisplay}`, boxX + 760, boxY + 65);
+                ctx.fillText(`${this.sessionStats.judgeFlights}`, boxX + 760, boxY + 120);
+                // --- END STATS BOX ---
+
+                // Existing buttons (left at exact original coordinates so clicks still work)
                 ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
                 ctx.font = "bold 40px 'Bebas Neue', monospace";
 
                 ctx.fillRect(WORLD.w / 2 - 200, 600, 400, 90);
                 ctx.strokeRect(WORLD.w / 2 - 200, 600, 400, 90);
                 ctx.fillStyle = "#fff";
+                ctx.textAlign = "center";
                 ctx.fillText("PLAY AGAIN", WORLD.w / 2, 660);
 
                 ctx.fillStyle = "#222";

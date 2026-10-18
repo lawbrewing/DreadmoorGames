@@ -761,6 +761,16 @@
                                     <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Flights Served</div>
                                     <div class="text-white font-mono text-2xl">${(data.lifetime_flights || 0).toLocaleString()}</div>
                                 </div>
+                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
+                                <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Flights Served</div>
+                                <div class="text-white font-mono text-2xl">${(data.lifetime_flights || 0).toLocaleString()}</div>
+                                </div>
+                    
+                                <!-- NEW: Favorite Game Row -->
+                                <div class="bg-[#121214] border border-red-900/30 p-4 rounded text-center col-span-2 md:col-span-3 mt-2">
+                                <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Most Played Title</div>
+                                <div class="text-red-500 font-display text-2xl tracking-widest uppercase">${data.favorite_game || "UNKNOWN"}</div>
+                                </div>
                             `;
 
                             profileContent.classList.remove('hidden');
