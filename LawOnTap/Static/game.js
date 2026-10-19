@@ -581,7 +581,7 @@ class Game {
                     console.log("Telemetry pushed to Pi.");
 
                     // 2. Fetch the updated Leaderboard from the Pi
-                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap`);
+                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`, { cache: "no-store" });
                     if (res.ok) {
                         const rawData = await res.json();
                         // 3. Map the Pi data into the format the canvas expects
@@ -1238,7 +1238,7 @@ class Game {
                             this.showLeaderboard = true;
                             this.leaderboard.topScores = null;
 
-                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap`)
+                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`, { cache: "no-store" })
                                 .then(res => res.ok ? res.json() : [])
                                 .then(rawData => {
                                     this.leaderboard.topScores = rawData.map((row, index) => ({
