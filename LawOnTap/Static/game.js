@@ -41,7 +41,6 @@ const CUSTOMER_TYPES = {
 };
 
 let SPRITE_DATA = {
-    // HUD Elements
     hud_elements: {
         score: { x: 1871, y: 76, s: .85 },
         lives: { x: 1624, y: 172, s: 0.5, spacing: 100 },
@@ -49,81 +48,55 @@ let SPRITE_DATA = {
         clock: { x: 0, y: -280, r: 50, width: 10 }
     },
     menu: { x: 120, targetY: 215, s: 0.50, textX: 0, textY: 0 },
-
-    // Tap Hitboxes (Renamed to avoid conflict)
     taps_hitboxes: [
         { x: 0.2, w: 0.1 },
         { x: 0.5, w: 0.1 },
         { x: 0.8, w: 0.1 }
     ],
-
-    // VISUAL DATA
     full_pints: {
-        s: 0.25, // Global scale of the glass on the counter
+        s: 0.25,
         fillTweaks: [
-            { x: 28, y: 0 }, // Tap 0 (Stout) liquid offset
-            { x: 79, y: 0 }, // Tap 1 (IPA) liquid offset
-            { x: 122, y: 0 }  // Tap 2 (Lager) liquid offset
+            { x: 28, y: 0 },
+            { x: 79, y: 0 },
+            { x: 122, y: 0 }
         ],
         positions: [
-            {
-                x: 11, y: 880,
-                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Left Tap
-            },
-            {
-                x: -11, y: 880,
-                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Middle Tap
-            },
-            {
-                x: -50, y: 880,
-                clip: { sx: 0, sy: 0, sw: 0, sh: 0 } // Under Right Tap
-            }
+            { x: 11, y: 880, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+            { x: -11, y: 880, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+            { x: -50, y: 880, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
         ]
     },
-
     half_pours: {
         fillTweaks: [
-            { x: 62, y: -60 }, // Tap 0 (Left Tap) Location
-            { x: 62, y: -60 }, // Tap 1 (Middle Tap) Location
-            { x: 62, y: -60 }  // Tap 2 (Right Tap) Location
+            { x: 62, y: -60 },
+            { x: 62, y: -60 },
+            { x: 62, y: -60 }
         ]
     },
     mix_pours: {
         fillTweaks: [
-            { x: 70, y: -60 },    // Tap 0 (Left Tap) Location
-            { x: 122, y: -60 },    // Tap 1 (Middle Tap) Location
-            { x: 0, y: 0 }  // Tap 2 (Right Tap) Location
+            { x: 70, y: -60 },
+            { x: 122, y: -60 },
+            { x: 0, y: 0 }
         ]
     },
-    // 3 INDEPENDENT TOWERS (Using exact Global X/Y)
     towers_visual: {
-        s: 0.5, // Default scale for towers
+        s: 0.5,
         positions: [
-            { x: 388, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Left Tower
-            { x: 1025, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }, // Middle Tower
-            { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }  // Right Tower
+            { x: 388, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+            { x: 1025, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } },
+            { x: 1662, y: 1000, s: 0.5, clip: { sx: 0, sy: 0, sw: 0, sh: 0 } }
         ],
     },
-    // 3 INDEPENDENT TAPS
-    // 3 INDEPENDENT TAPS
     taps_visual: {
         s: .5,
         positions: [
-            // Left Tap: 
-            // Decrease X to pull left towards tower. Decrease Y to pull up.
             { x: 377, y: 85, openScale: .4, openRotation: Math.PI / 2, openOffset: { x: 180, y: 215 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } },
-
-            // Middle Tap: 180 deg (Good!)
             { x: 968, y: 89, openRotation: Math.PI, openOffset: { x: 0, y: 446 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } },
-
-            // Right Tap: 
-            // Make X a smaller negative number (closer to 0) to pull right towards tower. Decrease Y to pull up.
             { x: 1576, y: 87, openScale: 0.4, openRotation: -Math.PI / 2, openOffset: { x: -182, y: 218 }, openClip: { sy: 40, trimH: 40 }, clip: { sx: 0, sy: 0, trimW: 0, trimH: 0 } }
         ],
     },
-
     paddles: {
-        // Physical slice data (sx, sy, sw, sh) and mini-glass X-offsets for each flight size
         boards: {
             2: { x: -35, y: 900, s: .18, clip: { sx: 0, sy: 0, sw: 2000, sh: 330 }, slotsX: [-25, 65], slotY: 35, miniScale: 0.12 },
             3: { x: 50, y: 900, s: .18, clip: { sx: 0, sy: 330, sw: 3000, sh: 500 }, slotsX: [-120, -25, 70], slotY: 20, miniScale: 0.12 },
@@ -131,20 +104,16 @@ let SPRITE_DATA = {
             5: { x: -30, y: 900, s: .18, clip: { sx: 0, sy: 750, sw: 2300, sh: 400 }, slotsX: [-75, -10, 55, 105, 170], slotY: 20, miniScale: 0.1 }
         }
     },
-
     customers: [
         {
             id: 'viking', name: "Viking",
             poses: [{
-                x: 133, y: 960, s: .45, // Base properties
+                x: 133, y: 960, s: .45,
                 clip: { sx: 0, sy: 0, sw: 809, sh: 0 },
                 poseOffsets: [
-                    { x: 0, y: 0 }, // 1 Key: Idle (Uses base properties)
-
-                    // 2 Key: Happy (Smaller scale, custom slice width, custom starting pixel)
+                    { x: 0, y: 0 },
                     { x: 0, y: 0, s: .45, sw: 950, sx: 810 },
-
-                    { x: 60, y: 0, s: .45, sw: 900, sx: 1850 }  // 3 Key: Angry 
+                    { x: 60, y: 0, s: .45, sw: 900, sx: 1850 }
                 ]
             }]
         },
@@ -156,9 +125,9 @@ let SPRITE_DATA = {
                 x: 1196, y: 1042, s: .48,
                 clip: { sx: 0, sy: 0, sw: 0, sh: 0 },
                 poseOffsets: [
-                    { x: 0, y: 0 },         // 1 Key: Idle (Explicit defaults)
-                    { x: 0, y: 0 },         // 2 Key: Happy (Explicit defaults)
-                    { x: 0, y: 0, sw: 900, sx: 1923 }       // 3 Key: Angry (Clean width + sx offset)
+                    { x: 0, y: 0 },
+                    { x: 0, y: 0 },
+                    { x: 0, y: 0, sw: 900, sx: 1923 }
                 ]
             }]
         },
@@ -168,12 +137,8 @@ let SPRITE_DATA = {
                 x: 1277, y: 939, s: .48,
                 clip: { sx: 0, sy: 0, sw: 0, sh: 0 },
                 poseOffsets: [
-                    { x: 0, y: 0 }, // 1 Key: Idle (Uses base properties)
-
-                    // 2 Key: Happy (No slice overrides, just pushed UP 20 pixels)
+                    { x: 0, y: 0 },
                     { x: 0, y: -30 },
-
-                    // 3 Key: Angry (No slice overrides, pushed right 60px and UP 20px)
                     { x: 20, y: -60 }
                 ]
             }]
@@ -190,13 +155,13 @@ const ASSETS_PATHS = {
     hud_sheet: 'assets/hud.png',
     viking: 'assets/viking.png',
     judge: 'assets/judge.png',
-    hipster: 'assets/hipster.png', // Added
-    regular: 'assets/regular.png', // Added
-    vip: 'assets/vip.png',         // Added
-    karen: 'assets/karen.png',     // Added
+    hipster: 'assets/hipster.png',
+    regular: 'assets/regular.png',
+    vip: 'assets/vip.png',
+    karen: 'assets/karen.png',
     paddles: 'assets/paddles.png',
     fullpints: 'assets/fullpints.png',
-    mixpour: 'assets/mixpour.png',   // Added
+    mixpour: 'assets/mixpour.png',
     halfpour: 'assets/halfpour.png',
     neon_sign: 'assets/lawbrewhollow.png'
 };
@@ -216,7 +181,7 @@ const REAL_AWARDS = [
     { name: "Cabana", comp: "Manitowoc Fair", year: "2024", type: "bronze" },
     { name: "Marshmallow", comp: "WI State Fair", year: "2025", type: "gold" },
     { name: "LFO", comp: "NHC", year: "2024", type: "gold" },
-    { name: "LFO", comp: "Manitowoc BOS", year: "2023", type: "gold" }, // Best of Show treated as Gold
+    { name: "LFO", comp: "Manitowoc BOS", year: "2023", type: "gold" },
     { name: "LFO", comp: "Manitowoc Fair", year: "2023", type: "gold" },
     { name: "Pale Ale", comp: "Manitowoc Fair", year: "2022", type: "gold" }
 ];
@@ -246,14 +211,14 @@ class AudioEngine {
     constructor() {
         this.bgm = new Audio('assets/law_on_tap.mp3');
         this.bgm.loop = true;
-        this.bgm.volume = 0.5; // Lowered base volume so SFX pop more
+        this.bgm.volume = 0.5;
         this.targetVolume = 0.5;
 
         this.sfx = {
             perfect: new Audio('assets/perfectpour.mp3'),
             trash: new Audio('assets/trashpour.mp3'),
             judge: new Audio('assets/judgeenter.mp3'),
-            gameover: new Audio('assets/gameover.mp3') // New game over track
+            gameover: new Audio('assets/gameover.mp3')
         };
         this.duckTimeout = null;
     }
@@ -264,24 +229,22 @@ class AudioEngine {
 
     stopBGM() {
         this.bgm.pause();
-        this.bgm.currentTime = 0; // Reset track to beginning
+        this.bgm.currentTime = 0;
     }
 
     play(key, duckDuration = 1000, duckVolume = 0.1) {
         if (this.sfx[key]) {
-            // 👇 FIX: Reset the original authorized track instead of cloning it!
             this.sfx[key].currentTime = 0;
             this.sfx[key].volume = 1.0;
             this.sfx[key].play().catch(e => console.warn("SFX blocked:", e));
 
-            // If duckDuration is 0 (like the Judge), bypass ducking entirely
             if (duckDuration > 0) {
                 this.bgm.volume = duckVolume;
                 this.targetVolume = duckVolume;
 
                 clearTimeout(this.duckTimeout);
                 this.duckTimeout = setTimeout(() => {
-                    this.targetVolume = 0.5; // Fade back to new base volume
+                    this.targetVolume = 0.5;
                 }, duckDuration);
             }
         }
@@ -297,7 +260,7 @@ class AudioEngine {
 }
 
 class Customer {
-    constructor(typeKey, currentLevel = 1) { // Accept the level
+    constructor(typeKey, currentLevel = 1) {
         const type = CUSTOMER_TYPES[typeKey];
         this.type = typeKey;
         this.spriteId = type.id;
@@ -309,16 +272,11 @@ class Customer {
         this.clip = poseData.clip || { sx: 0, sy: 0, sw: 0, sh: 0 };
         this.poseOffsets = poseData.poseOffsets || null;
 
-        // --- RANDOM SPAWN LOGIC ---
-        // 50% chance to spawn on the left or the right side of the screen
         const spawnRight = Math.random() > 0.5;
         this.startX = spawnRight ? WORLD.w + 300 : -300;
         this.x = this.startX;
-
-        // When they leave, walk towards the closest edge of the screen
         this.exitX = (this.targetX > WORLD.w / 2) ? WORLD.w + 300 : -300;
 
-        // 👇 ENDLESS SCALING: Faster walking and less patience every shift
         this.walkSpeed = 8 + (currentLevel * 0.5);
         this.patienceMax = Math.max(6000, type.patience - (currentLevel * 1000));
 
@@ -338,39 +296,30 @@ class Customer {
         if (typeKey === 'karen') return [{ name: "???", recipe: null }];
 
         if (typeKey === 'judge') {
-            // Scale flight size with level (Level 1 = 2 glasses, Level 4 = 5 glasses)
             let flightSize = Math.min(level + 1, 5);
-
-            // Core standard pool
             let availableKeys = ['stout', 'ipa', 'lager'];
 
-            // Allow mixed drinks in the Judge's pool only on Level 4 or higher
             if (level >= 4) {
                 availableKeys.push('black_tan', 'black_bitter', 'lawnmower');
             }
 
-            // 👇 SHUFFLE AND PICK UNIQUE DRINKS
             let flight = [];
             let tempPool = [...availableKeys];
 
             for (let i = 0; i < flightSize; i++) {
-                if (tempPool.length === 0) break; // Failsafe
+                if (tempPool.length === 0) break;
                 let rndIdx = Math.floor(Math.random() * tempPool.length);
-                // Remove the chosen beer from the temporary pool and add to flight
                 flight.push(RECIPES[tempPool.splice(rndIdx, 1)[0]]);
             }
             return flight;
         }
 
-        // 👇 LEVEL 3+ MIXED DRINK LOGIC
         if (level >= 3) {
             if (typeKey === 'vip') {
-                // VIPs have an 80% chance to order a mixed drink
                 if (Math.random() < 0.80) {
                     return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
                 }
             } else {
-                // Standard patrons have a 30% chance based on their core style
                 if (Math.random() < 0.30) {
                     if (typeKey === 'viking') return [RECIPES[['black_tan', 'black_bitter'][Math.floor(Math.random() * 2)]]];
                     if (typeKey === 'hipster') return [RECIPES[['lawnmower', 'black_bitter'][Math.floor(Math.random() * 2)]]];
@@ -381,18 +330,14 @@ class Customer {
 
         const possible = CUSTOMER_TYPES[typeKey].orders;
 
-        // Regular single pour randomization
         if (possible[0] === 'all_pure') {
             return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
         }
 
-        // VIP escalation logic
         if (possible[0] === 'all_mixed') {
-            // If they spawn on Level 1 or 2, force them to order a pure drink instead
             if (level < 3) {
                 return [RECIPES[['stout', 'ipa', 'lager'][Math.floor(Math.random() * 3)]]];
             }
-            // Level 3+, they unleash the mixed drinks
             return [RECIPES[['black_tan', 'black_bitter', 'lawnmower'][Math.floor(Math.random() * 3)]]];
         }
 
@@ -435,11 +380,10 @@ class Customer {
         }
 
         if (this.state === 'waiting') {
-            // Drain 16ms/tick normally, 28ms/tick if player is pouring for someone else
             const drain = (isPouring && !isTarget) ? 28 : 16;
             this.patience -= drain;
             if (this.patience <= 0) {
-                this.poseIndex = 2; // Angry pose
+                this.poseIndex = 2;
                 return 'timeout';
             }
         }
@@ -451,14 +395,14 @@ class Game {
     constructor() {
         this.started = false; this.score = 0; this.lives = 3;
         this.customers = []; this.menuAnim = { y: -600 };
-        // --- NEW: Stat Trackers ---
+
         this.sessionStats = {
             judgeFlights: 0,
             fastestPourMs: 0,
             longestPourStreak: 0,
             mixedPours: 0
         };
-        this.currentPourTimerStart = 0; // Tracks when a pour began
+
         this.activeCustomer = null;
         this.spawnTimer = 0;
         this.level = 1;
@@ -469,174 +413,102 @@ class Game {
         this.isGameOver = false;
         this.showLeaderboard = false;
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
-        this.wallMedals = []; // Tracks dynamically spawned hardware
+        this.wallMedals = [];
         this.notifications = new NotificationSystem();
         this.debugPos = { x: 0, y: 0 };
         this.audio = new AudioEngine();
-        this.leaderboard = new LootLockerAPI();
-        this.leaderboard.init();
+
+        // Replaces the entire LootLocker object with a simple local tracker
+        this.leaderboard = { topScores: null };
+
         this.initInput();
         this.resize();
         this.tipPopups = [];
         window.addEventListener('resize', () => this.resize());
-
     }
 
     drawNeonSign() {
         if (!assets.neon_sign) return;
-
         ctx.save();
+        let signX = 1260; let signY = 250; let signScale = 0.35;
+        let drawW = assets.neon_sign.width * signScale; let drawH = assets.neon_sign.height * signScale;
+        let activeColor = "rgba(255, 204, 0, 1)";
+        if (this.isGameOver) { activeColor = "rgba(100, 0, 0, 1)"; }
+        else if (this.customers.some(c => c.type === 'judge')) { activeColor = "rgba(255, 51, 51, 1)"; }
+        else if (this.lives <= 1) { activeColor = "rgba(255, 102, 0, 1)"; }
+        else if (this.combo >= 3) { activeColor = "rgba(0, 255, 102, 1)"; }
 
-        // --- POSITION & SCALE ON THE WALL ---
-        // Change these X, Y, and scale values to mount the sign wherever your background wall has space
-        let signX = 1260;
-        let signY = 250;
-        let signScale = 0.35;
-
-        let drawW = assets.neon_sign.width * signScale;
-        let drawH = assets.neon_sign.height * signScale;
-
-        // --- INTENTIONAL COLOR LOGIC (Diegetic UI) ---
-        let activeColor = "rgba(255, 204, 0, 1)"; // Default: Amber Gold
-
-        if (this.isGameOver) {
-            activeColor = "rgba(100, 0, 0, 1)"; // Dead/Broken Red
-        } else if (this.customers.some(c => c.type === 'judge')) { // 👇 FIX: Updated array check
-            activeColor = "rgba(255, 51, 51, 1)"; // Boss Phase: Aggressive Red
-        } else if (this.lives <= 1) {
-            activeColor = "rgba(255, 102, 0, 1)"; // Danger: Warning Orange
-        } else if (this.combo >= 3) {
-            activeColor = "rgba(0, 255, 102, 1)"; // Heating Up: Electric Hop Green
-        }
-
-        // Electric hum / flicker effect (98% solid glow, 2% stutter)
         let flicker = Math.random() > 0.02 ? 1.0 : 0.4;
+        if (this.isGameOver) { flicker = Math.random() > 0.1 ? 0.2 : 0.6; }
 
-        // If game over, make it sputter and struggle to stay lit
-        if (this.isGameOver) {
-            flicker = Math.random() > 0.1 ? 0.2 : 0.6;
-        }
-
-        let pulse = 0.7 + (Math.sin(Date.now() / 200) * 0.15); // Organic breathing pulse
+        let pulse = 0.7 + (Math.sin(Date.now() / 200) * 0.15);
         let finalAlpha = flicker * pulse;
 
-        // 1. DRAW THE BACK-GLOW (Casting light onto the brick wall)
         ctx.globalCompositeOperation = "screen";
         let glowGrad = ctx.createRadialGradient(signX, signY, 10, signX, signY, drawW * 0.8);
-
         glowGrad.addColorStop(0, activeColor);
-        // Swap out the "1" opacity for "0.3" for the mid-glow fade
         glowGrad.addColorStop(0.5, activeColor.replace(', 1)', ', 0.3)'));
         glowGrad.addColorStop(1, "rgba(0,0,0,0)");
-
         ctx.fillStyle = glowGrad;
         ctx.globalAlpha = finalAlpha * 0.6;
-        ctx.beginPath();
-        ctx.arc(signX, signY, drawW * 0.8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(signX, signY, drawW * 0.8, 0, Math.PI * 2); ctx.fill();
 
-        // 2. DRAW THE PHYSICAL TRANSPARENT SIGN OUTLINE
         ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 1.0;
-
-        // Outer neon tube bloom pass
         ctx.shadowColor = activeColor;
         ctx.shadowBlur = 25 * pulse;
-
-        ctx.drawImage(
-            assets.neon_sign,
-            signX - drawW / 2,
-            signY - drawH / 2,
-            drawW,
-            drawH
-        );
-
+        ctx.drawImage(assets.neon_sign, signX - drawW / 2, signY - drawH / 2, drawW, drawH);
         ctx.restore();
     }
 
     drawWallMedals() {
         if (!this.wallMedals || this.wallMedals.length === 0) return;
-
         this.wallMedals.forEach(medal => {
             ctx.save();
             ctx.translate(medal.x, medal.y);
             ctx.rotate(medal.rot);
-
-            ctx.scale(1.2, 1.2); // Slightly smaller scale so the wide plaques don't overlap too much
-
-            // Drop shadow
+            ctx.scale(1.2, 1.2);
             ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
             ctx.shadowBlur = 10;
             ctx.shadowOffsetY = 5;
 
-            // 1. Wide Wooden Base (Landscape)
-            ctx.fillStyle = "#3d2314";
-            ctx.fillRect(-60, -35, 120, 70);
-
+            ctx.fillStyle = "#3d2314"; ctx.fillRect(-60, -35, 120, 70);
             ctx.shadowColor = "transparent";
+            ctx.strokeStyle = "#2b180d"; ctx.lineWidth = 4; ctx.strokeRect(-60, -35, 120, 70);
 
-            // Wood border/bevel
-            ctx.strokeStyle = "#2b180d";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(-60, -35, 120, 70);
-
-            // 2. Determine Plate Colors from the Award Object
             let fillCol, edgeCol, textColor;
             if (medal.award.type === 'gold') { fillCol = "#FFD700"; edgeCol = "#B8860B"; textColor = "#5c4300"; }
             else if (medal.award.type === 'silver') { fillCol = "#E0E0E0"; edgeCol = "#808080"; textColor = "#333333"; }
             else { fillCol = "#CD7F32"; edgeCol = "#8B4513"; textColor = "#3b1c04"; }
 
-            // 3. Wide Metallic Plate
-            ctx.fillStyle = fillCol;
-            ctx.fillRect(-50, -25, 100, 50);
+            ctx.fillStyle = fillCol; ctx.fillRect(-50, -25, 100, 50);
+            ctx.strokeStyle = edgeCol; ctx.lineWidth = 2; ctx.strokeRect(-50, -25, 100, 50);
 
-            ctx.strokeStyle = edgeCol;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-50, -25, 100, 50);
-
-            // Decorative Corner Screws
             ctx.fillStyle = edgeCol;
             ctx.beginPath(); ctx.arc(-45, -20, 2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(45, -20, 2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(-45, 20, 2, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(45, 20, 2, 0, Math.PI * 2); ctx.fill();
 
-            // 4. Two-Line Engraved Text
-            ctx.fillStyle = textColor;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Top Line: Beer Name (Max width 90px to prevent spilling off the 100px metal plate)
+            ctx.fillStyle = textColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.font = 'bold 18px "Bebas Neue", monospace';
             ctx.fillText(medal.award.name.toUpperCase(), 0, -8, 90);
-
-            // Bottom Line: Competition & Year
             ctx.font = '14px "Bebas Neue", monospace';
             ctx.fillText(`${medal.award.comp} '${medal.award.year.slice(-2)}`, 0, 10, 90);
 
-            // 5. Glossy Shine
             ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-            ctx.beginPath();
-            ctx.moveTo(-50, -25);
-            ctx.lineTo(50, -25);
-            ctx.lineTo(-50, 25);
-            ctx.fill();
-
+            ctx.beginPath(); ctx.moveTo(-50, -25); ctx.lineTo(50, -25); ctx.lineTo(-50, 25); ctx.fill();
             ctx.restore();
         });
     }
 
     spawnCustomer() {
         if (this.isGameOver) return;
-
-        // Boss Phase Check
         if (this.customersServedThisLevel >= this.levelQuota) {
             if (this.customers.length === 0 && !this.bossTriggered) {
                 this.bossTriggered = true;
                 this.notifications.trigger(`JUDGE ${this.level} INCOMING!`, "#f00", 180);
                 this.audio.play('judge', 0);
-
-                // 👇 FIX: Reduced delay from 3000ms to 1000ms so it doesn't feel stalled
                 setTimeout(() => {
                     this.customers.push(new Customer('judge', this.level));
                     this.activePour.tapIndex = -1;
@@ -647,14 +519,12 @@ class Game {
             return;
         }
 
-        // Progression: Level 1 (Max 1), Level 2 (Max 2), Level 3+ (Max 3)
         let maxCapacity = 1;
         if (this.level === 2) maxCapacity = 2;
         if (this.level >= 3) maxCapacity = 3;
 
         if (this.customers.length >= maxCapacity) return;
 
-        // Check occupied landing spots
         const hasViking = this.customers.some(c => c.type === 'viking');
         const hasCenter = this.customers.some(c => c.type === 'hipster' || c.type === 'karen');
         const hasRight = this.customers.some(c => c.type === 'regular' || c.type === 'vip');
@@ -672,9 +542,6 @@ class Game {
             const selectedType = pool[Math.floor(Math.random() * pool.length)];
             this.lastCustomerType = selectedType;
             this.customers.push(new Customer(selectedType, this.level));
-
-            // Timer between spawns gets faster each level. 
-            // Lvl 1: ~3.5s gap, Lvl 2: ~2.5s gap, Lvl 3: ~1.5s gap
             this.spawnTimer = Math.max(90, 240 - (this.level * 30));
         }
     }
@@ -682,24 +549,21 @@ class Game {
     checkGameOver() {
         if (this.lives <= 0 && !this.isGameOver) {
             this.isGameOver = true;
-            this.customers = []; // Instantly clear all characters
+            this.customers = [];
             this.activeCustomer = null;
             this.activePour.active = false;
-
-            // Abrupt audio takeover
             this.audio.stopBGM();
             this.audio.play('gameover', 0);
-
             this.notifications.queue = [];
             this.notifications.active = null;
 
             setTimeout(async () => {
                 let name = prompt("GAME OVER! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
                 if (!name) name = "ANONYMOUS";
-
                 const cleanName = name.trim().toUpperCase().substring(0, 15);
-                this.showLeaderboard = true; // Force switch to leaderboard view
-                this.leaderboard.topScores = null; // Set to loading state
+
+                this.showLeaderboard = true;
+                this.leaderboard.topScores = null;
 
                 try {
                     await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_chaos`, {
@@ -713,10 +577,8 @@ class Game {
                         })
                     });
 
-                    // Fetch the updated leaderboard immediately after saving
                     const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`);
                     if (res.ok) {
-                        // Map the Pi JSON format back to what the draw function expects
                         const rawData = await res.json();
                         this.leaderboard.topScores = rawData.map((row, index) => ({
                             rank: index + 1,
@@ -726,86 +588,61 @@ class Game {
                     }
                 } catch (e) {
                     console.error("Failed to submit to Pi:", e);
-                    this.leaderboard.topScores = []; // Trigger empty state
+                    this.leaderboard.topScores = [];
                 }
             }, 500);
         }
     }
 
     resetGame() {
-        this.score = 0;
-        this.lives = 3;
-        this.level = 1;
-        this.customersServedThisLevel = 0;
-        this.levelQuota = 5;
-        this.combo = 0;
-        this.lastCustomerType = null;
-        this.isGameOver = false;
-        this.bossTriggered = false;
-        this.spawnTimer = 0;
-        this.tipPopups = [];
-        this.customers = []; // Clear array
+        this.score = 0; this.lives = 3; this.level = 1;
+        this.customersServedThisLevel = 0; this.levelQuota = 5;
+        this.combo = 0; this.lastCustomerType = null;
+        this.isGameOver = false; this.bossTriggered = false;
+        this.spawnTimer = 0; this.tipPopups = []; this.customers = [];
         this.activeCustomer = null;
-
         this.activePour = { active: false, tapIndex: -1, slideProgress: 0 };
-        this.notifications.queue = [];
-        this.notifications.active = null;
+        this.notifications.queue = []; this.notifications.active = null;
         this.wallMedals = [];
-        // --- NEW: Reset Trackers ---
+
         this.sessionStats = { judgeFlights: 0, fastestPourMs: 0, longestPourStreak: 0, mixedPours: 0 };
-        this.currentPourTimerStart = 0;
+
         this.audio.startBGM();
         this.spawnCustomer();
     }
 
     handlePourInput(isDown, tapIndex) {
         if (this.isGameOver) return;
-
         if (isDown) {
             this.activePour.active = true;
             if (this.activePour.tapIndex !== tapIndex) {
                 this.activePour.slideProgress = 0;
             }
             this.activePour.tapIndex = tapIndex;
-
-            // 👇 STRICT FIFO TARGETING: Always lock onto Order 1 (the oldest waiting customer)
             let waiters = this.customers.filter(c => c.state === 'waiting');
-
             if (waiters.length > 0) {
-                // Because elements are pushed sequentially, index 0 is always the oldest
                 this.activeCustomer = waiters[0];
             }
-
         } else {
             this.activePour.active = false;
-            if (this.activeCustomer) {
-                this.evaluatePour();
-            }
-            this.activeCustomer = null; // Clear context on release
+            if (this.activeCustomer) this.evaluatePour();
+            this.activeCustomer = null;
         }
     }
 
     spawnTipPopup(text, x, y, color = "#0f0") {
-        this.tipPopups.push({
-            text: text,
-            x: x,
-            y: y,
-            color: color,
-            life: 60,      // Lasts for 60 frames (1 second)
-            maxLife: 60
-        });
+        this.tipPopups.push({ text: text, x: x, y: y, color: color, life: 60, maxLife: 60 });
     }
 
     updatePouring() {
         if (!this.activePour.active || !this.activeCustomer) return;
-        const c = this.activeCustomer; // <-- CHANGED THIS LINE
+        const c = this.activeCustomer;
 
-        // 👇 KAREN OVERFLOW LOGIC
         if (c.type === 'karen') {
-            c.currentDrinkProgress += 0.008; // Normal fill rate
+            c.currentDrinkProgress += 0.008;
             if (c.currentDrinkProgress > 1.1) {
                 this.activePour.active = false;
-                this.completeOrder(false, "mechanical"); // Custom fail flag!
+                this.completeOrder(false, "mechanical");
             }
             return;
         }
@@ -813,7 +650,6 @@ class Game {
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
 
-        // INSTANT FAILURE: Wrong Tap
         if (this.activePour.tapIndex !== step.tap) {
             this.activePour.active = false;
             this.completeOrder(false);
@@ -822,8 +658,6 @@ class Game {
 
         if (this.activePour.tapIndex === step.tap) {
             c.currentDrinkProgress += 0.008;
-
-            // INSTANT FAILURE: Overflowing the glass
             if (c.currentDrinkProgress > step.limit + 0.1) {
                 this.activePour.active = false;
                 this.completeOrder(false);
@@ -836,16 +670,12 @@ class Game {
         const c = this.activeCustomer;
         if (!c) return;
 
-        // 👇 NEW: Dynamic multiplier based on remaining patience (Scales from 1.0x to 2.0x)
         const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
 
-        // 👇 KAREN SHORT POUR & GAMBLE LOGIC
         if (c.type === 'karen') {
             if (c.currentDrinkProgress < 0.85) {
-                // Short pour penalty
                 this.completeOrder(false, "mechanical");
             } else {
-                // Good pour! Now spin the 33% Roulette Wheel
                 this.completeOrder(Math.random() < 0.33);
             }
             return;
@@ -853,80 +683,51 @@ class Game {
 
         const recipe = c.order[c.currentOrderIndex];
         const step = recipe.steps[c.currentStepIndex];
-
-        // The acceptable boundaries for a passing drink
         const lower = step.limit - 0.15;
         const upper = step.limit + 0.05;
 
-        // Did they release within the acceptable window?
         if (c.currentDrinkProgress >= lower && c.currentDrinkProgress <= upper) {
-
-            // 👇 THE STRICT PERFECT TRIGGER
             if (c.currentDrinkProgress >= step.limit - 0.08 && c.currentDrinkProgress <= step.limit + 0.05) {
-
                 this.notifications.trigger("PERFECT POUR!", "#0f0");
                 this.audio.play('perfect', 0);
-
-                // 👇 FIX: Floating Text for Perfect Micro-Score
                 let earned = Math.floor(50 * patienceMult);
                 this.score += earned;
                 this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#0f0");
 
-                // --- EASTER EGG PLAQUE SPAWN LOGIC ---
                 let award = REAL_AWARDS[Math.floor(Math.random() * REAL_AWARDS.length)];
-
-                let mX, mY;
-                let validPlacement = false;
-                let attempts = 0;
+                let mX, mY; let validPlacement = false; let attempts = 0;
 
                 while (!validPlacement && attempts < 200) {
-                    mX = 1100 + (Math.random() * 750);
-                    mY = 100 + (Math.random() * 550);
-                    attempts++;
-
+                    mX = 1100 + (Math.random() * 750); mY = 100 + (Math.random() * 550); attempts++;
                     let inSignBox = (mX > 1150 && mX < 1450) && (mY > 100 && mY < 450);
                     let inHudBox = (mX > 1500) && (mY < 250);
 
                     if (!inSignBox && !inHudBox) {
                         let isOverlapping = this.wallMedals.some(medal => {
-                            let xDist = Math.abs(medal.x - mX);
-                            let yDist = Math.abs(medal.y - mY);
+                            let xDist = Math.abs(medal.x - mX); let yDist = Math.abs(medal.y - mY);
                             return (xDist < 160 && yDist < 100);
                         });
-
-                        if (!isOverlapping) {
-                            validPlacement = true;
-                        }
+                        if (!isOverlapping) validPlacement = true;
                     }
                 }
-
                 if (validPlacement) {
                     let mRot = (Math.random() - 0.5) * 0.15;
                     this.wallMedals.push({ x: mX, y: mY, award: award, rot: mRot });
                 }
-
             } else {
-                // Secondary trigger: Still successfully poured, but missed perfect window
                 this.audio.play('perfect', 0);
-
-                // 👇 FIX: Floating Text for Good Micro-Score
                 let earned = Math.floor(10 * patienceMult);
                 this.score += earned;
                 this.spawnTipPopup(`+${earned}`, c.x, c.y - 350, "#fff");
             }
 
-            // Move to the next layer of a mixed drink, or finish the glass
             if (c.currentStepIndex < recipe.steps.length - 1) {
                 c.currentStepIndex++;
             } else {
-                if (c.type !== 'judge' || c.currentOrderIndex === c.order.length - 1) {
-                    c.poseIndex = 1;
-                }
+                if (c.type !== 'judge' || c.currentOrderIndex === c.order.length - 1) c.poseIndex = 1;
                 this.finishDrink(true);
             }
-
         } else {
-            // THE ONE-SHOT PENALTY: They let go too early or too late
             this.completeOrder(false);
         }
     }
@@ -937,7 +738,6 @@ class Game {
             if (!c.finishTimes) c.finishTimes = [];
             c.finishTimes[c.currentOrderIndex] = Date.now();
 
-            // --- NEW: Calculate Pour Speed from Order Time ---
             let pourTime = Date.now() - c.orderStartTime;
             if (this.sessionStats.fastestPourMs === 0 || pourTime < this.sessionStats.fastestPourMs) {
                 this.sessionStats.fastestPourMs = pourTime;
@@ -947,7 +747,6 @@ class Game {
             c.currentDrinkProgress = 0;
             c.currentStepIndex = 0;
 
-            // --- NEW: Reset order clock for the NEXT drink in the flight ---
             c.orderStartTime = Date.now();
 
             if (c.currentOrderIndex >= c.order.length) this.completeOrder(true);
@@ -960,29 +759,20 @@ class Game {
 
         const isJudge = c.type === 'judge';
         const isKaren = c.type === 'karen';
-
         const patienceMult = 1.0 + (Math.max(0, c.patience) / c.patienceMax);
 
         if (success && c.satisfaction > 0) {
-            // --- NEW: Check Pour Speed & Streak ---
-            let pourTime = Date.now() - this.currentPourTimerStart;
-            if (this.sessionStats.fastestPourMs === 0 || pourTime < this.sessionStats.fastestPourMs) {
-                this.sessionStats.fastestPourMs = pourTime;
-            }
-
-            // --- NEW: Track Mixed Pours ---
-            const recipe = c.order[c.currentOrderIndex - 1]; // Look at the drink that just finished
+            const recipe = c.order[c.currentOrderIndex - 1];
             if (recipe && recipe.steps && recipe.steps.length > 1) {
                 this.sessionStats.mixedPours++;
             }
-            // --- SUCCESS ---
+
             if (isJudge) {
+                this.sessionStats.judgeFlights++;
                 this.notifications.trigger("JUDGE SATISFIED! LEVEL UP!", "#0f0", 120);
                 let earned = Math.floor((1000 * this.level) * patienceMult);
                 this.score += earned;
-                // 👇 FIX: Spawns higher to avoid overlapping the pour score
                 this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
-
                 if (this.lives < 3) this.lives++;
                 this.level++;
                 this.customersServedThisLevel = 0;
@@ -990,53 +780,35 @@ class Game {
 
             } else if (isKaren) {
                 this.combo++;
-                // --- NEW: Update Longest Streak ---
-                if (this.combo > this.sessionStats.longestPourStreak) {
-                    this.sessionStats.longestPourStreak = this.combo;
-                }
+                if (this.combo > this.sessionStats.longestPourStreak) this.sessionStats.longestPourStreak = this.combo;
                 let earned = Math.floor((200 + (this.combo * 10)) * patienceMult);
                 this.score += earned;
-
                 this.notifications.trigger(`KAREN BONUS!`, "#0f0", 90);
-                // 👇 FIX: Spawns higher 
                 this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
-
                 this.audio.play('perfect', 0);
                 this.customersServedThisLevel++;
             } else {
                 this.combo++;
-                // --- NEW: Update Longest Streak ---
-                if (this.combo > this.sessionStats.longestPourStreak) {
-                    this.sessionStats.longestPourStreak = this.combo;
-                }
+                if (this.combo > this.sessionStats.longestPourStreak) this.sessionStats.longestPourStreak = this.combo;
                 let earned = Math.floor(((50 * c.order.length) + (this.combo * 10)) * patienceMult);
                 this.score += earned;
-
                 this.notifications.trigger(`PERFECT!`, "#0f0", 60);
-                // 👇 FIX: Spawns higher 
                 this.spawnTipPopup(`+${earned}`, c.x, c.y - 450, "#0f0");
-
                 this.customersServedThisLevel++;
             }
         } else {
-            // --- FAILURE ---
-            this.combo = 0; // Violently break the combo multiplier
-
+            this.combo = 0;
             if (isKaren && failType !== "mechanical") {
                 this.audio.play('trash', 1200);
                 this.notifications.trigger("KAREN RAGE!", "#f00", 90);
                 this.score = Math.max(0, this.score - 100);
-                // 👇 FIX: Spawns higher 
                 this.spawnTipPopup(`-100`, c.x, c.y - 450, "#f00");
-
             } else {
                 this.lives--;
                 this.audio.play('trash', 1200);
-
                 if (isJudge) {
                     this.notifications.trigger("DEMOTED!", "#f00", 180);
                     this.score = Math.max(0, this.score - 1500);
-                    // 👇 FIX: Spawns higher 
                     this.spawnTipPopup(`-1500`, c.x, c.y - 450, "#f00");
                     this.customersServedThisLevel = 0;
                 } else if (isKaren) {
@@ -1047,19 +819,16 @@ class Game {
                 this.checkGameOver();
             }
         }
-
-        // --- APPLY FINAL POSE AND STATE ---
         c.poseIndex = success && c.satisfaction > 0 ? 1 : 2;
-
         if (isJudge) {
             c.state = 'finished_pause';
             c.pauseTimer = 180;
         } else {
             c.state = 'walking_out';
         }
-
         this.activeCustomer = null;
     }
+
     drawFlightPaddle(c) {
         if (!c || !assets.paddles) return;
         if (c.state !== 'waiting' && c.state !== 'finished_pause') return;
@@ -1083,18 +852,13 @@ class Game {
         let sH = Math.min(clip.sh, assets.paddles.height - sY);
 
         if (sW > 0 && sH > 0) {
-            ctx.drawImage(assets.paddles,
-                sX, sY, sW, sH,
-                -drawW / 2, -drawH / 2, drawW, drawH
-            );
+            ctx.drawImage(assets.paddles, sX, sY, sW, sH, -drawW / 2, -drawH / 2, drawW, drawH);
         }
 
-        // 2. Draw the completed mini-glasses
         if (assets.fullpints) {
             const completedCount = c.currentOrderIndex;
             let fpBaseW = Math.floor(assets.fullpints.width / 4);
             let fpBaseH = assets.fullpints.height;
-
             let miniScale = board.miniScale || 0.12;
             let slotY = board.slotY || -10;
 
@@ -1108,12 +872,8 @@ class Game {
                 let drawH = fpBaseH * miniScale;
 
                 if (!isMixed) {
-                    // 👇 FIX: Default to a Stout icon if the customer order has no steps (Karen)
                     let frameIdx = recipeObj.steps ? recipeObj.steps[0].tap + 1 : 1;
-                    ctx.drawImage(assets.fullpints,
-                        frameIdx * fpBaseW, 0, fpBaseW, fpBaseH,
-                        drawX, drawY, drawW, drawH
-                    );
+                    ctx.drawImage(assets.fullpints, frameIdx * fpBaseW, 0, fpBaseW, fpBaseH, drawX, drawY, drawW, drawH);
                 } else if (assets.mixpour) {
                     const recipeKey = Object.keys(RECIPES).find(key => RECIPES[key].name === recipeObj.name);
                     let mpBaseW = Math.floor(assets.mixpour.width / 3);
@@ -1124,12 +884,8 @@ class Game {
                     else if (recipeKey === 'black_bitter') mixIdx = 1;
                     else if (recipeKey === 'lawnmower') mixIdx = 2;
 
-                    ctx.drawImage(assets.mixpour,
-                        mixIdx * mpBaseW, 0, mpBaseW, mpBaseH,
-                        drawX, drawY, drawW, drawH
-                    );
+                    ctx.drawImage(assets.mixpour, mixIdx * mpBaseW, 0, mpBaseW, mpBaseH, drawX, drawY, drawW, drawH);
 
-                    // Settling Fade Animation
                     let finishTime = c.finishTimes ? (c.finishTimes[i] || 0) : 0;
                     let timeSinceFinish = Date.now() - finishTime;
                     let settleDuration = 1500;
@@ -1137,45 +893,31 @@ class Game {
                     if (finishTime > 0 && timeSinceFinish < settleDuration) {
                         let settleProgress = timeSinceFinish / settleDuration;
                         let opacity = (1.0 - settleProgress) * 0.9;
+                        ctx.save(); ctx.globalAlpha = opacity;
 
-                        ctx.save();
-                        ctx.globalAlpha = opacity;
-
-                        let liqX = drawX + (drawW * 0.15);
-                        let liqY = drawY + (drawH * 0.15);
-                        let liqW = drawW * 0.70;
-                        let liqH = drawH * 0.75;
+                        let liqX = drawX + (drawW * 0.15); let liqY = drawY + (drawH * 0.15);
+                        let liqW = drawW * 0.70; let liqH = drawH * 0.75;
 
                         const settleGrad = ctx.createLinearGradient(0, liqY, 0, liqY + liqH);
                         if (recipeKey === 'black_tan') {
-                            settleGrad.addColorStop(0, "#1a0f0a");
-                            settleGrad.addColorStop(0.3 + (settleProgress * 0.2), "#5a3a1a");
-                            settleGrad.addColorStop(1, "#fbd341");
+                            settleGrad.addColorStop(0, "#1a0f0a"); settleGrad.addColorStop(0.3 + (settleProgress * 0.2), "#5a3a1a"); settleGrad.addColorStop(1, "#fbd341");
                         } else if (recipeKey === 'black_bitter') {
-                            settleGrad.addColorStop(0, "#1a0f0a");
-                            settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#8a4a1a");
-                            settleGrad.addColorStop(1, "#d97b29");
+                            settleGrad.addColorStop(0, "#1a0f0a"); settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#8a4a1a"); settleGrad.addColorStop(1, "#d97b29");
                         } else if (recipeKey === 'lawnmower') {
-                            settleGrad.addColorStop(0, "#d97b29");
-                            settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#e8a033");
-                            settleGrad.addColorStop(1, "#fbd341");
+                            settleGrad.addColorStop(0, "#d97b29"); settleGrad.addColorStop(0.4 + (settleProgress * 0.2), "#e8a033"); settleGrad.addColorStop(1, "#fbd341");
                         }
 
                         ctx.fillStyle = settleGrad;
                         ctx.beginPath();
-                        if (ctx.roundRect) ctx.roundRect(liqX, liqY, liqW, liqH, 4);
-                        else ctx.rect(liqX, liqY, liqW, liqH);
+                        if (ctx.roundRect) ctx.roundRect(liqX, liqY, liqW, liqH, 4); else ctx.rect(liqX, liqY, liqW, liqH);
                         ctx.fill();
 
-                        ctx.globalAlpha = opacity * 0.5;
-                        ctx.fillStyle = "#fff";
+                        ctx.globalAlpha = opacity * 0.5; ctx.fillStyle = "#fff";
                         let bTime = (Date.now() % 1000) / 1000;
                         for (let b = 0; b < 6; b++) {
                             let bx = liqX + (liqW * ((b * 21) % 100) / 100);
                             let by = liqY + (((bTime + (b * 0.17)) % 1) * liqH);
-                            ctx.beginPath();
-                            ctx.arc(bx, by, drawW * 0.03, 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.beginPath(); ctx.arc(bx, by, drawW * 0.03, 0, Math.PI * 2); ctx.fill();
                         }
                         ctx.restore();
                     }
@@ -1184,28 +926,21 @@ class Game {
         }
         ctx.restore();
     }
+
     drawMenu() {
         const m = SPRITE_DATA.menu;
-
-        // Grab all customers currently waiting at the bar
         const waiters = this.customers.filter(c => c.state === 'waiting');
         const targetY = (waiters.length > 0) ? m.targetY : -600;
 
-        // Use the Game's global menuAnim (already in your constructor)
         this.menuAnim.y += (targetY - this.menuAnim.y) * 0.1;
 
         if (assets.menu && this.menuAnim.y > -550) {
-            ctx.save();
-            ctx.translate(m.x, this.menuAnim.y);
-            const mw = assets.menu.width * m.s;
-            const mh = assets.menu.height * m.s;
+            ctx.save(); ctx.translate(m.x, this.menuAnim.y);
+            const mw = assets.menu.width * m.s; const mh = assets.menu.height * m.s;
             ctx.drawImage(assets.menu, -mw / 2, -mh / 2, mw, mh);
 
-            // 👇 FIX: Constricted back to 55% so it stays completely out of the dark borders
-            const maxTextWidth = mw * 0.55;
-            ctx.textAlign = "center";
+            const maxTextWidth = mw * 0.55; ctx.textAlign = "center";
 
-            // BOSS PHASE: Judge gets the board to himself
             if (waiters.length === 1 && waiters[0].type === 'judge') {
                 const c = waiters[0];
                 ctx.fillStyle = "rgba(40,20,0,0.9)";
@@ -1215,71 +950,45 @@ class Game {
                 let startY = -30;
                 c.order.forEach((item, idx) => {
                     ctx.fillStyle = (idx === c.currentOrderIndex) ? "#aa0000" : "#000";
-
-                    let beerName = item.name;
-                    let fontSize = 32;
+                    let beerName = item.name; let fontSize = 32;
                     ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
 
                     while (ctx.measureText(beerName).width > maxTextWidth && fontSize > 20) {
-                        fontSize--;
-                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        fontSize--; ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
                     }
                     ctx.fillText(beerName, 0, startY + (idx * 40), maxTextWidth);
                 });
-
             } else if (waiters.length > 0) {
-                // MULTI-CUSTOMER DISPLAY
                 ctx.fillStyle = "rgba(40,20,0,0.9)";
                 ctx.font = "bold 34px 'Patrick Hand', sans-serif";
                 ctx.fillText("PENDING ORDERS:", 0, -80, maxTextWidth);
 
                 let currentY = -35;
-
                 waiters.forEach((c, idx) => {
                     ctx.fillStyle = (this.activeCustomer === c) ? "#aa0000" : "#000";
-
-                    // Line 1: Order Number
                     ctx.font = "bold 20px 'Patrick Hand', sans-serif";
                     ctx.fillText(`ORDER ${idx + 1}:`, 0, currentY, maxTextWidth);
 
-                    let beerName = c.order[0].name;
-                    let words = beerName.split(' ');
+                    let beerName = c.order[0].name; let words = beerName.split(' ');
 
-                    // 👇 FIX: Aggressive split! If it has a space AND is over 10 chars, chop it!
                     if (words.length > 1 && beerName.length > 10) {
                         let splitIdx = Math.ceil(words.length / 2);
-                        let line1 = words.slice(0, splitIdx).join(' ');
-                        let line2 = words.slice(splitIdx).join(' ');
+                        let line1 = words.slice(0, splitIdx).join(' '); let line2 = words.slice(splitIdx).join(' ');
+                        let fontSize = 26; ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
 
-                        let fontSize = 26;
-                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
                         while ((ctx.measureText(line1).width > maxTextWidth || ctx.measureText(line2).width > maxTextWidth) && fontSize > 16) {
-                            fontSize--;
-                            ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                            fontSize--; ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
                         }
-
-                        currentY += 26;
-                        ctx.fillText(line1, 0, currentY, maxTextWidth);
-
-                        currentY += 24;
-                        ctx.fillText(line2, 0, currentY, maxTextWidth);
-
-                        currentY += 34; // Gap before next order
-
-                    } else {
-                        // SINGLE LINE DYNAMIC SCALING
-                        let fontSize = 36;
-                        ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
-
-                        while (ctx.measureText(beerName).width > maxTextWidth && fontSize > 18) {
-                            fontSize--;
-                            ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
-                        }
-
+                        currentY += 26; ctx.fillText(line1, 0, currentY, maxTextWidth);
+                        currentY += 24; ctx.fillText(line2, 0, currentY, maxTextWidth);
                         currentY += 34;
-                        ctx.fillText(beerName, 0, currentY, maxTextWidth);
-
-                        currentY += 34; // Gap before next order
+                    } else {
+                        let fontSize = 36; ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        while (ctx.measureText(beerName).width > maxTextWidth && fontSize > 18) {
+                            fontSize--; ctx.font = `bold ${fontSize}px 'Patrick Hand', sans-serif`;
+                        }
+                        currentY += 34; ctx.fillText(beerName, 0, currentY, maxTextWidth);
+                        currentY += 34;
                     }
                 });
             }
@@ -1288,180 +997,83 @@ class Game {
     }
 
     drawTower() {
-        // 1. DRAW 3 INDEPENDENT TOWERS FROM THE SPRITE SHEET
         if (assets.tower && SPRITE_DATA.towers_visual) {
             const towersData = SPRITE_DATA.towers_visual;
             const towerScale = towersData.s || 0.5;
-
-            let frameW = assets.tower.width / 3;
-            let frameH = assets.tower.height;
+            let frameW = assets.tower.width / 3; let frameH = assets.tower.height;
 
             towersData.positions.forEach((t, idx) => {
-                ctx.save();
-                ctx.translate(t.x, t.y);
-
-                let srcX = idx * frameW;
-                let drawW = frameW * towerScale;
-                let drawH = frameH * towerScale;
-
-                ctx.drawImage(assets.tower,
-                    srcX, 0, frameW, frameH,
-                    -drawW / 2, -drawH, drawW, drawH
-                );
-
+                ctx.save(); ctx.translate(t.x, t.y);
+                let srcX = idx * frameW; let drawW = frameW * towerScale; let drawH = frameH * towerScale;
+                ctx.drawImage(assets.tower, srcX, 0, frameW, frameH, -drawW / 2, -drawH, drawW, drawH);
                 ctx.restore();
             });
         }
 
-        // 2. DRAW 3 INDEPENDENT TAPS (2 Rows x 3 Columns)
         if (assets.taps && SPRITE_DATA.taps_visual) {
             const tapsData = SPRITE_DATA.taps_visual;
             const tapScale = tapsData.s || 1.0;
-
-            // Base automatic grid math
-            let baseFrameW = assets.taps.width / 3;
-            let baseFrameH = assets.taps.height / 2;
+            let baseFrameW = assets.taps.width / 3; let baseFrameH = assets.taps.height / 2;
 
             tapsData.positions.forEach((pos, idx) => {
-                ctx.save(); // Global save for this tap station
-                ctx.translate(pos.x, pos.y);
-
+                ctx.save(); ctx.translate(pos.x, pos.y);
                 let isPouring = (this.activePour.active && this.activePour.tapIndex === idx);
-
-                // --- DRAW THE TAP HANDLE ---
                 ctx.save();
 
                 if (isPouring) {
-                    if (pos.openOffset) {
-                        ctx.translate(pos.openOffset.x, pos.openOffset.y);
-                    }
-                    if (pos.openRotation !== undefined) {
-                        ctx.rotate(pos.openRotation);
-                    }
+                    if (pos.openOffset) ctx.translate(pos.openOffset.x, pos.openOffset.y);
+                    if (pos.openRotation !== undefined) ctx.rotate(pos.openRotation);
                 }
 
-                // SWAP CLIPS BASED ON STATE! 
-                // If pouring, use openClip. If not, use standard clip.
                 let activeClip = (isPouring && pos.openClip) ? pos.openClip : (pos.clip || {});
+                let clipSX = activeClip.sx || 0; let clipSY = activeClip.sy || 0;
+                let trimW = activeClip.trimW || 0; let trimH = activeClip.trimH || 0;
 
-                let clipSX = activeClip.sx || 0;
-                let clipSY = activeClip.sy || 0;
-                let trimW = activeClip.trimW || 0;
-                let trimH = activeClip.trimH || 0;
-
-                let srcX = (idx * baseFrameW) + clipSX;
-                let srcY = (isPouring ? baseFrameH : 0) + clipSY;
-
-                // Apply the trims
-                let finalFrameW = baseFrameW - trimW;
-                let finalFrameH = baseFrameH - trimH;
-
-                // ADDED: Check if we are pouring AND if a custom openScale exists
+                let srcX = (idx * baseFrameW) + clipSX; let srcY = (isPouring ? baseFrameH : 0) + clipSY;
+                let finalFrameW = baseFrameW - trimW; let finalFrameH = baseFrameH - trimH;
                 let activeScale = (isPouring && pos.openScale) ? pos.openScale : tapScale;
+                let drawW = finalFrameW * activeScale; let drawH = finalFrameH * activeScale;
 
-                // Use the activeScale instead of the default tapScale
-                let drawW = finalFrameW * activeScale;
-                let drawH = finalFrameH * activeScale;
-
-                ctx.drawImage(assets.taps,
-                    srcX, srcY, finalFrameW, finalFrameH,
-                    -drawW / 2, 0, drawW, drawH
-                );
-
-                // ... [End of Tap Handle Drawing] ...
+                ctx.drawImage(assets.taps, srcX, srcY, finalFrameW, finalFrameH, -drawW / 2, 0, drawW, drawH);
                 ctx.restore();
 
-                // --- PROCEDURAL LIQUID POUR STREAM ---
                 if (isPouring) {
                     ctx.save();
-
-                    // 1. Fluid Colors for Stout (0), IPA (1), Lager (2)
                     const fluidColors = [
-                        { fill: "#1a0f0a", edge: "#000000", highlight: "rgba(255,255,255,0.08)" }, // Black
-                        { fill: "#d97b29", edge: "#8c3b0a", highlight: "rgba(255,255,255,0.2)" },  // Amber
-                        { fill: "#fbd341", edge: "#d48e15", highlight: "rgba(255,255,255,0.4)" }   // Yellow
+                        { fill: "#1a0f0a", edge: "#000000", highlight: "rgba(255,255,255,0.08)" },
+                        { fill: "#d97b29", edge: "#8c3b0a", highlight: "rgba(255,255,255,0.2)" },
+                        { fill: "#fbd341", edge: "#d48e15", highlight: "rgba(255,255,255,0.4)" }
                     ];
                     const colors = fluidColors[idx];
-
-                    // 2. Tweak these to align the start of the stream to your metal nozzles
-                    // 'drop' controls how far down the screen the liquid falls before clipping into the glass
                     const nozzleOffsets = [
-                        { x: 28, y: 530, drop: 300 }, // Tap 0 (Left)
-                        { x: 0, y: 530, drop: 300 }, // Tap 1 (Middle)
-                        { x: -35, y: 528, drop: 300 }  // Tap 2 (Right)
+                        { x: 28, y: 530, drop: 300 }, { x: 0, y: 530, drop: 300 }, { x: -35, y: 528, drop: 300 }
                     ];
 
-                    const nX = nozzleOffsets[idx].x;
-                    const nY = nozzleOffsets[idx].y;
-                    const dropDist = nozzleOffsets[idx].drop;
-
-                    // 3. Sine Wave Math (Makes the liquid wobble slightly as it pours)
+                    const nX = nozzleOffsets[idx].x; const nY = nozzleOffsets[idx].y; const dropDist = nozzleOffsets[idx].drop;
                     const time = Date.now() / 120;
-                    const w1 = Math.sin(time) * 3;
-                    const w2 = Math.cos(time * 1.5) * 4;
+                    const w1 = Math.sin(time) * 3; const w2 = Math.cos(time * 1.5) * 4;
 
-                    ctx.beginPath();
-                    // Top of stream at the nozzle (slightly wider)
-                    ctx.moveTo(nX - 12, nY);
-
-                    // Left curving edge flowing down
-                    ctx.bezierCurveTo(
-                        nX - 9 + w1, nY + dropDist * 0.33,
-                        nX - 6 + w2, nY + dropDist * 0.66,
-                        nX - 6, nY + dropDist
-                    );
-
-                    // Flat bottom where it hits the glass/foam
+                    ctx.beginPath(); ctx.moveTo(nX - 12, nY);
+                    ctx.bezierCurveTo(nX - 9 + w1, nY + dropDist * 0.33, nX - 6 + w2, nY + dropDist * 0.66, nX - 6, nY + dropDist);
                     ctx.lineTo(nX + 6, nY + dropDist);
-
-                    // Right curving edge flowing back up to the nozzle
-                    ctx.bezierCurveTo(
-                        nX + 6 + w2, nY + dropDist * 0.66,
-                        nX + 9 + w1, nY + dropDist * 0.33,
-                        nX + 12, nY
-                    );
+                    ctx.bezierCurveTo(nX + 6 + w2, nY + dropDist * 0.66, nX + 9 + w1, nY + dropDist * 0.33, nX + 12, nY);
                     ctx.closePath();
 
-                    // Draw the core liquid
-                    ctx.fillStyle = colors.fill;
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = colors.edge;
-                    ctx.stroke();
+                    ctx.fillStyle = colors.fill; ctx.fill();
+                    ctx.lineWidth = 2; ctx.strokeStyle = colors.edge; ctx.stroke();
 
-                    // 4. Draw falling highlights to sell the motion illusion
-                    let speed1 = (Date.now() % 400) / 400; // Fast highlight
-                    let speed2 = ((Date.now() + 150) % 500) / 500; // Slower, staggered highlight
+                    let speed1 = (Date.now() % 400) / 400; let speed2 = ((Date.now() + 150) % 500) / 500;
 
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = colors.highlight;
-                    ctx.lineCap = "round";
+                    ctx.lineWidth = 3; ctx.strokeStyle = colors.highlight; ctx.lineCap = "round";
 
-                    // Highlight 1
                     let h1Y = nY + (dropDist * speed1);
-                    if (h1Y < nY + dropDist - 30) {
-                        ctx.beginPath();
-                        ctx.moveTo(nX - 2, h1Y);
-                        ctx.lineTo(nX - 2, h1Y + 30);
-                        ctx.stroke();
-                    }
+                    if (h1Y < nY + dropDist - 30) { ctx.beginPath(); ctx.moveTo(nX - 2, h1Y); ctx.lineTo(nX - 2, h1Y + 30); ctx.stroke(); }
 
-                    // Highlight 2
                     let h2Y = nY + (dropDist * speed2);
-                    if (h2Y < nY + dropDist - 20) {
-                        ctx.beginPath();
-                        ctx.moveTo(nX + 3, h2Y);
-                        ctx.lineTo(nX + 3, h2Y + 20);
-                        ctx.stroke();
-                    }
-
+                    if (h2Y < nY + dropDist - 20) { ctx.beginPath(); ctx.moveTo(nX + 3, h2Y); ctx.lineTo(nX + 3, h2Y + 20); ctx.stroke(); }
                     ctx.restore();
                 }
-                // -----------------------------
 
-                // --- 3D COUNTER PINT DROP-IN & FILLING ---
-
-                // --- 3D COUNTER PINT DROP-IN & FILLING ---
                 if (assets.fullpints && SPRITE_DATA.full_pints) {
                     const fpData = SPRITE_DATA.full_pints;
                     const pintPos = fpData.positions[idx];
@@ -1470,161 +1082,79 @@ class Game {
                     let baseFPW = Math.floor(assets.fullpints.width / 4);
                     let baseFPH = assets.fullpints.height;
 
-                    // 👇 CHANGED: The glass now belongs to whatever tap was LAST clicked
                     let isGlassHere = (this.activePour.tapIndex === idx && this.activeCustomer && this.activeCustomer.state === 'waiting');
 
-                    if (isGlassHere) { // 👇 CHANGED condition
-                        // Slightly slower progress increment to let the eye catch the 3D motion
-                        if (this.activePour.slideProgress < 1.0) {
-                            this.activePour.slideProgress = Math.min(1.0, this.activePour.slideProgress + 0.12);
-                        }
-
-                        // Ease-out curve: Starts fast, slows down right as it hits the counter
-                        let p = this.activePour.slideProgress;
-                        let easeOut = 1 - (1 - p) * (1 - p);
+                    if (isGlassHere) {
+                        if (this.activePour.slideProgress < 1.0) this.activePour.slideProgress = Math.min(1.0, this.activePour.slideProgress + 0.12);
+                        let p = this.activePour.slideProgress; let easeOut = 1 - (1 - p) * (1 - p);
 
                         ctx.save();
-                        let targetX = pintPos.x;
-                        let targetY = pintPos.y;
+                        let targetX = pintPos.x; let targetY = pintPos.y;
+                        let startScale = pintScale * 3.5; let startX = 1920 / 2; let startY = targetY + 600;
 
-                        // 3D EFFECT PARAMETERS
-                        // Start huge (3x scale), originating from the bottom-center of the screen
-                        let startScale = pintScale * 3.5;
-                        let startX = 1920 / 2; // Center of the screen
-                        let startY = targetY + 600; // Deep off the bottom edge
-
-                        // Interpolate current values based on the easing curve
                         let currentScale = startScale + (pintScale - startScale) * easeOut;
                         let currentX = startX + (targetX - startX) * easeOut;
                         let currentY = startY + (targetY - startY) * easeOut;
-
-                        let drawFPW = baseFPW * currentScale;
-                        let drawFPH = baseFPH * currentScale;
-                        let drawX = currentX - drawFPW / 2;
-                        let drawY = currentY - drawFPH;
-
-                        // Calculate progress early so we can use it to mask the empty glass
+                        let drawFPW = baseFPW * currentScale; let drawFPH = baseFPH * currentScale;
+                        let drawX = currentX - drawFPW / 2; let drawY = currentY - drawFPH;
                         let drinkProgress = (this.activeCustomer) ? Math.min(this.activeCustomer.currentDrinkProgress, 1.0) : 0;
 
-                        // 1. DRAW FRAME 0 (The 3D Sliding Empty Glass Base)
-                        ctx.save();
-                        ctx.beginPath();
-
-                        // We create a clipping mask that shrinks upwards as the drink fills.
-                        // Starts 50px higher/wider than the glass to ensure we don't cut off scaling edges.
-                        // We add a +5 pixel overlap downwards to prevent a 1px transparent seam where the liquid meets the empty glass.
-                        ctx.rect(
-                            drawX - 50,
-                            drawY - 50,
-                            drawFPW + 100,
-                            50 + (drawFPH * (1 - drinkProgress)) + 5
-                        );
+                        ctx.save(); ctx.beginPath();
+                        ctx.rect(drawX - 50, drawY - 50, drawFPW + 100, 50 + (drawFPH * (1 - drinkProgress)) + 5);
                         ctx.clip();
-
-                        ctx.drawImage(assets.fullpints,
-                            0, 0, baseFPW, baseFPH,
-                            drawX, drawY, drawFPW, drawFPH
-                        );
+                        ctx.drawImage(assets.fullpints, 0, 0, baseFPW, baseFPH, drawX, drawY, drawFPW, drawFPH);
                         ctx.restore();
 
                         if (this.activeCustomer) {
-                            let activeLiquidAsset = assets.fullpints;
-                            let liquidFrames = 4;
-                            let targetFrameIdx = idx + 1;
-
-                            let activeTweaks = fpData.fillTweaks;
-                            let tweakIdx = idx;
-
+                            let activeLiquidAsset = assets.fullpints; let liquidFrames = 4; let targetFrameIdx = idx + 1;
+                            let activeTweaks = fpData.fillTweaks; let tweakIdx = idx;
                             const recipeObj = this.activeCustomer.order[this.activeCustomer.currentOrderIndex];
 
                             if (recipeObj && recipeObj.steps && recipeObj.steps.length > 1) {
-                                // Find the dictionary key for this recipe to easily map it
                                 const recipeKey = Object.keys(RECIPES).find(key => RECIPES[key].name === recipeObj.name);
-
-                                // FIX: Check WHERE the glass physically is, rather than what step the math is on!
                                 if (this.activePour.tapIndex === recipeObj.steps[0].tap) {
-                                    // STEP 1: Glass is at the first tap. Use halfpour sheet.
                                     if (assets.halfpour) {
-                                        activeLiquidAsset = assets.halfpour;
-                                        liquidFrames = 3;
-                                        targetFrameIdx = idx; // 0=Stout, 1=IPA, 2=Lager
-
-                                        // Swap to half_pours tweaks
-                                        if (SPRITE_DATA.half_pours) {
-                                            activeTweaks = SPRITE_DATA.half_pours.fillTweaks;
-                                            tweakIdx = idx;
-                                        }
+                                        activeLiquidAsset = assets.halfpour; liquidFrames = 3; targetFrameIdx = idx;
+                                        if (SPRITE_DATA.half_pours) { activeTweaks = SPRITE_DATA.half_pours.fillTweaks; tweakIdx = idx; }
                                     }
                                 } else {
-                                    // STEP 2: Pouring the second half. Use mixpour sheet.
                                     if (assets.mixpour) {
-                                        activeLiquidAsset = assets.mixpour;
-                                        liquidFrames = 3;
+                                        activeLiquidAsset = assets.mixpour; liquidFrames = 3;
                                         if (recipeKey === 'black_tan') targetFrameIdx = 0;
                                         else if (recipeKey === 'black_bitter') targetFrameIdx = 1;
                                         else if (recipeKey === 'lawnmower') targetFrameIdx = 2;
 
-                                        // Swap to mix_pours tweaks
-                                        if (SPRITE_DATA.mix_pours) {
-                                            activeTweaks = SPRITE_DATA.mix_pours.fillTweaks;
-                                            tweakIdx = idx;
-                                        }
+                                        if (SPRITE_DATA.mix_pours) { activeTweaks = SPRITE_DATA.mix_pours.fillTweaks; tweakIdx = idx; }
                                     }
                                 }
                             }
 
-                            // Calculate dynamic slice width based on the active sprite sheet
-                            let liqBaseW = Math.floor(activeLiquidAsset.width / liquidFrames);
-                            let liqBaseH = activeLiquidAsset.height;
-
-                            // Grab the custom tweaks and scale them to match the current 3D size
-                            let tweakXScreen = 0;
-                            let tweakYScreen = 0;
+                            let liqBaseW = Math.floor(activeLiquidAsset.width / liquidFrames); let liqBaseH = activeLiquidAsset.height;
+                            let tweakXScreen = 0; let tweakYScreen = 0;
                             if (activeTweaks && activeTweaks[tweakIdx]) {
-                                tweakXScreen = activeTweaks[tweakIdx].x * currentScale;
-                                tweakYScreen = activeTweaks[tweakIdx].y * currentScale;
+                                tweakXScreen = activeTweaks[tweakIdx].x * currentScale; tweakYScreen = activeTweaks[tweakIdx].y * currentScale;
                             }
 
-                            ctx.save();
-                            ctx.beginPath();
-                            // Shift BOTH the clipping mask and the liquid bounding box together
-                            ctx.rect(
-                                drawX + tweakXScreen,
-                                drawY + tweakYScreen + (drawFPH * (1 - drinkProgress)),
-                                drawFPW,
-                                drawFPH * drinkProgress
-                            );
+                            ctx.save(); ctx.beginPath();
+                            ctx.rect(drawX + tweakXScreen, drawY + tweakYScreen + (drawFPH * (1 - drinkProgress)), drawFPW, drawFPH * drinkProgress);
                             ctx.clip();
-
-                            // Draw the filled glass shifted perfectly to match the mask
-                            ctx.drawImage(activeLiquidAsset,
-                                targetFrameIdx * liqBaseW, 0, liqBaseW, liqBaseH,
-                                drawX + tweakXScreen, drawY + tweakYScreen, drawFPW, drawFPH
-                            );
-
+                            ctx.drawImage(activeLiquidAsset, targetFrameIdx * liqBaseW, 0, liqBaseW, liqBaseH, drawX + tweakXScreen, drawY + tweakYScreen, drawFPW, drawFPH);
                             ctx.restore();
                         }
                         ctx.restore();
                     }
                 }
-
-                // -----------------------------
-
-                ctx.restore(); // End global save for this tap station
+                ctx.restore();
             });
         }
     }
+
     drawBeerLife(x, y, scale, isDead, progress = 1.0) {
         ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
         const glassColor = "#2d2419";
-
-        // Change color to red when running low (< 30%)
         const beerGrad = ctx.createLinearGradient(0, -50, 0, 50);
-        if (progress > 0.3) {
-            beerGrad.addColorStop(0, "#FFD700"); beerGrad.addColorStop(1, "#FF8C00");
-        } else {
-            beerGrad.addColorStop(0, "#ff3333"); beerGrad.addColorStop(1, "#990000");
-        }
+        if (progress > 0.3) { beerGrad.addColorStop(0, "#FFD700"); beerGrad.addColorStop(1, "#FF8C00"); }
+        else { beerGrad.addColorStop(0, "#ff3333"); beerGrad.addColorStop(1, "#990000"); }
 
         ctx.lineWidth = 12; ctx.strokeStyle = glassColor; ctx.lineCap = "round";
         ctx.beginPath(); ctx.arc(50, 0, 45, -Math.PI / 1.5, Math.PI / 1.5); ctx.stroke();
@@ -1639,11 +1169,8 @@ class Game {
             ctx.moveTo(-45, -70); ctx.lineTo(45, -70); ctx.lineTo(40, 75); ctx.lineTo(-40, 75);
             ctx.closePath(); ctx.clip();
 
-            // --- DRAIN BASED ON PROGRESS ---
-            let fillHeight = 150 * progress;
-            let fillY = 75 - fillHeight;
-            ctx.fillStyle = beerGrad;
-            ctx.fillRect(-50, fillY, 100, fillHeight);
+            let fillHeight = 150 * progress; let fillY = 75 - fillHeight;
+            ctx.fillStyle = beerGrad; ctx.fillRect(-50, fillY, 100, fillHeight);
 
             ctx.fillStyle = "rgba(255,255,255,0.6)";
             const bTime = (Date.now() % 3000) / 3000;
@@ -1677,22 +1204,9 @@ class Game {
     initInput() {
         const getPos = (e) => {
             const rect = canvas.getBoundingClientRect();
-            let clientX = 0;
-            let clientY = 0;
-
-            // 100% crash-proof check for Mouse vs Touch coordinates
-            if (e.clientX !== undefined) {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            } else if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            }
-
-            return {
-                x: (clientX - rect.left - screenOffset.x) / screenScale,
-                y: (clientY - rect.top - screenOffset.y) / screenScale
-            };
+            let clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches.length > 0 ? e.touches[0].clientX : 0);
+            let clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches.length > 0 ? e.touches[0].clientY : 0);
+            return { x: (clientX - rect.left - screenOffset.x) / screenScale, y: (clientY - rect.top - screenOffset.y) / screenScale };
         };
 
         const handleStart = async (e) => {
@@ -1715,7 +1229,7 @@ class Game {
                             this.resetGame();
                         } else if (pos.y >= 720 && pos.y <= 810) {
                             this.showLeaderboard = true;
-                            this.leaderboard.topScores = null; // Loading state
+                            this.leaderboard.topScores = null;
 
                             fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`)
                                 .then(res => res.ok ? res.json() : [])
@@ -1730,6 +1244,8 @@ class Game {
                                     console.error("Failed to fetch leaderboard:", e);
                                     this.leaderboard.topScores = [];
                                 });
+                        } else if (pos.y >= 840 && pos.y <= 930) {
+                            window.location.href = '../landing.html';
                         }
                     }
                 }
@@ -1737,13 +1253,9 @@ class Game {
             }
 
             if (pos.y >= 0 && pos.y < 800) {
-                if (pos.x < 1920 * 0.33) {
-                    this.handlePourInput(true, 0);
-                } else if (pos.x < 1920 * 0.66) {
-                    this.handlePourInput(true, 1);
-                } else {
-                    this.handlePourInput(true, 2);
-                }
+                if (pos.x < 1920 * 0.33) this.handlePourInput(true, 0);
+                else if (pos.x < 1920 * 0.66) this.handlePourInput(true, 1);
+                else this.handlePourInput(true, 2);
             }
         };
 
@@ -1754,110 +1266,57 @@ class Game {
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
         canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleEnd(); });
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (this.debugPos) this.debugPos = getPos(e);
-        });
-        canvas.addEventListener('touchmove', (e) => {
-            if (this.debugPos) this.debugPos = getPos(e);
-        }, { passive: true });
+        canvas.addEventListener('mousemove', (e) => { if (this.debugPos) this.debugPos = getPos(e); });
+        canvas.addEventListener('touchmove', (e) => { if (this.debugPos) this.debugPos = getPos(e); }, { passive: true });
     }
 
     draw() {
-        // 👇 FIX: Explicit Start Screen to handle browser audio autoplay policies
         if (!this.started) {
-            ctx.fillStyle = "#000";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(screenOffset.x, screenOffset.y);
-            ctx.scale(screenScale, screenScale);
-
-            // Draw a blurred/darkened version of the bar in the background
+            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
             if (assets.bg) ctx.drawImage(assets.bg, -320, 0, 2560, 1080);
-            this.drawNeonSign();
-            this.drawTower();
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-            ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-
-            // Draw the Title and Prompt
-            ctx.textAlign = "center";
-            ctx.shadowColor = "black";
-            ctx.shadowBlur = 15;
-
-            ctx.font = "bold 120px 'Bebas Neue', monospace";
-            ctx.fillStyle = "#ffcc00";
+            this.drawNeonSign(); this.drawTower();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.75)"; ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+            ctx.textAlign = "center"; ctx.shadowColor = "black"; ctx.shadowBlur = 15;
+            ctx.font = "bold 120px 'Bebas Neue', monospace"; ctx.fillStyle = "#ffcc00";
             ctx.fillText("LAW ON TAP", WORLD.w / 2, WORLD.h / 2 - 40);
-
-            ctx.font = "bold 50px 'Bebas Neue', monospace";
-            ctx.fillStyle = "#fff";
-
-            // Blink the start text every 500ms
-            if (Math.floor(Date.now() / 500) % 2 === 0) {
-                ctx.fillText("CLICK ANYWHERE TO START", WORLD.w / 2, WORLD.h / 2 + 60);
-            }
-
+            ctx.font = "bold 50px 'Bebas Neue', monospace"; ctx.fillStyle = "#fff";
+            if (Math.floor(Date.now() / 500) % 2 === 0) ctx.fillText("CLICK ANYWHERE TO START", WORLD.w / 2, WORLD.h / 2 + 60);
             ctx.restore();
-            return; // 🛑 Block all other game logic/timers from running until they click!
+            return;
         }
 
-        // ... [The rest of your existing draw() code continues here]
-        this.audio.update();
-        this.updatePouring();
-        this.notifications.update();
+        this.audio.update(); this.updatePouring(); this.notifications.update();
 
-        // 1. Spawning timer countdown (Don't spawn if judge is out)
         if (!this.customers.some(c => c.type === 'judge')) {
-            // 👇 FIX: If the shift quota is met and the room is empty, bypass the timer!
-            if (this.customersServedThisLevel >= this.levelQuota && this.customers.length === 0) {
-                this.spawnTimer = 0;
-            }
-
+            if (this.customersServedThisLevel >= this.levelQuota && this.customers.length === 0) this.spawnTimer = 0;
             if (this.spawnTimer > 0) this.spawnTimer--;
             if (this.spawnTimer <= 0) this.spawnCustomer();
         }
 
-        // 2. Multi-customer update loop (reverse loop for safe splicing)
         for (let i = this.customers.length - 1; i >= 0; i--) {
             const c = this.customers[i];
-            const isTarget = (this.activeCustomer === c);
-            const status = c.update(this.activePour.active, isTarget);
-
+            const status = c.update(this.activePour.active, (this.activeCustomer === c));
             if (status === 'timeout') {
-                this.lives--;
-                this.audio.play('trash', 0);
-                this.notifications.trigger("WALKED OUT!", "#f00");
-                c.poseIndex = 2;
-                c.state = 'walking_out';
-                if (this.activeCustomer === c) {
-                    this.activePour.active = false;
-                    this.activeCustomer = null;
-                }
+                this.lives--; this.audio.play('trash', 0); this.notifications.trigger("WALKED OUT!", "#f00");
+                c.poseIndex = 2; c.state = 'walking_out';
+                if (this.activeCustomer === c) { this.activePour.active = false; this.activeCustomer = null; }
                 this.checkGameOver();
             } else if (status === 'gone') {
                 this.customers.splice(i, 1);
             }
         }
 
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.translate(screenOffset.x, screenOffset.y);
-        ctx.scale(screenScale, screenScale);
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
 
         if (assets.bg) ctx.drawImage(assets.bg, -320, 0, 2560, 1080);
-        this.drawNeonSign();
-        this.drawWallMedals();
-        this.drawMenu();
-        // 3. Draw customers and their personal flight paddles
+        this.drawNeonSign(); this.drawWallMedals(); this.drawMenu();
+
         for (let c of this.customers) {
             if (assets[c.spriteId]) {
-                const img = assets[c.spriteId];
-                const s = c.scale;
-
-                let tweakX = 0; let tweakY = 0;
-                let customSW = null; let customSX = null; let customScale = s;
+                const img = assets[c.spriteId]; const s = c.scale;
+                let tweakX = 0; let tweakY = 0; let customSW = null; let customSX = null; let customScale = s;
 
                 if (c.poseOffsets && c.poseOffsets[c.poseIndex]) {
                     let pOffset = c.poseOffsets[c.poseIndex];
@@ -1870,210 +1329,113 @@ class Game {
                 let baseFrameW = (c.clip.sw > 0) ? c.clip.sw : Math.floor(img.width / 3);
                 let frameW = (customSW !== null) ? customSW : baseFrameW;
                 let frameH = (c.clip.sh > 0) ? c.clip.sh : img.height;
-
                 let srcX; let destOffsetX = 0;
 
                 if (customSX !== null) {
                     srcX = customSX;
                 } else {
-                    let clipSX = c.clip.sx;
-                    if (clipSX < 0) { destOffsetX = clipSX; clipSX = 0; }
+                    let clipSX = c.clip.sx; if (clipSX < 0) { destOffsetX = clipSX; clipSX = 0; }
                     srcX = clipSX + (c.poseIndex * baseFrameW);
                 }
 
                 let srcY = c.clip.sy;
-
                 ctx.save();
                 let yBob = 0; let rotation = 0; let isFlipped = false;
-                let isLeftFacing = (c.spriteId === 'vip');
-                let movingRight = false;
+                let isLeftFacing = (c.spriteId === 'vip'); let movingRight = false;
 
                 if (c.state === 'walking_in') {
-                    movingRight = (c.startX < c.targetX);
-                    yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
-                    rotation = Math.sin(Date.now() / 150) * 0.05;
-                    isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
+                    movingRight = (c.startX < c.targetX); yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
+                    rotation = Math.sin(Date.now() / 150) * 0.05; isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
                 } else if (c.state === 'waiting') {
                     isFlipped = isLeftFacing;
                 } else if (c.state === 'walking_out') {
-                    movingRight = (c.exitX > c.x);
-                    yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
-                    rotation = Math.sin(Date.now() / 150) * 0.05;
-                    isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
+                    movingRight = (c.exitX > c.x); yBob = Math.abs(Math.sin(Date.now() / 150)) * -8;
+                    rotation = Math.sin(Date.now() / 150) * 0.05; isFlipped = movingRight ? isLeftFacing : !isLeftFacing;
                 }
 
-                ctx.translate(c.x, c.y + yBob);
-                ctx.rotate(rotation);
-                if (isFlipped) ctx.scale(-1, 1);
-
-                ctx.drawImage(img,
-                    srcX, srcY, frameW, frameH,
-                    -(frameW * customScale) / 2 + destOffsetX + tweakX,
-                    -frameH * customScale + tweakY,
-                    frameW * customScale, frameH * customScale
-                );
+                ctx.translate(c.x, c.y + yBob); ctx.rotate(rotation); if (isFlipped) ctx.scale(-1, 1);
+                ctx.drawImage(img, srcX, srcY, frameW, frameH, -(frameW * customScale) / 2 + destOffsetX + tweakX, -frameH * customScale + tweakY, frameW * customScale, frameH * customScale);
                 ctx.restore();
             }
-            // Render paddle in front of them
             this.drawFlightPaddle(c);
         }
 
-        // 4. Draw Towers and ONE Central Menu
         this.drawTower();
-        
-        // 5. Draw HUD
-        // --- DRAW FLOATING TIP POPUPS (WORLD SPACE) ---
+
         for (let i = this.tipPopups.length - 1; i >= 0; i--) {
-            let p = this.tipPopups[i];
-            p.y -= 2.5; // Float upwards
-            p.life--;
-
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-            ctx.textAlign = "center";
-            ctx.font = "bold 55px 'Bebas Neue', monospace";
-            ctx.fillStyle = p.color;
-
-            // Heavy black outline so the floating text pops against the background
-            ctx.strokeStyle = "#000";
-            ctx.lineWidth = 6;
-            ctx.strokeText(p.text, p.x, p.y);
-            ctx.fillText(p.text, p.x, p.y);
+            let p = this.tipPopups[i]; p.y -= 2.5; p.life--;
+            ctx.save(); ctx.globalAlpha = Math.max(0, p.life / p.maxLife); ctx.textAlign = "center";
+            ctx.font = "bold 55px 'Bebas Neue', monospace"; ctx.fillStyle = p.color;
+            ctx.strokeStyle = "#000"; ctx.lineWidth = 6;
+            ctx.strokeText(p.text, p.x, p.y); ctx.fillText(p.text, p.x, p.y);
             ctx.restore();
-
             if (p.life <= 0) this.tipPopups.splice(i, 1);
         }
 
-        // 5. Draw Static HUD Elements
-        const h = SPRITE_DATA.hud_elements;
-        ctx.save();
+        const h = SPRITE_DATA.hud_elements; ctx.save();
+        ctx.textAlign = "right"; ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
+        ctx.shadowColor = "black"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00";
+        let scoreString = `TIPS: ${this.score}`; ctx.fillText(scoreString, h.score.x, h.score.y);
 
-        // Main Score
-        ctx.textAlign = "right";
-        ctx.font = `bold ${Math.round(70 * h.score.s)}px "Bebas Neue"`;
-        ctx.shadowColor = "black";
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = "#ffcc00";
-        let scoreString = `TIPS: ${this.score}`;
-        ctx.fillText(scoreString, h.score.x, h.score.y);
-
-        // --- DYNAMIC COMBO METER UI ---
         if (this.combo > 1) {
-            let pulse = 1 + Math.sin(Date.now() / 120) * 0.12; // Heartbeat pulse
-            let comboColor = "#00ff66"; // Standard Green
-            if (this.combo >= 3) comboColor = "#ffcc00"; // Heating Up: Gold
-            if (this.combo >= 5) comboColor = "#ff3333"; // On Fire: Aggressive Red
-
-            ctx.save();
-
-            // 👇 FIX: Dynamically measure the TIPS text width and dock the combo meter 35px to its left!
-            let scoreWidth = ctx.measureText(scoreString).width;
-            ctx.translate(h.score.x - scoreWidth - 35, h.score.y);
-
-            ctx.scale(pulse, pulse);
-            ctx.font = `bold 45px "Bebas Neue"`;
-            ctx.fillStyle = comboColor;
-            ctx.shadowColor = "black";
-            ctx.shadowBlur = 15;
-            ctx.textAlign = "right";
-            ctx.fillText(`x${this.combo} COMBO`, 0, 0);
-            ctx.restore();
+            let pulse = 1 + Math.sin(Date.now() / 120) * 0.12;
+            let comboColor = "#00ff66"; if (this.combo >= 3) comboColor = "#ffcc00"; if (this.combo >= 5) comboColor = "#ff3333";
+            ctx.save(); let scoreWidth = ctx.measureText(scoreString).width; ctx.translate(h.score.x - scoreWidth - 35, h.score.y);
+            ctx.scale(pulse, pulse); ctx.font = `bold 45px "Bebas Neue"`; ctx.fillStyle = comboColor; ctx.shadowColor = "black"; ctx.shadowBlur = 15;
+            ctx.textAlign = "right"; ctx.fillText(`x${this.combo} COMBO`, 0, 0); ctx.restore();
         }
         ctx.restore();
 
-        // HUD Glass pulses based on the MOST impatient customer
         let lowestPatiencePct = 1.0;
         const waitingList = this.customers.filter(c => c.state === 'waiting');
-        if (waitingList.length > 0) {
-            lowestPatiencePct = Math.min(...waitingList.map(c => c.patience / c.patienceMax));
-        }
+        if (waitingList.length > 0) lowestPatiencePct = Math.min(...waitingList.map(c => c.patience / c.patienceMax));
 
         for (let i = 0; i < 3; i++) {
-            let isDead = i >= this.lives;
-            let patiencePct = 1.0;
-            if (!isDead && waitingList.length > 0 && i === this.lives - 1) {
-                patiencePct = lowestPatiencePct;
-            }
+            let isDead = i >= this.lives; let patiencePct = 1.0;
+            if (!isDead && waitingList.length > 0 && i === this.lives - 1) patiencePct = lowestPatiencePct;
             this.drawBeerLife(h.lives.x + (i * h.lives.spacing), h.lives.y, h.lives.s, isDead, patiencePct);
         }
 
-        // 6. Game Over / Leaderboard Overlay
         if (this.isGameOver) {
-            ctx.save();
-            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-            ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+            ctx.save(); ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, WORLD.w, WORLD.h);
 
             if (this.showLeaderboard) {
-                ctx.textAlign = "center";
-                ctx.font = "bold 80px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#ffcc00";
-                ctx.fillText("--- TITANS OF THE TAPS ---", WORLD.w / 2, 200);
+                ctx.textAlign = "center"; ctx.font = "bold 80px 'Bebas Neue', monospace"; ctx.fillStyle = "#ffcc00";
+                ctx.fillText("--- TITANS OF THE TAPS ---", WORLD.w / 2, 200); ctx.font = "40px 'Bebas Neue', monospace"; ctx.fillStyle = "#fff";
 
-                ctx.font = "40px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#fff";
-
-                // 👇 FIX: Differentiate between Loading and Empty
                 if (this.leaderboard.topScores === null) {
-                    ctx.textAlign = "center";
-                    ctx.fillText("Loading scores...", WORLD.w / 2, 400);
+                    ctx.textAlign = "center"; ctx.fillText("Loading scores...", WORLD.w / 2, 400);
                 } else if (this.leaderboard.topScores.length > 0) {
                     this.leaderboard.topScores.forEach((entry, i) => {
-                        const name = entry.player ? entry.player.name : "???";
-                        ctx.textAlign = "left";
+                        const name = entry.player ? entry.player.name : "???"; ctx.textAlign = "left";
                         ctx.fillText(`${entry.rank}. ${name}`, WORLD.w / 2 - 200, 320 + (i * 55));
-                        ctx.textAlign = "right";
-                        ctx.fillText(entry.score, WORLD.w / 2 + 200, 320 + (i * 55));
+                        ctx.textAlign = "right"; ctx.fillText(entry.score, WORLD.w / 2 + 200, 320 + (i * 55));
                     });
                 } else {
-                    ctx.textAlign = "center";
-                    ctx.fillText("No high scores yet!", WORLD.w / 2, 400);
+                    ctx.textAlign = "center"; ctx.fillText("No high scores yet!", WORLD.w / 2, 400);
                 }
 
                 ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
-                ctx.fillRect(WORLD.w / 2 - 200, 900, 400, 90);
-                ctx.strokeRect(WORLD.w / 2 - 200, 900, 400, 90);
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 40px 'Bebas Neue', monospace";
-                ctx.textAlign = "center";
+                ctx.fillRect(WORLD.w / 2 - 200, 900, 400, 90); ctx.strokeRect(WORLD.w / 2 - 200, 900, 400, 90);
+                ctx.fillStyle = "#fff"; ctx.font = "bold 40px 'Bebas Neue', monospace"; ctx.textAlign = "center";
                 ctx.fillText("BACK", WORLD.w / 2, 960);
-
             } else {
-                // 1. Shifted Title and Score up to make room
-                ctx.textAlign = "center";
-                ctx.font = "bold 120px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#f00";
-                ctx.fillText("GAME OVER", WORLD.w / 2, 260); // Moved up
+                ctx.textAlign = "center"; ctx.font = "bold 120px 'Bebas Neue', monospace"; ctx.fillStyle = "#f00";
+                ctx.fillText("GAME OVER", WORLD.w / 2, 260);
 
-                ctx.font = "bold 60px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#ffcc00";
-                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 340); // Moved up
+                ctx.font = "bold 60px 'Bebas Neue', monospace"; ctx.fillStyle = "#ffcc00";
+                ctx.fillText(`FINAL TIPS: ${this.score}`, WORLD.w / 2, 340);
 
-                // --- NEW: SESSION STATS BOX ---
-                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                ctx.strokeStyle = "#555";
-                ctx.lineWidth = 4;
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.strokeStyle = "#555"; ctx.lineWidth = 4;
+                let boxW = 800; let boxH = 150; let boxX = WORLD.w / 2 - boxW / 2; let boxY = 400;
 
-                let boxW = 800;
-                let boxH = 150;
-                let boxX = WORLD.w / 2 - boxW / 2;
-                let boxY = 400; // Positioned right above the buttons
+                ctx.fillRect(boxX, boxY, boxW, boxH); ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                ctx.fillRect(boxX, boxY, boxW, boxH);
-                ctx.strokeRect(boxX, boxY, boxW, boxH);
+                ctx.font = "40px 'Bebas Neue', monospace"; ctx.fillStyle = "#aaa"; ctx.textAlign = "left";
+                ctx.fillText("LONGEST STREAK:", boxX + 40, boxY + 65); ctx.fillText("MIXED POURS:", boxX + 40, boxY + 120);
+                ctx.fillText("FASTEST POUR:", boxX + 440, boxY + 65); ctx.fillText("JUDGE FLIGHTS:", boxX + 440, boxY + 120);
 
-                ctx.font = "40px 'Bebas Neue', monospace";
-                ctx.fillStyle = "#aaa";
-                ctx.textAlign = "left";
-
-                // Labels
-                ctx.fillText("LONGEST STREAK:", boxX + 40, boxY + 65);
-                ctx.fillText("MIXED POURS:", boxX + 40, boxY + 120);
-                ctx.fillText("FASTEST POUR:", boxX + 440, boxY + 65);
-                ctx.fillText("JUDGE FLIGHTS:", boxX + 440, boxY + 120);
-
-                // Values
-                ctx.fillStyle = "#00ff66"; // Neon green for stats
-                ctx.textAlign = "right";
+                ctx.fillStyle = "#00ff66"; ctx.textAlign = "right";
                 ctx.fillText(`${this.sessionStats.longestPourStreak}`, boxX + 380, boxY + 65);
                 ctx.fillText(`${this.sessionStats.mixedPours}`, boxX + 380, boxY + 120);
 
@@ -2081,29 +1443,16 @@ class Game {
                 let pourDisplay = this.sessionStats.fastestPourMs === 0 ? "--" : `${pourSecs}s`;
                 ctx.fillText(`${pourDisplay}`, boxX + 760, boxY + 65);
                 ctx.fillText(`${this.sessionStats.judgeFlights}`, boxX + 760, boxY + 120);
-                // --- END STATS BOX ---
 
-                // Existing buttons (left at exact original coordinates so clicks still work)
-                ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6;
-                ctx.font = "bold 40px 'Bebas Neue', monospace";
+                ctx.fillStyle = "#222"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 6; ctx.font = "bold 40px 'Bebas Neue', monospace";
+                ctx.fillRect(WORLD.w / 2 - 200, 600, 400, 90); ctx.strokeRect(WORLD.w / 2 - 200, 600, 400, 90);
+                ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText("PLAY AGAIN", WORLD.w / 2, 660);
 
-                ctx.fillRect(WORLD.w / 2 - 200, 600, 400, 90);
-                ctx.strokeRect(WORLD.w / 2 - 200, 600, 400, 90);
-                ctx.fillStyle = "#fff";
-                ctx.textAlign = "center";
-                ctx.fillText("PLAY AGAIN", WORLD.w / 2, 660);
+                ctx.fillStyle = "#222"; ctx.fillRect(WORLD.w / 2 - 200, 720, 400, 90); ctx.strokeRect(WORLD.w / 2 - 200, 720, 400, 90);
+                ctx.fillStyle = "#fff"; ctx.fillText("HIGH SCORES", WORLD.w / 2, 780);
 
-                ctx.fillStyle = "#222";
-                ctx.fillRect(WORLD.w / 2 - 200, 720, 400, 90);
-                ctx.strokeRect(WORLD.w / 2 - 200, 720, 400, 90);
-                ctx.fillStyle = "#fff";
-                ctx.fillText("HIGH SCORES", WORLD.w / 2, 780);
-
-                ctx.fillStyle = "#222";
-                ctx.fillRect(WORLD.w / 2 - 200, 840, 400, 90);
-                ctx.strokeRect(WORLD.w / 2 - 200, 840, 400, 90);
-                ctx.fillStyle = "#fff";
-                ctx.fillText("HOME", WORLD.w / 2, 900);
+                ctx.fillStyle = "#222"; ctx.fillRect(WORLD.w / 2 - 200, 840, 400, 90); ctx.strokeRect(WORLD.w / 2 - 200, 840, 400, 90);
+                ctx.fillStyle = "#fff"; ctx.fillText("HOME", WORLD.w / 2, 900);
             }
             ctx.restore();
         }
@@ -2126,11 +1475,9 @@ class Game {
 }
 
 function loadImages() {
-    let loaded = 0;
-    let failed = 0;
+    let loaded = 0; let failed = 0;
     const keys = Object.keys(ASSETS_PATHS);
 
-    // Check if we have successfully processed all images (either loaded or failed)
     const checkComplete = () => {
         if (loaded + failed === keys.length) {
             console.log(`Loading complete. ${loaded} loaded, ${failed} failed.`);
@@ -2142,22 +1489,11 @@ function loadImages() {
 
     keys.forEach(k => {
         const img = new Image();
-
-        img.onload = () => {
-            assets[k] = img;
-            loaded++;
-            checkComplete();
-        };
-
-        // --- ADDED ERROR HANDLER ---
-        img.onerror = () => {
-            console.error(`❌ ERROR: Could not find image for '${k}' at path: ${ASSETS_PATHS[k]}`);
-            failed++;
-            checkComplete(); // Keep loading the rest of the game anyway!
-        };
-
+        img.onload = () => { assets[k] = img; loaded++; checkComplete(); };
+        img.onerror = () => { console.error(`❌ ERROR: Could not find image for '${k}' at path: ${ASSETS_PATHS[k]}`); failed++; checkComplete(); };
         img.src = ASSETS_PATHS[k];
     });
 }
+
 // Start the engine!
 loadImages();
