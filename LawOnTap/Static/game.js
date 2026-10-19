@@ -566,7 +566,7 @@ class Game {
                 this.leaderboard.topScores = null;
 
                 try {
-                    await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_chaos`, {
+                    await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/law_on_tap`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -577,7 +577,7 @@ class Game {
                         })
                     });
 
-                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`);
+                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap`);
                     if (res.ok) {
                         const rawData = await res.json();
                         this.leaderboard.topScores = rawData.map((row, index) => ({
@@ -1231,7 +1231,7 @@ class Game {
                             this.showLeaderboard = true;
                             this.leaderboard.topScores = null;
 
-                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/taproom_chaos`)
+                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap`)
                                 .then(res => res.ok ? res.json() : [])
                                 .then(rawData => {
                                     this.leaderboard.topScores = rawData.map((row, index) => ({
