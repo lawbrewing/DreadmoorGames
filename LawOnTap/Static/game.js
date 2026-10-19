@@ -560,12 +560,13 @@ class Game {
             setTimeout(async () => {
                 let name = prompt("GAME OVER! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
                 if (!name) name = "ANONYMOUS";
-                const cleanName = name.trim().toUpperCase().substring(0, 15);
+                const cleanName = name.trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
 
                 this.showLeaderboard = true;
-                this.leaderboard.topScores = null;
+                this.leaderboard.topScores = null; // Set to null to show "Loading..." state
 
                 try {
+                    // 1. Submit the score to the Pi
                     await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/law_on_tap`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -577,17 +578,23 @@ class Game {
                         })
                     });
 
+                    console.log("Telemetry pushed to Pi.");
+
+                    // 2. Fetch the updated Leaderboard from the Pi
                     const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap`);
                     if (res.ok) {
                         const rawData = await res.json();
+                        // 3. Map the Pi data into the format the canvas expects
                         this.leaderboard.topScores = rawData.map((row, index) => ({
                             rank: index + 1,
                             player: { name: row.player_name },
                             score: row.score
                         }));
+                    } else {
+                        this.leaderboard.topScores = [];
                     }
                 } catch (e) {
-                    console.error("Failed to submit to Pi:", e);
+                    console.error("Failed to communicate with Pi:", e);
                     this.leaderboard.topScores = [];
                 }
             }, 500);
@@ -1244,8 +1251,6 @@ class Game {
                                     console.error("Failed to fetch leaderboard:", e);
                                     this.leaderboard.topScores = [];
                                 });
-                        } else if (pos.y >= 840 && pos.y <= 930) {
-                            window.location.href = '../landing.html';
                         }
                     }
                 }
