@@ -929,32 +929,46 @@
 
     <!-- Service Worker & PWA Install Logic -->
     <script>
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./sw.js');
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Listen for a new service worker installing
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+
+            newWorker.addEventListener('statechange', () => {
+                // If the new worker is installed and there is an existing controller
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('New update available! Force reloading...');
+                    // Automatically refresh the page to load the new cache
+                    window.location.reload();
                 }
+            });
+        });
+    });
+}
 
-                let deferredPrompt;
-                const installBtn = document.getElementById('installAppBtn');
+let deferredPrompt;
+const installBtn = document.getElementById('installAppBtn');
 
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    deferredPrompt = e;
-                    installBtn.style.display = 'block';
-                });
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+});
 
-                installBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        deferredPrompt = null;
-                        installBtn.style.display = 'none';
-                    }
-                });
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+    }
+});
 
-                window.addEventListener('appinstalled', () => {
-                    installBtn.style.display = 'none';
-                    deferredPrompt = null;
-                });
+window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    deferredPrompt = null;
+});
     </script>
 </body>
 </html>
