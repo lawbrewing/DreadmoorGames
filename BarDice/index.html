@@ -762,6 +762,13 @@
             const [round, setRound] = useState(1);
             const [message, setMessage] = useState("Welcome to Law Brewing!");
 
+            const [sessionStats, setSessionStats] = useState({
+                roundsSurvived: 0,
+                highestHandRank: 0,
+                potsWon: 0,
+                totalEarnings: 0
+            });
+
             const [playerDice, setPlayerDice] = useState([0, 0, 0, 0, 0]);
             const [heldDice, setHeldDice] = useState([false, false, false, false, false]);
             const [dicePhysics, setDicePhysics] = useState(Array(5).fill({x:0, y:0, rot:0}));
@@ -781,6 +788,30 @@
 
             useEffect(() => { playerDiceRef.current = playerDice; }, [playerDice]);
             useEffect(() => { opponentsRef.current = opponents; }, [opponents]);
+
+                const submitBarDiceScore = async (finalStats, finalRound) => {
+    let name = prompt("BAR CLOSED! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
+    if (!name) name = "ANONYMOUS";
+    const cleanName = name.trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
+
+    const payload = {
+        player_name: cleanName,
+        score: finalStats.totalEarnings, // Lifetime tips/cash earned as high score
+        level_reached: finalRound,
+        stats: finalStats
+    };
+
+    try {
+        await fetch('https://lawbrewing.tail03b2f1.ts.net/api/scores/bar_dice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log("Bar Dice telemetry saved to Dreadmoor API.");
+    } catch (err) {
+        console.error("Telemetry failed to send:", err);
+    }
+};
 
             useEffect(() => {
                 if (gameState === 'ROLLING') {
@@ -842,6 +873,13 @@
                 setRound(1);
                 setLastRoundRankings([]);
                 setRetiredPatronTypes([]);
+
+                setSessionStats({
+                    roundsSurvived: 0,
+                    highestHandRank: 0,
+                    potsWon: 0,
+                    totalEarnings: 0
+                });
 
                 const allPatronTypes = [...BASE_PATRON_TYPES];
                 const shuffled = allPatronTypes.sort(() => 0.5 - Math.random());
@@ -1116,61 +1154,78 @@
             };
 
             const determineWinner = (pHand, opps) => {
-                const safePHand = pHand || { rank: 1, value: 0 };
-                const safeOpps = opps.map(o => ({...o, hand: o.hand || {rank:1, value:0}}));
+    const safePHand = pHand || { rank: 1, value: 0 };
+    const safeOpps = opps.map(o => ({...o, hand: o.hand || {rank:1, value:0}}));
 
-                const allPlayers = [
-                    { id: 'player', name: 'You', hand: safePHand },
-                    ...safeOpps.map(o => ({ id: o.id, name: o.name, hand: o.hand, money: o.money, typeId: o.typeId }))
-                ];
+    const allPlayers = [
+        { id: 'player', name: 'You', hand: safePHand },
+        ...safeOpps.map(o => ({ id: o.id, name: o.name, hand: o.hand, money: o.money, typeId: o.typeId }))
+    ];
 
-                allPlayers.sort((a, b) => {
-                    if (b.hand.rank !== a.hand.rank) return b.hand.rank - a.hand.rank;
-                    return b.hand.value - a.hand.value;
-                });
+    allPlayers.sort((a, b) => {
+        if (b.hand.rank !== a.hand.rank) return b.hand.rank - a.hand.rank;
+        return b.hand.value - a.hand.value;
+    });
 
-                setLastRoundRankings(allPlayers);
+    setLastRoundRankings(allPlayers);
 
-                const loser = allPlayers[allPlayers.length - 1];
-                const winner = allPlayers[0];
-                const losingDrink = ROUND_DRINKS[Math.floor(Math.random() * ROUND_DRINKS.length)];
+    const loser = allPlayers[allPlayers.length - 1];
+    const winner = allPlayers[0];
+    const losingDrink = ROUND_DRINKS[Math.floor(Math.random() * ROUND_DRINKS.length)];
 
-                let msg = "";
-                let newFunds = funds;
+    let msg = "";
+    let newFunds = funds;
 
-                if (winner.id === 'player') {
-                    newFunds += pot;
-                    msg += `WINNER: You won the $${pot} Pot!`;
-                } else {
-                    const winnerPatron = opps.find(o => o.id === winner.id);
-                    setOpponents(prev => prev.map(o => o.id === winner.id ? { ...o, money: o.money + pot } : o));
-                    msg += `WINNER: ${winnerPatron.name} won the $${pot} Pot.`;
-                }
-                msg += `\n`;
+    // Track pot win & earnings
+    let wonPotThisRound = false;
+    let earningsThisRound = 0;
 
-                if (loser.id === 'player') {
-                    newFunds -= BUY_A_ROUND_COST;
-                    msg += `LOSER: You bought a round of ${losingDrink.name} (-$${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
-                } else {
-                    const loserPatron = opps.find(o => o.id === loser.id);
-                    const newPatronMoney = Math.max(0, loserPatron.money - BUY_A_ROUND_COST);
+    if (winner.id === 'player') {
+        newFunds += pot;
+        wonPotThisRound = true;
+        earningsThisRound = pot;
+        msg += `WINNER: You won the $${pot} Pot!`;
+    } else {
+        const winnerPatron = opps.find(o => o.id === winner.id);
+        setOpponents(prev => prev.map(o => o.id === winner.id ? { ...o, money: o.money + pot } : o));
+        msg += `WINNER: ${winnerPatron.name} won the $${pot} Pot.`;
+    }
+    msg += `\n`;
 
-                    setOpponents(prev => prev.map(o => o.id === loser.id ? { ...o, money: newPatronMoney } : o));
-                    msg += `LOSER: ${loserPatron.name} bought a round of ${losingDrink.name} ($${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
-                }
+    if (loser.id === 'player') {
+        newFunds -= BUY_A_ROUND_COST;
+        msg += `LOSER: You bought a round of ${losingDrink.name} (-$${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
+    } else {
+        const loserPatron = opps.find(o => o.id === loser.id);
+        const newPatronMoney = Math.max(0, loserPatron.money - BUY_A_ROUND_COST);
+        setOpponents(prev => prev.map(o => o.id === loser.id ? { ...o, money: newPatronMoney } : o));
+        msg += `LOSER: ${loserPatron.name} bought a round of ${losingDrink.name} ($${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
+    }
 
-                setPot(0);
+    // --- NEW: Update Stats ---
+    const updatedStats = {
+        roundsSurvived: sessionStats.roundsSurvived + 1,
+        highestHandRank: Math.max(sessionStats.highestHandRank, safePHand.rank),
+        potsWon: sessionStats.potsWon + (wonPotThisRound ? 1 : 0),
+        totalEarnings: sessionStats.totalEarnings + earningsThisRound
+    };
+    setSessionStats(updatedStats);
 
-                if (newFunds <= 0) {
-                    setMessage(`FINAL: ${msg} \n\n Womp. Womp. The House is out of money.`);
-                    setFunds(0);
-                    setTimeout(() => setGameState('GAME_OVER'), 4000);
-                } else {
-                    setFunds(newFunds);
-                    setMessage(msg);
-                    setGameState('ROUND_END');
-                }
-            };
+    setPot(0);
+
+    if (newFunds <= 0) {
+        setMessage(`FINAL: ${msg} \n\n Womp. Womp. The House is out of money.`);
+        setFunds(0);
+        setTimeout(() => {
+            setGameState('GAME_OVER');
+            submitBarDiceScore(updatedStats, round);
+        }, 3000);
+    } else {
+        setFunds(newFunds);
+        setMessage(msg);
+        setGameState('ROUND_END');
+    }
+};
 
             const toggleDie = (idx) => {
                 if (gameState !== 'ROLLING' || rollsLeft === 3 || turnOrder[currentTurnIndex] !== 'player') return;

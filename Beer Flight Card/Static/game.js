@@ -62,6 +62,14 @@ let kingTargetPlayerIdx = -1;
 let kingRevealedCard = null;
 let kingRevealedIdx = -1;
 
+let cardGameStats = {
+    matchesWon: 0,
+    shiftsWon: 0,
+    highestFlightScore: 0,
+    lastCallsTriggered: 0,
+    winningBonuses: 0
+};
+
 class Card {
     constructor(r, s) {
         this.r = r; this.s = s;
@@ -112,6 +120,13 @@ function startNewMatch() {
         let cName = CPU_NAMES[i] || `CPU ${i}`;
         players.push(new Player(i, 'CPU', cName));
     }
+    cardGameStats = {
+        matchesWon: 0,
+        shiftsWon: 0,
+        highestFlightScore: 0,
+        lastCallsTriggered: 0,
+        winningBonuses: 0
+    };
 
     updateMatchScoreBoard();
     startShift();
@@ -185,7 +200,11 @@ function startTurn(pIdx) {
 }
 
 function triggerLastCall() {
-    if(currentPlayerIndex === 0 && players[0].flight.length === 4) {
+    // Assuming your player is turnIndex 0
+    if (gameState.turnIndex === 0) {
+        cardGameStats.lastCallsTriggered++;
+    }
+    if (currentPlayerIndex === 0 && players[0].flight.length === 4) {
         lastCallCaller = 0;
         playSound('bell');
         log(`🔔 YOU CALLED LAST CALL!`);
@@ -623,31 +642,95 @@ function calcScore(f) {
     return s;
 }
 
+function checkQuadrupel(f) {
+    if (f.length !== 4) return false;
+    const ranks = f.map(c => c.r);
+    return new Set(ranks).size === 1;
+}
+
+function checkFullPour(f) {
+    if (f.length !== 4) return false;
+    const suits = f.map(c => c.s);
+    return new Set(suits).size === 1;
+}
+
+function checkHouseBlend(f) {
+    if (f.length !== 4) return false;
+    const colors = f.map(c => ['♥', '♦'].includes(c.s) ? 'red' : 'black');
+    return new Set(colors).size === 1;
+}
+
 function endShift() {
-    // BUG FIX: Sort a copy of the array so players[0] remains the human
-    let sortedPlayers = [...players].sort((a,b) => calcScore(b.flight) - calcScore(a.flight));
-    let winner = sortedPlayers[0];
-    
-    // INDIVIDUAL WIN UPDATE
-    winner.matchWins++;
+    let sortedPlayers = [...players].sort((a, b) => calcScore(b.flight) - calcScore(a.flight));
+    let shiftWinner = sortedPlayers[0];
+
+    // --- NEW: STAT TRACKING LOGIC ---
+    const humanPlayer = players[0];
+    const humanScore = calcScore(humanPlayer.flight);
+
+    // 1. Track Highest Flight Score
+    if (humanScore > cardGameStats.highestFlightScore) {
+        cardGameStats.highestFlightScore = humanScore;
+    }
+
+    // 2. Track Shifts Won & Bonuses (Only if Human Won the Shift)
+    if (shiftWinner.id === humanPlayer.id) {
+        cardGameStats.shiftsWon++;
+
+        if (checkQuadrupel(humanPlayer.flight) ||
+            checkFullPour(humanPlayer.flight) ||
+            checkHouseBlend(humanPlayer.flight)) {
+            cardGameStats.winningBonuses++;
+        }
+    }
+    // ---------------------------------
+
+    shiftWinner.matchWins++;
     updateMatchScoreBoard();
 
-    let msg = `SHIFT OVER\nWinner: ${winner.name} (${calcScore(winner.flight)})\n\n`;
+    let msg = `SHIFT OVER\nWinner: ${shiftWinner.name} (${calcScore(shiftWinner.flight)})\n\n`;
     msg += `MATCH SCORES:\n`;
     players.forEach(p => msg += `${p.name}: ${p.matchWins}\n`);
 
     // CHECK WIN CONDITION
-    if(winner.matchWins >= WIN_TARGET) {
-        setTimeout(() => { 
-            alert(`🏆 MATCH OVER 🏆\n\n${winner.name} WINS THE MATCH!`); 
-            goHome(); 
+    if (shiftWinner.matchWins >= WIN_TARGET) {
+        setTimeout(async () => {
+            const humanWonMatch = (shiftWinner.id === 0);
+
+            if (humanWonMatch) {
+                cardGameStats.matchesWon++;
+            }
+
+            let name = prompt(humanWonMatch ? "🏆 MATCH WON! Enter Patron ID:" : "💀 MATCH OVER! Enter Patron ID:", "ANONYMOUS");
+            const cleanName = (name || "ANONYMOUS").trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
+
+            // Score logic: (Shifts Won * 100) + Highest Single Flight Score
+            const finalScore = (cardGameStats.shiftsWon * 100) + cardGameStats.highestFlightScore;
+
+            try {
+                await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_card`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_name: cleanName,
+                        score: finalScore,
+                        level_reached: shiftWinner.matchWins, // Total shifts they won
+                        stats: cardGameStats
+                    })
+                });
+                console.log("Card game stats successfully submitted.");
+            } catch (e) {
+                console.error("Failed to post card game scores:", e);
+            }
+
+            goHome();
         }, 500);
     } else {
         // NEXT ROUND
-        setTimeout(() => { 
-            alert(msg + "\n\nClick OK for next shift."); 
+        setTimeout(() => {
+            alert(msg + "\n\nClick OK for next shift.");
             shiftStarterIndex = (shiftStarterIndex + 1) % players.length;
-            startShift(); 
+            startShift();
         }, 200);
     }
 }

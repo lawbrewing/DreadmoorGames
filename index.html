@@ -736,42 +736,113 @@
 
                             const bossSecs = (data.lifetime_boss_time_ms / 1000).toFixed(1);
 
+                            // Bar Dice Hand Mapping
+                            const handNames = ['N/A', 'Spilled Drink', 'Solo Cup', 'Double Fisted', 'Six Pack', 'Flight', 'Full Tab', 'Case of Beer', 'Keg Stand'];
+                            const bestHandStr = handNames[data.best_hand_rank || 0] || 'N/A';
+
+                            // Format Pour Time
+                            const pourSecs = data.record_fastest_pour ? (data.record_fastest_pour / 1000).toFixed(2) + 's' : '--';
+
+                            // Switch container from a generic grid to a full-width wrapper
+                            profileContent.className = 'w-full hidden';
+
                             profileContent.innerHTML = `
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Lifetime Score</div>
-                                    <div class="text-white font-mono text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
+                            <div class="flex flex-col gap-6 w-full">
+                                
+                                <!-- 1. GLOBAL OVERVIEW -->
+                                <div class="bg-[#18181b] border border-yellow-600/50 p-4 rounded-lg shadow-[0_0_15px_rgba(202,138,4,0.1)]">
+                                    <h4 class="font-display text-lg text-yellow-500 uppercase tracking-widest border-b border-yellow-900/50 pb-2 mb-3 text-center">Career Overview</h4>
+                                    <div class="grid grid-cols-3 gap-2 text-center">
+                                        <div class="bg-[#121214] p-3 rounded border border-zinc-800">
+                                            <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Lifetime Tips</div>
+                                            <div class="text-green-400 font-mono text-xl md:text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div class="bg-[#121214] p-3 rounded border border-zinc-800">
+                                            <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Total Shifts</div>
+                                            <div class="text-white font-mono text-xl md:text-2xl">${(data.shifts_worked || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div class="bg-[#121214] p-3 rounded border border-zinc-800 overflow-hidden">
+                                            <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Most Played</div>
+                                            <div class="text-yellow-500 font-display text-xs md:text-sm tracking-wider uppercase mt-1 truncate px-1">${data.favorite_game || "None"}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Best Score</div>
-                                    <div class="text-red-500 font-mono text-2xl">${(data.high_score || 0).toLocaleString()}</div>
+
+                                <!-- 2. ARCADE HIGH SCORES -->
+                                <div class="bg-[#18181b] border border-zinc-700 p-4 rounded-lg">
+                                    <h4 class="font-display text-lg text-white uppercase tracking-widest border-b border-zinc-700 pb-2 mb-3 text-center">Arcade High Scores</h4>
+                                    <div class="grid grid-cols-3 gap-2 text-center">
+                                        <div>
+                                            <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Defender</div>
+                                            <div class="text-red-400 font-mono text-lg">${(data.defender_high_score || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Law On Tap</div>
+                                            <div class="text-red-400 font-mono text-lg">${(data.law_on_tap_high_score || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Chaos</div>
+                                            <div class="text-red-400 font-mono text-lg">${(data.chaos_high_score || 0).toLocaleString()}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Total Shifts</div>
-                                    <div class="text-white font-mono text-2xl">${data.shifts_worked || 0}</div>
+
+                                <!-- 3. GAME ANALYTICS GRID -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    
+                                    <!-- Defender -->
+                                    <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                        <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Defender</h5>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Swills Shot:</span> <span class="text-white font-mono">${(data.lifetime_swills || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Boss Time:</span> <span class="text-white font-mono">${bossSecs}s</span></div>
+                                        <div class="flex justify-between text-sm"><span class="text-gray-400">Flights Completed:</span> <span class="text-white font-mono">${(data.lifetime_flights || 0).toLocaleString()}</span></div>
+                                    </div>
+
+                                    <!-- Law On Tap -->
+                                    <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                        <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Law On Tap</h5>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Record Streak:</span> <span class="text-white font-mono">${data.record_longest_streak || 0}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Fastest Pour:</span> <span class="text-white font-mono">${pourSecs}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Mixed Pours:</span> <span class="text-white font-mono">${(data.lifetime_mixed_pours || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm"><span class="text-gray-400">Judge Flights:</span> <span class="text-white font-mono">${(data.lifetime_judge_flights || 0).toLocaleString()}</span></div>
+                                    </div>
+
+                                    <!-- Taproom Chaos -->
+                                    <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                        <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Taproom Chaos</h5>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Shifts Cleared:</span> <span class="text-white font-mono">${(data.lifetime_shifts_cleared || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Max Merges:</span> <span class="text-white font-mono">${data.record_combo_merges || 0}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Perfect Serves:</span> <span class="text-white font-mono">${(data.lifetime_perfect_serves || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm"><span class="text-gray-400">Glasses Smashed:</span> <span class="text-red-500 font-mono">${(data.lifetime_glasses_smashed || 0).toLocaleString()}</span></div>
+                                    </div>
+
+                                    <!-- Bar Dice -->
+                                    <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                        <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Bar Dice</h5>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Rounds Survived:</span> <span class="text-white font-mono">${(data.lifetime_rounds_survived || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Pots Won:</span> <span class="text-white font-mono">${(data.lifetime_pots_won || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Earnings:</span> <span class="text-green-400 font-mono">$${(data.lifetime_dice_earnings || 0).toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-sm items-center"><span class="text-gray-400">Best Hand:</span> <span class="text-yellow-500 font-display tracking-wider text-[10px] mt-1 uppercase">${bestHandStr}</span></div>
+                                    </div>
+
+                                    <!-- The Taproom (Cards) -->
+                                    <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg md:col-span-2">
+                                        <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">The Taproom (Cards)</h5>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Matches Won:</span> <span class="text-white font-mono">${(data.lifetime_matches_won || 0).toLocaleString()}</span></div>
+                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Shifts Won:</span> <span class="text-white font-mono">${(data.lifetime_shifts_won || 0).toLocaleString()}</span></div>
+                                            </div>
+                                            <div>
+                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Bonus Hands:</span> <span class="text-white font-mono">${(data.lifetime_winning_bonuses || 0).toLocaleString()}</span></div>
+                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Best Score:</span> <span class="text-white font-mono">${(data.best_flight_score || 0).toLocaleString()}</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                 </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Swills Shot</div>
-                                    <div class="text-white font-mono text-2xl">${(data.lifetime_swills || 0).toLocaleString()}</div>
-                                </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Boss Time</div>
-                                    <div class="text-white font-mono text-2xl">${bossSecs}s</div>
-                                </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                    <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Flights Served</div>
-                                    <div class="text-white font-mono text-2xl">${(data.lifetime_flights || 0).toLocaleString()}</div>
-                                </div>
-                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded text-center">
-                                <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Flights Served</div>
-                                <div class="text-white font-mono text-2xl">${(data.lifetime_flights || 0).toLocaleString()}</div>
-                                </div>
-                    
-                                <!-- NEW: Favorite Game Row -->
-                                <div class="bg-[#121214] border border-red-900/30 p-4 rounded text-center col-span-2 md:col-span-3 mt-2">
-                                <div class="text-gray-500 font-display text-xs tracking-widest uppercase mb-2">Most Played Title</div>
-                                <div class="text-red-500 font-display text-2xl tracking-widest uppercase">${data.favorite_game || "UNKNOWN"}</div>
-                                </div>
-                            `;
+                            </div>
+                        `;
 
                             profileContent.classList.remove('hidden');
 
