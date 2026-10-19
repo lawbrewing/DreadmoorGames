@@ -1411,7 +1411,7 @@ class Game {
                 if (this.leaderboard.topScores === null) {
                     ctx.textAlign = "center"; ctx.fillText("Loading scores...", WORLD.w / 2, 400);
                 } else if (this.leaderboard.topScores.length > 0) {
-                    this.leaderboard.topScores.forEach((entry, i) => {
+                    this.leaderboard.topScores.slice(0, 10).forEach((entry, i) => {
                         const name = entry.player ? entry.player.name : "???"; ctx.textAlign = "left";
                         ctx.fillText(`${entry.rank}. ${name}`, WORLD.w / 2 - 200, 320 + (i * 55));
                         ctx.textAlign = "right"; ctx.fillText(entry.score, WORLD.w / 2 + 200, 320 + (i * 55));
