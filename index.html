@@ -697,7 +697,7 @@
 
                         try {
                             const fetches = gamesList.map(game =>
-                                fetch(`${API_BASE}/leaderboard/${game.id}`)
+                                fetch(`${API_BASE}/leaderboard/${game.id}?t=${Date.now()}`, { cache: "no-store" })
                                     .then(res => res.ok ? res.json() : [])
                                     .catch(() => [])
                             );
@@ -779,7 +779,7 @@
                         }, 10);
 
                         try {
-                            const response = await fetch(`${API_BASE}/player/${cleanName}`);
+                            const response = await fetch(`${API_BASE}/player/${cleanName}?t=${Date.now()}`, { cache: "no-store" });
                             if (!response.ok) throw new Error("Network error");
 
                             const data = await response.json();
