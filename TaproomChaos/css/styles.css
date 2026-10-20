@@ -7,7 +7,7 @@
 
 body {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh; /* FIXED: Dynamic Viewport Height prevents URL bar cutoff */
     background-color: #09090b; /* Dreadmoor dark theme */
     display: flex;
     justify-content: center;
@@ -15,6 +15,8 @@ body {
     overflow: hidden;
     font-family: 'Inter', sans-serif;
     color: #f4f4f5;
+    touch-action: none; /* FIXED: Prevents mobile pull-to-refresh and panning */
+    padding-bottom: env(safe-area-inset-bottom); /* FIXED: Keeps UI above the mobile Home swipe bar */
 }
 
 /* Gritty overlay inherited from the Library */
@@ -36,6 +38,7 @@ body {
     max-width: 100%;
     max-height: 100%;
     aspect-ratio: 16 / 9;
+    object-fit: contain; /* FIXED: Ensures perfect letterboxing, never cropping */
     /* The bar napkin color for the background before assets load */
     background-color: #f4e8d1;
     box-shadow: 0 0 30px rgba(220, 38, 38, 0.15); /* Slight red Dreadmoor glow */

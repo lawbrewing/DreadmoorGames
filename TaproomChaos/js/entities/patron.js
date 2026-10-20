@@ -193,13 +193,16 @@ class Patron {
 
             case PATRON_STATE.ENTER:
                 this.handleWalking(dt, allPatrons);
-                if (this.waypoints.length === 0 && this.y >= 460) {
-                    this.y = 460;
+                // FIXED: If they have no waypoints left, they arrived. Stop moving!
+                if (this.waypoints.length === 0) {
                     this.setState(PATRON_STATE.IDLE);
                 }
                 break;
 
             case PATRON_STATE.IDLE:
+                // FIXED: Lock the animation frame to 0 so their legs stop walking in place!
+                this.animFrame = 0;
+
                 this.currentPatience -= dt;
                 if (this.currentPatience <= 0) {
                     this.setState(PATRON_STATE.ANGRY);
@@ -211,34 +214,49 @@ class Patron {
     handleWalking(dt, allPatrons) {
         let dx = this.targetX - this.x;
         let dy = this.targetY - this.y;
-        let speedMod = 1.0;
+        let distance = Math.hypot(dx, dy);
 
+        // ARRIVAL THRESHOLD
+        if (distance < 5) {
+            this.x = this.targetX;
+            this.y = this.targetY;
+            if (this.waypoints.length > 0) {
+                this.waypoints.shift(); // Remove the point we just reached
+                if (this.waypoints.length > 0) {
+                    // Set next target if one exists
+                    this.targetX = this.waypoints[0].x;
+                    this.targetY = this.waypoints[0].y;
+                }
+            }
+            return; // We arrived, exit this frame
+        }
+
+        let speedMod = 1.0;
+        let pushX = 0;
+
+        // 2. SOFT CROWD CONTROL (Fixes the traffic jams)
         for (let other of allPatrons) {
             if (other.id === this.id || !other.active || other.currentState === PATRON_STATE.EXIT) continue;
+
             const distToOther = Math.hypot(this.x - other.x, this.y - other.y);
-            if (distToOther < 55 && this.y <= other.y + 10) {
-                speedMod = 0.15;
+
+            // Reduced collision radius to 45 so they don't bump as easily
+            if (distToOther < 45 && this.y <= other.y + 5) {
+                speedMod = 0.6; // Only slow down to 60% speed, don't paralyze them
                 let pushDir = this.x > other.x ? 1 : -1;
                 if (this.x === other.x) pushDir = Math.random() > 0.5 ? 1 : -1;
-                this.x += (pushDir * 25) * dt;
+                pushX += pushDir * 40 * dt; // Smoothly slide sideways
             }
         }
 
-        const distance = Math.hypot(dx, dy);
-        if (distance > 2) {
-            this.x += (dx / distance) * (this.speed * speedMod) * dt;
-            this.y += (dy / distance) * (this.speed * speedMod) * dt;
+        // Apply movement vector + the sideways crowd slide
+        this.x += ((dx / distance) * (this.speed * speedMod) * dt) + pushX;
+        this.y += (dy / distance) * (this.speed * speedMod) * dt;
 
-            const angle = Math.atan2(dy, dx);
-            let octant = Math.round(8 * angle / (2 * Math.PI) + 8) % 8;
-            const directionMap = ['RIGHT', 'DOWN_RIGHT', 'DOWN', 'DOWN_LEFT', 'LEFT', 'UP_LEFT', 'UP', 'UP_RIGHT'];
-            this.facing = directionMap[octant];
-        } else if (this.waypoints.length > 1) {
-            this.waypoints.shift();
-            this.targetX = this.waypoints[0].x;
-            this.targetY = this.waypoints[0].y;
-        } else {
-            this.waypoints = [];
-        }
+        // Face the direction of movement
+        const angle = Math.atan2(dy, dx);
+        let octant = Math.round(8 * angle / (2 * Math.PI) + 8) % 8;
+        const directionMap = ['RIGHT', 'DOWN_RIGHT', 'DOWN', 'DOWN_LEFT', 'LEFT', 'UP_LEFT', 'UP', 'UP_RIGHT'];
+        this.facing = directionMap[octant];
     }
 }

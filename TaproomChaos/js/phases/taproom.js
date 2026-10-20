@@ -139,17 +139,27 @@ class TaproomPhase {
         const destX = (w * 0.15) + Math.random() * (w * 0.7);
         const destY = 480 + (Math.random() * 30);
 
-        let path = []; let startX, startY;
+        // --- Inside spawnPatron() ---
+        let path = [];
+        let startX, startY;
         const useSideDoor = Math.random() < 0.2;
 
         if (useSideDoor) {
-            startX = w - 90; startY = 240;
-            path = (destX < w * 0.5) ? [{ x: w - 160, y: 340 }, { x: w * 0.45, y: 420 }, { x: destX, y: destY }] : [{ x: w - 160, y: 380 }, { x: destX, y: destY }];
+            // Enter from the side door and walk straight down
+            startX = w - 90;
+            startY = 240;
+            path = [
+                { x: w - 160, y: 320 },
+                { x: destX, y: destY }
+            ];
         } else {
-            startX = w / 2; startY = 130;
-            if (destX < w * 0.4) path = [{ x: (w / 2) - 40, y: 170 }, { x: 230, y: 250 }, { x: destX, y: 420 }, { x: destX, y: destY }];
-            else if (destX > w * 0.6) path = [{ x: (w / 2) + 40, y: 180 }, { x: w - 230, y: 340 }, { x: destX, y: 420 }, { x: destX, y: destY }];
-            else path = [{ x: (w / 2) + (Math.random() * 40 - 20), y: 220 }, { x: destX, y: destY }];
+            // Enter from the front door and walk directly to their bar stool
+            startX = w / 2;
+            startY = 130;
+            path = [
+                { x: (w / 2) + (Math.random() * 80 - 40), y: 220 }, // Step inside
+                { x: destX, y: destY } // B-line straight for the beer
+            ];
         }
 
         const patron = new Patron(startX, startY, rosterKey, { ...config, speed: config.speed ? config.speed * 1.5 : 35 });
