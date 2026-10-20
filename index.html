@@ -793,8 +793,9 @@
                             const bossSecs = (data.lifetime_boss_time_ms / 1000).toFixed(1);
 
                             // Bar Dice Hand Mapping
-                            const handNames = ['N/A', 'Spilled Drink', 'Solo Cup', 'Double Fisted', 'Six Pack', 'Flight', 'Full Tab', 'Case of Beer', 'Keg Stand'];
-                            const bestHandStr = handNames[data.best_hand_rank || 0] || 'N/A';
+                            // Bar Dice Hand Mapping
+const handNames = ['N/A', 'Spilled Drink', 'Solo Cup', 'Double Fisted', 'Six Pack', 'Flight', 'Full Tab', 'Case of Beer', 'Keg Stand'];
+const bestHandStr = handNames[data.record_highest_hand || 0] || 'N/A';
 
                             // Format Pour Time
                             const pourSecs = data.record_fastest_pour ? (data.record_fastest_pour / 1000).toFixed(2) + 's' : '--';
