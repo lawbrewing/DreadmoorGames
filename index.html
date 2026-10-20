@@ -839,7 +839,7 @@ const bestHandStr = handNames[data.record_highest_hand || 0] || 'N/A';
                                         </div>
                                         <div>
                                             <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Chaos</div>
-                                            <div class="text-red-400 font-mono text-lg">${(data.chaos_high_score || 0).toLocaleString()}</div>
+                                            <div class="text-red-400 font-mono text-lg">${(data.taproom_chaos_high_score || 0).toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -892,7 +892,7 @@ const bestHandStr = handNames[data.record_highest_hand || 0] || 'N/A';
                                             </div>
                                             <div>
                                                 <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Bonus Hands:</span> <span class="text-white font-mono">${(data.lifetime_winning_bonuses || 0).toLocaleString()}</span></div>
-                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Best Score:</span> <span class="text-white font-mono"<span class="text-white font-mono">${(data.record_flight_score || 0).toLocaleString()}</span>${(data.best_flight_score || 0).toLocaleString()}</span></div>
+                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Best Score:</span> <span class="text-white font-mono">${(data.record_flight_score || 0).toLocaleString()}</span></div>
                                             </div>
                                         </div>
                                     </div>
