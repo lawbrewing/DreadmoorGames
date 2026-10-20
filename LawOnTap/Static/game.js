@@ -1247,10 +1247,13 @@ class Game {
                                         score: row.score
                                     }));
                                 })
+
                                 .catch(e => {
                                     console.error("Failed to fetch leaderboard:", e);
                                     this.leaderboard.topScores = [];
                                 });
+                        } else if (pos.y >= 840 && pos.y <= 930) {
+                            window.location.href = '../index.html';
                         }
                     }
                 }

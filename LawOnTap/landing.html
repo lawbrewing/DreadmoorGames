@@ -251,7 +251,7 @@
         </div>
     </div>
 
-    <!-- LootLocker & Modal Logic -->
+    <!-- Local API Leaderboard Logic -->
     <script>
                 async function openLeaderboard() {
                     const modal = document.getElementById('leaderboardModal');
@@ -262,80 +262,49 @@
                     document.body.style.overflow = 'hidden';
                     modal.style.display = 'flex';
                     loadingText.style.display = 'block';
-                    loadingText.innerText = "Loading scores...";
+                    loadingText.innerText = "Accessing Mainframe...";
                     list.innerHTML = '';
 
-                    const gameKey = "dev_acdf056df19c4541b2c45db4424aa16f";
-                    const leaderboardID = "36366";
-
                     try {
-                        // Grab the updated key
-                        let localPlayerId = "";
-                        if (typeof window !== "undefined" && window.localStorage) {
-                            localPlayerId = window.localStorage.getItem("ll_player_identifier") || "";
-                        }
-
-                        const payload = {
-                            game_key: gameKey,
-                            game_version: "1.0.0"
-                        };
-
-                        if (localPlayerId !== "") {
-                            payload.player_identifier = localPlayerId;
-                        }
-
-                        const authRes = await fetch("https://api.lootlocker.io/game/v2/session/guest", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(payload)
+                        // Fetch live data from your Raspberry Pi API with a cache-buster
+                        const scoreRes = await fetch("https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=" + Date.now(), {
+                            cache: "no-store"
                         });
 
-                        const authData = await authRes.json();
+                        if (!scoreRes.ok) throw new Error("Network response was not ok");
 
-                        if (authData.session_token) {
-                            if (typeof window !== "undefined" && window.localStorage) {
-                                window.localStorage.setItem("ll_player_identifier", authData.player_identifier);
+                        const scoreData = await scoreRes.json();
+                        loadingText.style.display = 'none';
+
+                        if (scoreData && scoreData.length > 0) {
+                            let htmlString = "";
+
+                            // Limit to top 10 scores
+                            const topScores = scoreData.slice(0, 10);
+
+                            for (let i = 0; i < topScores.length; i++) {
+                                const entry = topScores[i];
+                                const name = entry.player_name ? entry.player_name : "???";
+                                const rank = i + 1;
+                                const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+
+                                htmlString += `
+                                    <div class="score-row" style="padding: 8px;">
+                                        <span style="color:#ffcc00; width: 40px; text-align: left;">${rankDisplay}</span>
+                                        <span style="flex-grow:1; text-align:left; margin-left:10px; color:#fff;">
+                                            ${name}
+                                        </span>
+                                        <span style="font-weight: bold; color: #ffcc00;">${entry.score.toLocaleString()}</span>
+                                    </div>
+                                `;
                             }
-
-                            const scoreRes = await fetch("https://api.lootlocker.io/game/leaderboards/" + leaderboardID + "/list?count=10", {
-                                method: "GET",
-                                headers: { "Content-Type": "application/json", "x-session-token": authData.session_token }
-                            });
-
-                            const scoreData = await scoreRes.json();
-                            loadingText.style.display = 'none';
-
-                            if (scoreData.items && scoreData.items.length > 0) {
-                                let htmlString = "";
-
-                                for (let i = 0; i < scoreData.items.length; i++) {
-                                    const entry = scoreData.items[i];
-                                    const name = (entry.player && entry.player.name) ? entry.player.name : "???";
-
-                                    // Highlight self and assign podium medals
-                                    const isSelf = (entry.member_id === authData.player_id.toString() || entry.member_id === authData.player_identifier);
-                                    const rankDisplay = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}.`;
-
-                                    htmlString += `
-                                        <div class="score-row" style="padding: 8px; ${isSelf ? 'background: rgba(255, 204, 0, 0.15); border-color: #ffcc00;' : ''}">
-                                            <span style="color:#ffcc00; width: 40px; text-align: left;">${rankDisplay}</span>
-                                            <span style="flex-grow:1; text-align:left; margin-left:10px; ${isSelf ? 'color:#ffcc00; font-weight:bold;' : ''}">
-                                                ${name} ${isSelf ? '(YOU)' : ''}
-                                            </span>
-                                            <span style="font-weight: bold; color: ${isSelf ? '#ffcc00' : '#fff'};">${entry.score}</span>
-                                        </div>
-                                    `;
-                                }
-                                list.innerHTML = htmlString;
-                            } else {
-                                list.innerHTML = "<div class='score-row' style='justify-content:center; border:none; margin-top: 20px;'>No scores yet!</div>";
-                            }
+                            list.innerHTML = htmlString;
                         } else {
-                            loadingText.innerText = "Connection failed.";
+                            list.innerHTML = "<div class='score-row' style='justify-content:center; border:none; margin-top: 20px; color: #aaa;'>No records found.</div>";
                         }
                     } catch (err) {
-                        console.error(err);
-                        loadingText.innerText = "Error loading scores.";
+                        console.error("Leaderboard Fetch Error:", err);
+                        loadingText.innerText = "Mainframe offline.";
                     }
                 }
 
