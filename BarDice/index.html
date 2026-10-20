@@ -441,7 +441,7 @@
 </head>
 <body>
     <div id="root"><div class="loading-text">Loading Law Brewing Bar Dice...</div></div>
-
+    <audio id="bgm" src="Inheriting_the_Sea.mp3" loop preload="auto"></audio>
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
@@ -869,6 +869,8 @@
             };
 
             const initializeGame = () => {
+                const bgm = document.getElementById('bgm');
+                if (bgm) { bgm.volume = 0.4; bgm.play().catch(e => console.log("Audio play blocked", e)); }
                 setFunds(HOUSE_START_MONEY);
                 setRound(1);
                 setLastRoundRankings([]);
@@ -1214,17 +1216,24 @@
     setPot(0);
 
     if (newFunds <= 0) {
-        setMessage(`FINAL: ${msg} \n\n Womp. Womp. The House is out of money.`);
-        setFunds(0);
-        setTimeout(() => {
-            setGameState('GAME_OVER');
-            submitBarDiceScore(updatedStats, round);
-        }, 3000);
-    } else {
-        setFunds(newFunds);
-        setMessage(msg);
-        setGameState('ROUND_END');
-    }
+            setMessage(`FINAL: ${msg} \n\n Womp. Womp. You're Broke'.`);
+            setFunds(0);
+
+            // Wait 3 seconds so the player can read the message, THEN ask for the name
+            setTimeout(() => {
+                submitBarDiceScore(updatedStats, round);
+
+                // Stop the music when the game is over
+                const bgm = document.getElementById('bgm');
+                if (bgm) bgm.pause();
+
+                setGameState('GAME_OVER');
+            }, 3000);
+        } else {
+            setFunds(newFunds);
+            setMessage(msg);
+            setGameState('ROUND_END');
+        }
 };
 
             const toggleDie = (idx) => {
