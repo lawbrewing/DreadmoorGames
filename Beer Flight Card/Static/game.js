@@ -65,7 +65,7 @@ let kingRevealedIdx = -1;
 let cardGameStats = {
     matchesWon: 0,
     shiftsWon: 0,
-    bestFlightScore: 0,
+    highestFlightScore: 0,
     lastCallsTriggered: 0,
     winningBonuses: 0
 };
@@ -123,7 +123,7 @@ function startNewMatch() {
     cardGameStats = {
         matchesWon: 0,
         shiftsWon: 0,
-        bestFlightScore: 0,
+        highestFlightScore: 0,
         lastCallsTriggered: 0,
         winningBonuses: 0
     };
@@ -669,8 +669,8 @@ function endShift() {
     const humanScore = calcScore(humanPlayer.flight);
 
     // 1. Track Highest Flight Score
-    if (humanScore > cardGameStats.bestFlightScore) {
-        cardGameStats.bestFlightScore = humanScore;
+    if (humanScore > cardGameStats.highestFlightScore) {
+        cardGameStats.highestFlightScore = humanScore;
     }
 
     // 2. Track Shifts Won & Bonuses (Only if Human Won the Shift)
@@ -705,7 +705,7 @@ function endShift() {
             const cleanName = (name || "ANONYMOUS").trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
 
             // Score logic: (Shifts Won * 100) + Highest Single Flight Score
-            const finalScore = (cardGameStats.shiftsWon * 100) + cardGameStats.bestFlightScore;
+            const finalScore = (cardGameStats.shiftsWon * 100) + cardGameStats.highestFlightScore;
 
             try {
                 await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_card`, {
