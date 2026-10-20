@@ -75,7 +75,7 @@ let SPRITE_DATA = {
     },
     mix_pours: {
         fillTweaks: [
-            { x: 70, y: -60 },
+            { x: 10, y: -60 },
             { x: 122, y: -60 },
             { x: 0, y: 0 }
         ]
@@ -1481,7 +1481,6 @@ class Game {
         ctx.imageSmoothingEnabled = false;
     }
 }
-
 function loadImages() {
     let loaded = 0; let failed = 0;
     const keys = Object.keys(ASSETS_PATHS);
