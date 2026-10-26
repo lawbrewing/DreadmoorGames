@@ -1,5 +1,3 @@
-// js/core/renderer.js
-
 class GameRenderer {
     constructor(canvas, ctx) {
         this.canvas = canvas;
@@ -10,394 +8,337 @@ class GameRenderer {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    // --- TAPROOM RENDERING (SEASONAL & ARCHITECTURAL OVERHAUL) ---
+    // --- AUTO-CONVERT TOP-LEFT HUD INTO A SLIDING DRAWER ---
+    setupSlidingHud() {
+        if (this.hudInitialized) return;
+        this.hudInitialized = true;
+
+        const candidates = document.querySelectorAll('div, section, aside');
+        let hudEl = null;
+        for (const el of candidates) {
+            if (el.children.length > 0 && el.innerText && el.innerText.includes('ON TAP') && el.offsetWidth < 500 && el.offsetTop < 100) {
+                hudEl = el;
+            }
+        }
+        if (!hudEl) return;
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .taproom-sliding-hud {
+                transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease !important;
+                transform: translateX(calc(-100% + 36px));
+                opacity: 0.88;
+                padding-right: 42px !important;
+                cursor: pointer;
+                z-index: 50;
+            }
+            .taproom-sliding-hud:hover,
+            .taproom-sliding-hud.hud-pinned {
+                transform: translateX(0) !important;
+                opacity: 0.98;
+            }
+            .taproom-hud-tab {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 32px;
+                background: rgba(220, 38, 38, 0.9);
+                color: #fff;
+                font-family: 'Oswald', sans-serif;
+                font-size: 12px;
+                font-weight: bold;
+                letter-spacing: 1.5px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                writing-mode: vertical-rl;
+                text-orientation: mixed;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                user-select: none;
+            }
+        `;
+        document.head.appendChild(style);
+
+        if (getComputedStyle(hudEl).position === 'static') {
+            hudEl.style.position = 'absolute';
+        }
+        hudEl.classList.add('taproom-sliding-hud');
+
+        const tab = document.createElement('div');
+        tab.className = 'taproom-hud-tab';
+        tab.textContent = 'ON TAP ▸';
+        hudEl.appendChild(tab);
+
+        hudEl.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+            hudEl.classList.toggle('hud-pinned');
+            tab.textContent = hudEl.classList.contains('hud-pinned') ? 'ON TAP ◂' : 'ON TAP ▸';
+        });
+    }
+
+    // --- CUSTOM NEON SIGN RENDERER (Shrunk & Aligned) ---
+    drawNeonSign(state, signX, signY, signScale = 0.18) {
+        if (!this.neonSignImg) {
+            this.neonSignImg = new Image();
+            this.neonSignImg.src = 'assets/sprites/BarProps/lawbrewhollow.png';
+        }
+        const signAsset = this.neonSignImg;
+        if (!signAsset.complete || signAsset.naturalWidth === 0) return;
+
+        const ctx = this.ctx;
+        ctx.save();
+
+        const drawW = signAsset.naturalWidth * signScale;
+        const drawH = signAsset.naturalHeight * signScale;
+
+        const patrons = state.patrons || state.entities || state.customers || [];
+        let activeColor = "rgba(255, 204, 0, 1)";
+        if (state.isGameOver) {
+            activeColor = "rgba(100, 0, 0, 1)";
+        } else if (patrons.some(c => c.type === 'judge' || c.rosterKey === 'judge')) {
+            activeColor = "rgba(255, 51, 51, 1)";
+        } else if (state.lives !== undefined && state.lives <= 1) {
+            activeColor = "rgba(255, 102, 0, 1)";
+        } else if (state.combo !== undefined && state.combo >= 3) {
+            activeColor = "rgba(0, 255, 102, 1)";
+        }
+
+        let flicker = Math.random() > 0.02 ? 1.0 : 0.4;
+        if (state.isGameOver) {
+            flicker = Math.random() > 0.1 ? 0.2 : 0.6;
+        }
+
+        const pulse = 0.7 + (Math.sin(Date.now() / 200) * 0.15);
+        const finalAlpha = flicker * pulse;
+
+        ctx.globalCompositeOperation = "screen";
+        const glowGrad = ctx.createRadialGradient(signX, signY, 8, signX, signY, drawW * 0.8);
+        glowGrad.addColorStop(0, activeColor);
+        glowGrad.addColorStop(0.5, activeColor.replace(', 1)', ', 0.3)'));
+        glowGrad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = glowGrad;
+        ctx.globalAlpha = finalAlpha * 0.6;
+        ctx.beginPath();
+        ctx.arc(signX, signY, drawW * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = finalAlpha;
+        ctx.shadowColor = activeColor;
+        ctx.shadowBlur = 25 * pulse;
+        ctx.drawImage(signAsset, signX - drawW / 2, signY - drawH / 2, drawW, drawH);
+        ctx.restore();
+    }
+
+    // --- TAPROOM RENDERING (FINAL PERFECTED ALIGNMENT) ---
     drawTaproom(state) {
+        if (typeof this.setupSlidingHud === 'function') {
+            this.setupSlidingHud();
+        }
+
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
-        const barY = 550;
         const time = Date.now() / 1000;
 
-        const isBossRound = typeof progressionState !== 'undefined' && progressionState.isBossRound();
-        const season = (typeof progressionState !== 'undefined' && progressionState.forecast && progressionState.forecast.season)
-            ? progressionState.forecast.season.toLowerCase()
-            : 'summer';
+        if (typeof spriteManager === 'undefined' || !spriteManager.isLoaded) return;
 
-        // --- 1. 3D ROOM ARCHITECTURE ---
-        const horizonY = 140;
-        const leftWallEdge = 180;
-        const rightWallEdge = w - 180;
+        // 1. PROGRESSION TIER
+        const currentYear = state.year || 1;
+        const currentShift = state.shift || 1;
+        const season = (state.season || 'spring').toLowerCase();
+        const unlockedKettles = (typeof playerState !== 'undefined' && playerState.unlockedKettles) ? playerState.unlockedKettles : 1;
+        const isBossRound = Boolean(state.isBossRound);
+
+        const progressionScore = (currentYear - 1) * 2 + Math.floor((currentShift - 1) / 2) + (unlockedKettles - 1);
+        const venueTier = Math.min(3, Math.max(1, 1 + progressionScore));
+
+        let floorKey = 'floor_dark_bar';
+        let wallKey = 'wall_brick_bar';
+        if (venueTier === 2 || season === 'fall') {
+            floorKey = 'floor_wood_restaurant';
+            wallKey = 'wall_wainscot_restaurant';
+        } else if (venueTier >= 3 || season === 'summer') {
+            floorKey = 'floor_tile_cafe_pattern';
+            wallKey = 'wall_cream_cafe';
+        }
 
         ctx.fillStyle = '#18181b';
-        ctx.fillRect(leftWallEdge, 0, rightWallEdge - leftWallEdge, horizonY);
+        ctx.fillRect(0, 0, w, h);
 
-        ctx.fillStyle = '#131316';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(leftWallEdge, 0); ctx.lineTo(leftWallEdge, horizonY); ctx.lineTo(0, barY); ctx.fill();
-        ctx.fillStyle = '#0f0f11';
-        ctx.beginPath(); ctx.moveTo(w, 0); ctx.lineTo(rightWallEdge, 0); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.fill();
+        ctx.imageSmoothingEnabled = false;
 
-        const doorW = 120; const doorH = 100;
-        const doorX = (w / 2) - (doorW / 2); const doorY = 40;
-
-        ctx.fillStyle = '#291509'; ctx.fillRect(doorX, doorY, doorW, doorH);
-        ctx.strokeStyle = '#0c0a09'; ctx.lineWidth = 4; ctx.strokeRect(doorX, doorY, doorW, doorH);
-        ctx.beginPath(); ctx.moveTo(w / 2, doorY); ctx.lineTo(w / 2, doorY + doorH); ctx.stroke();
-        ctx.fillStyle = '#a1a1aa'; ctx.fillRect(doorX + 15, doorY + 50, 30, 6); ctx.fillRect((w / 2) + 15, doorY + 50, 30, 6);
-
-        ctx.fillStyle = '#291509';
-        ctx.beginPath(); ctx.moveTo(w - 120, 160); ctx.lineTo(w - 40, 240); ctx.lineTo(w - 40, 420); ctx.lineTo(w - 120, 310); ctx.fill();
-        ctx.strokeStyle = '#0c0a09'; ctx.lineWidth = 5; ctx.stroke();
-        ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.arc(w - 100, 260, 4, 0, Math.PI * 2); ctx.fill();
-
-        const winW = 160; const winH = 80; const winY = 30;
-        const leftWinX = doorX - winW - 30; const rightWinX = doorX + doorW + 30;
-
-        ctx.fillStyle = '#0f172a'; ctx.fillRect(leftWinX, winY, winW, winH); ctx.fillRect(rightWinX, winY, winW, winH);
-        ctx.strokeStyle = '#27272a'; ctx.lineWidth = 6;
-        [leftWinX, rightWinX].forEach(wx => {
-            ctx.strokeRect(wx, winY, winW, winH);
-            ctx.beginPath(); ctx.moveTo(wx + (winW / 2), winY); ctx.lineTo(wx + (winW / 2), winY + winH); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(wx, winY + (winH / 2)); ctx.lineTo(wx + winW, winY + (winH / 2)); ctx.stroke();
-        });
-
-        // --- 2. WEATHER & GLOBAL WALL DECORATIONS ---
-        ctx.save();
-        ctx.beginPath(); ctx.rect(leftWinX, winY, winW, winH); ctx.rect(rightWinX, winY, winW, winH); ctx.clip();
-        if (season === 'summer') {
-            ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, w, horizonY);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.beginPath(); ctx.arc(leftWinX + (winW / 2) + Math.sin(time) * 20, winY + (winH / 2), 30, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(rightWinX + (winW / 2) + Math.sin(time) * 20, winY + (winH / 2), 30, 0, Math.PI * 2); ctx.fill();
-        } else if (season === 'storm' || season === 'rain') {
-            ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, w, horizonY);
-            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; ctx.lineWidth = 1.5;
-            for (let i = 0; i < 30; i++) {
-                const rx = ((i * 40 + time * 300) % w);
-                const ry = ((i * 15 + time * 400) % 100);
-                ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 10, ry + 20); ctx.stroke();
-            }
-        } else if (season === 'fall' || season === 'oktoberfest') {
-            const fallGrad = ctx.createLinearGradient(0, winY, 0, winY + winH);
-            fallGrad.addColorStop(0, '#ea580c'); fallGrad.addColorStop(1, '#7c2d12');
-            ctx.fillStyle = fallGrad; ctx.fillRect(0, 0, w, horizonY);
-        } else if (season === 'winter' || season === 'holiday') {
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, horizonY);
-            ctx.fillStyle = '#ffffff';
-            for (let i = 0; i < 40; i++) {
-                const sx = ((i * 30 + Math.sin(time + i) * 15) % w);
-                const sy = ((i * 30 + time * 60) % 100) + 10;
-                ctx.beginPath(); ctx.arc(sx, sy, Math.random() * 2 + 1, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-        ctx.restore();
-
-        if (season === 'summer') {
-            ctx.strokeStyle = '#27272a'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(0, 20); ctx.quadraticCurveTo(w / 2, 100, w, 40); ctx.stroke();
-            ctx.fillStyle = '#fef08a';
-            for (let i = 1; i < 10; i++) {
-                const lx = (w / 10) * i; const ly = 20 + Math.sin(i / 3.1) * 35;
-                ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
-                ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-            }
-        } else if (season === 'fall' || season === 'oktoberfest') {
-            ctx.fillStyle = '#b91c1c';
-            for (let i = leftWallEdge; i < rightWallEdge; i += 60) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 30, 40); ctx.lineTo(i + 60, 0); ctx.fill();
-                ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.stroke();
+        // Draw Tiled Floor
+        const floorImg = spriteManager.images[floorKey] || spriteManager.images['floor_dark_bar'];
+        if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
+            for (let y = -100; y < h + 200; y += 109) {
+                for (let x = -200; x < w + 200; x += 175) {
+                    ctx.drawImage(floorImg, Math.floor(x), Math.floor(y));
+                }
             }
         }
 
-        ctx.save();
-        ctx.font = 'bold 22px "Rye", serif'; ctx.textAlign = 'center';
-        const neonColor = isBossRound ? '#ef4444' : '#4ade80';
-        ctx.shadowColor = neonColor; ctx.shadowBlur = 15 + Math.sin(time * 8) * 5;
-        ctx.fillStyle = neonColor; ctx.fillText("LAW BREWING", w / 2, 25);
-        ctx.restore();
-
-        // --- 3. 3D TRUE-PERSPECTIVE FLOOR ---
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(leftWallEdge, horizonY);
-        ctx.lineTo(rightWallEdge, horizonY);
-        ctx.lineTo(w, barY);
-        ctx.lineTo(0, barY);
-        ctx.closePath();
-        ctx.clip();
-
-        const floorGrad = ctx.createLinearGradient(0, horizonY, 0, barY);
-        floorGrad.addColorStop(0, '#09090b');
-        floorGrad.addColorStop(1, '#291509');
-        ctx.fillStyle = floorGrad;
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'; ctx.lineWidth = 4;
-        const vpX = w / 2;
-        for (let i = -3000; i < w + 3000; i += 160) {
-            ctx.beginPath(); ctx.moveTo(vpX, horizonY); ctx.lineTo(i, barY); ctx.stroke();
+        // Draw Back Wall
+        const wallImg = spriteManager.images[wallKey] || spriteManager.images['wall_brick_bar'];
+        if (wallImg && wallImg.complete && wallImg.naturalWidth > 0) {
+            for (let x = -100; x < w + 200; x += 180) {
+                ctx.drawImage(wallImg, Math.floor(x), -15);
+            }
         }
 
-        if (season === 'winter' || season === 'holiday') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            [[doorX + 20, 160], [doorX + 50, 190], [doorX + 30, 230], [w - 100, 340], [w - 140, 370]].forEach(([fx, fy]) => {
-                ctx.beginPath(); ctx.ellipse(fx, fy, 6, 12, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
-            });
+        // Rear Entrance Door
+        const doorImg = spriteManager.images['door_entrance_glass_wood_frame'];
+        if (doorImg && doorImg.complete && doorImg.naturalWidth > 0) {
+            ctx.drawImage(doorImg, Math.floor((w / 2) - (doorImg.width / 2)), -15);
         }
-        ctx.restore();
 
-        // --- 4. AMBIENT LIGHTING OVERLAY ---
+        ctx.imageSmoothingEnabled = true;
+
+        // Draw Shrunk Law Brewing Neon Sign (Cleanly scaled and positioned)
+        this.drawNeonSign(state, 305, 175, 0.18);
+
+        // 2. AMBIENT FLOOR LIGHTING
+        const stageX = 255;
+        const stageY = 295;
+        const ovenX = w - 235;
+        const ovenY = 275;
+
         ctx.save();
-        ctx.globalCompositeOperation = 'multiply';
-        if (isBossRound) {
-            ctx.fillStyle = '#4c0519'; ctx.beginPath(); ctx.moveTo(leftWallEdge, horizonY); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.lineTo(0, barY); ctx.fill();
-        } else {
-            let ambient = '#ffffff';
-            if (season === 'summer') ambient = '#fef08a';
-            if (season === 'storm') ambient = '#cbd5e1';
-            if (season === 'fall') ambient = '#fed7aa';
-            if (season === 'winter') ambient = '#bae6fd';
-            ctx.fillStyle = ambient;
-            ctx.beginPath(); ctx.moveTo(leftWallEdge, horizonY); ctx.lineTo(rightWallEdge, horizonY); ctx.lineTo(w, barY); ctx.lineTo(0, barY); ctx.fill();
-        }
+        ctx.globalCompositeOperation = 'screen';
+
+        const ovenGlow = ctx.createRadialGradient(ovenX - 15, ovenY - 10, 8, ovenX - 15, ovenY - 10, 115);
+        ovenGlow.addColorStop(0, `rgba(251, 146, 60, ${0.42 + Math.sin(time * 6) * 0.08})`);
+        ovenGlow.addColorStop(0.5, 'rgba(234, 88, 12, 0.18)');
+        ovenGlow.addColorStop(1, 'rgba(234, 88, 12, 0)');
+        ctx.fillStyle = ovenGlow;
+        ctx.beginPath(); ctx.ellipse(ovenX - 15, ovenY - 10, 115, 58, 0, 0, Math.PI * 2); ctx.fill();
+
+        const stagePulse = 0.38 + Math.sin(time * 4) * 0.08;
+        const stageGlow = ctx.createRadialGradient(stageX, stageY - 15, 10, stageX, stageY - 15, 135);
+        stageGlow.addColorStop(0, `rgba(192, 132, 252, ${stagePulse})`);
+        stageGlow.addColorStop(0.55, `rgba(56, 189, 248, ${stagePulse * 0.55})`);
+        stageGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = stageGlow;
+        ctx.beginPath(); ctx.ellipse(stageX, stageY - 15, 135, 68, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // --- 5. DYNAMIC SEASONAL PROPS & DEPTH-SORTED RENDERING ---
+        // 3. PERFECTLY ALIGNED U-COUNTERS & ZONES
+        // dx: 92, dy: -42 locks the front rails and join seams flush
+        const beerBaseX = 245;
+        const beerBaseY = 650;
+        const cafeBaseX = w - 245;
+        const cafeBaseY = 650;
+
         let roomProps = [
-            // FIXED: renderY = -1 ensures the dance floor draws under ALL patrons so nobody goes transparent!
-            { type: 'dance_floor', x: 960, y: 380, width: 340, height: 160, renderY: -1 },
-            { type: 'pool_table', x: 350, y: 320, width: 220, height: 120 },
-            { type: 'dartboard', x: 1040, y: 100, width: 40, height: 50 }
+            // --- ZONE A: STAGE & JUKEBOX ---
+            { type: 'stage_small_lights', x: stageX, y: stageY, scale: 0.88 },
+            { type: 'jukebox', x: stageX + 130, y: stageY - 30, scale: 0.78 },
+
+            // --- ZONE B: KITCHEN & SHELF ---
+            { type: 'bookshelf_wall_cafe', x: (w / 2) + 205, y: 205, scale: 0.76 },
+            { type: 'pizza_oven_brick', x: ovenX, y: ovenY, scale: 0.85, flipX: true },
+
+            // --- ZONE C: LOUNGE ---
+            { type: 'lamp_floor_rattan', x: 115, y: 420, scale: 0.78 },
+            { type: venueTier >= 2 ? 'booth_sofa_double' : 'booth_leather', x: 235, y: 435, scale: 0.84 },
+
+            // --- ZONE D: GAME FLOOR ---
+            { type: 'pool_table', x: w / 2, y: 420, scale: 0.88 },
+
+            // --- ZONE E: LEFT BEER BAR (Flushed U-Shape) ---
+            { type: 'bar_counter_straight', x: beerBaseX + 92, y: beerBaseY - 42, scale: 0.90, flipX: false },
+            { type: 'bar_counter_corner', x: beerBaseX, y: beerBaseY, scale: 0.90, flipX: false },
+            { type: 'beer_tap_tower', x: beerBaseX + 72, y: beerBaseY - 96, renderY: beerBaseY + 2, scale: 0.74 },
+            { type: 'beer_mugs_group', x: beerBaseX - 5, y: beerBaseY - 65, renderY: beerBaseY + 3, scale: 0.45 },
+
+            // --- ZONE F: RIGHT COFFEE BAR (Flushed U-Shape) ---
+            { type: 'bar_counter_straight', x: cafeBaseX - 92, y: cafeBaseY - 42, scale: 0.90, flipX: true },
+            { type: 'bar_counter_corner', x: cafeBaseX, y: cafeBaseY, scale: 0.90, flipX: true },
+            { type: 'espresso_machine_commercial', x: cafeBaseX - 75, y: cafeBaseY - 94, renderY: cafeBaseY + 2, scale: 0.62, flipX: false },
+            { type: 'macaron_tower', x: cafeBaseX - 10, y: cafeBaseY - 72, renderY: cafeBaseY + 3, scale: 0.44 },
+            { type: 'grinder_coffee', x: cafeBaseX + 32, y: cafeBaseY - 58, renderY: cafeBaseY + 4, scale: 0.42 },
+
+            // --- ZONE G: HANGING PLANTS ---
+            { type: 'plant_hanging_rope_pot', x: 115, y: 165, scale: 0.68, renderY: 9999 },
+            { type: 'plant_hanging_rope_pot', x: w - 115, y: 165, scale: 0.68, renderY: 9999 }
         ];
 
-        if (season === 'storm' || season === 'rain') {
-            roomProps.push({ type: 'coat_rack', x: leftWallEdge - 40, y: 220, width: 40, height: 120 });
-            roomProps.push({ type: 'egret_statue', x: w * 0.6, y: 170, width: 40, height: 90 });
-        } else if (season === 'summer') {
-            roomProps.push({ type: 'chalk_board', x: leftWallEdge + 20, y: 190, width: 60, height: 80 });
-            roomProps.push({ type: 'fan', x: 80, y: 350, width: 50, height: 100 });
-        } else if (season === 'winter' || season === 'holiday') {
-            roomProps.push({ type: 'pine_tree', x: leftWallEdge - 20, y: 200, width: 120, height: 180 });
-            roomProps.push({ type: 'wood_stove', x: w - 100, y: 250, width: 80, height: 120 });
+        // 4. MID-RIGHT CAFE DINING ZONE
+        if (venueTier >= 3) {
+            roomProps.push({ type: 'table_family_long', x: w - 235, y: 410, scale: 0.82 });
+            roomProps.push({ type: 'cake_display_case_curved', x: w - 415, y: cafeBaseY - 82, renderY: cafeBaseY - 40, scale: 0.76 });
+        } else {
+            roomProps.push({ type: 'table_cafe_small_round', x: w - 235, y: 405, scale: 0.82 });
+            roomProps.push({ type: 'chair_wood_cafe', x: w - 295, y: 397, scale: 0.78, flipX: false });
+            roomProps.push({ type: 'chair_wood_cafe', x: w - 175, y: 411, scale: 0.78, flipX: true });
         }
 
-        const renderables = [
-            ...state.patrons.map(p => ({ ...p, isPatron: true, renderY: p.y || 0 })),
-            // Map the prop renderY correctly (Dance floor is forced to -1)
-            ...roomProps.map(prop => ({ ...prop, isProp: true, renderY: prop.renderY !== undefined ? prop.renderY : prop.y + (prop.height / 2) }))
-        ].sort((a, b) => a.renderY - b.renderY);
+        // 5. MERGE & DEPTH-SORT RENDERABLES
+        let renderables = [];
+        roomProps.forEach(p => { p.isProp = true; renderables.push(p); });
 
+        const activePatrons = state.patrons || state.entities || state.customers || [];
+        activePatrons.forEach(p => { p.isProp = false; renderables.push(p); });
+
+        renderables.sort((a, b) => (a.renderY || a.y) - (b.renderY || b.y));
+
+        // 6. UNIFIED RENDER LOOP
         renderables.forEach(item => {
             if (item.isProp) {
                 ctx.globalAlpha = 1.0;
+                const propImg = spriteManager.images[item.type];
 
-                if (item.type === 'pool_table') {
+                if (propImg && propImg.complete && propImg.naturalWidth > 0) {
+                    const pScale = item.scale || 1.0;
+                    const drawW = propImg.width * pScale;
+                    const drawH = propImg.height * pScale;
+
                     ctx.save();
                     ctx.translate(item.x, item.y);
-                    ctx.scale(1, 0.5); // SQUASH Y-AXIS: Forces the table to lie flat on the floor
 
-                    const hw = item.width / 2;
-                    const hh = item.height / 2;
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.42)';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetY = 5;
 
-                    // 1. Floor Shadow
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                    ctx.beginPath(); ctx.ellipse(0, 40, hw + 10, hh + 10, 0, 0, Math.PI * 2); ctx.fill();
-
-                    // 2. Thick Wooden Legs (Drawn on the floor)
-                    ctx.fillStyle = '#1c1917';
-                    ctx.fillRect(-hw + 15, 0, 16, 70);
-                    ctx.fillRect(hw - 30, 0, 16, 70);
-                    ctx.fillStyle = '#0c0a09'; // Back legs (darker)
-                    ctx.fillRect(-hw + 25, -hh + 10, 14, 70);
-                    ctx.fillRect(hw - 40, -hh + 10, 14, 70);
-
-                    // 3. Elevate the Tabletop 40px into the air!
-                    const tableZ = 40;
-                    ctx.translate(0, -tableZ);
-
-                    // Under-cabinet siding
-                    ctx.fillStyle = '#291509';
-                    ctx.beginPath(); ctx.roundRect(-hw, -hh + 10, item.width, item.height, 8); ctx.fill();
-
-                    // Top Wooden Frame (Outer Edge)
-                    ctx.fillStyle = '#451a03';
-                    ctx.beginPath(); ctx.roundRect(-hw, -hh, item.width, item.height, 8); ctx.fill();
-                    ctx.strokeStyle = '#78350f'; ctx.lineWidth = 6;
-                    ctx.stroke();
-
-                    // NEW: Inner Recessed Lip (Gives the rails 3D depth)
-                    ctx.fillStyle = '#271206';
-                    ctx.beginPath(); ctx.roundRect(-hw + 12, -hh + 12, item.width - 24, item.height - 24, 4); ctx.fill();
-
-                    // Green Felt
-                    ctx.fillStyle = '#064e3b';
-                    ctx.beginPath(); ctx.roundRect(-hw + 16, -hh + 16, item.width - 32, item.height - 32, 2); ctx.fill();
-
-                    // NEW: Felt Drop Shadow (Makes the rails cast a shadow onto the play surface)
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                    ctx.lineWidth = 4;
-                    ctx.stroke();
-
-                    // 6 Pockets
-                    ctx.fillStyle = '#09090b';
-                    [-hw + 16, 0, hw - 16].forEach(hx => {
-                        [-hh + 16, hh - 16].forEach(hy => {
-                            ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill();
-                            // Metallic accent on the pocket edges
-                            ctx.strokeStyle = '#52525b';
-                            ctx.lineWidth = 1.5;
-                            ctx.beginPath(); ctx.arc(hx, hy, 9, Math.PI, 0); ctx.stroke();
-                        });
-                    });
-
-                    // Scattered Balls
-                    const colors = ['#ef4444', '#3b82f6', '#facc15', '#a855f7', '#f8fafc', '#10b981', '#f97316', '#09090b'];
-                    for (let i = 0; i < 8; i++) {
-                        const bx = (Math.sin(i * 123) * (hw - 40));
-                        const by = (Math.cos(i * 321) * (hh - 30));
-
-                        // NEW: Draw ball shadow on the felt
-                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                        ctx.beginPath();
-                        ctx.ellipse(bx + 2, by + 4, 5, 2.5, 0, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // NEW: Counter-Scale and Radial Light
-                        ctx.save();
-                        ctx.translate(bx, by);
-                        ctx.scale(1, 2); // UN-SQUASH the Y-axis so balls are perfect circles!
-
-                        const bGrad = ctx.createRadialGradient(-1.5, -1.5, 0.5, 0, 0, 4);
-                        bGrad.addColorStop(0, '#ffffff'); // Specular light reflection
-                        bGrad.addColorStop(0.3, colors[i % colors.length]); // Base ball color
-                        bGrad.addColorStop(1, '#000000'); // Shadowed bottom edge
-
-                        ctx.fillStyle = bGrad;
-                        ctx.beginPath();
-                        ctx.arc(0, -2, 4.5, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Force one ball to be the stark white Cue ball
-                        if (i === 4) {
-                            const cbGrad = ctx.createRadialGradient(-1.5, -1.5, 0.5, 0, 0, 4.5);
-                            cbGrad.addColorStop(0, '#ffffff');
-                            cbGrad.addColorStop(1, '#94a3b8');
-                            ctx.fillStyle = cbGrad;
-                            ctx.beginPath(); ctx.arc(0, -2, 4.5, 0, Math.PI * 2); ctx.fill();
-                        }
-                        ctx.restore();
+                    if (item.flipX) {
+                        ctx.scale(-1, 1);
                     }
+
+                    ctx.drawImage(propImg, -drawW / 2, -drawH, drawW, drawH);
                     ctx.restore();
-                }
-                else if (item.type === 'dance_floor') {
-                    ctx.save();
-                    ctx.translate(item.x, item.y);
-                    ctx.scale(1, 0.45); // Fake 3D perspective
-                    ctx.rotate(Math.PI / 4);
-
-                    // FIXED: Bigger, classier Polished Marble Parquet
-                    const tiles = 8;
-                    const tSize = 35;
-                    const offset = (tiles * tSize) / 2;
-
-                    // Gold trim
-                    ctx.fillStyle = '#d97706';
-                    ctx.fillRect(-offset - 4, -offset - 4, (tiles * tSize) + 8, (tiles * tSize) + 8);
-
-                    for (let r = 0; r < tiles; r++) {
-                        for (let c = 0; c < tiles; c++) {
-                            const isDark = (r + c) % 2 === 0;
-                            ctx.fillStyle = isDark ? '#18181b' : '#27272a'; // Black/Charcoal Marble
-                            ctx.fillRect(r * tSize - offset, c * tSize - offset, tSize, tSize);
-
-                            // Subtle polish reflection
-                            ctx.fillStyle = 'rgba(255,255,255,0.03)';
-                            ctx.beginPath(); ctx.moveTo(r * tSize - offset, c * tSize - offset);
-                            ctx.lineTo(r * tSize - offset + tSize, c * tSize - offset);
-                            ctx.lineTo(r * tSize - offset, c * tSize - offset + tSize); ctx.fill();
-                        }
-                    }
-                    ctx.restore();
-                }
-                else if (item.type === 'dartboard') {
-                    // FIXED: Moved to the right wall so the HUD doesn't block it
-                    ctx.fillStyle = '#78350f'; // Wood cabinet
-                    ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
-                    ctx.fillStyle = '#000000'; // Board base
-                    ctx.beginPath(); ctx.arc(item.x, item.y, item.width / 2 - 2, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#f8fafc'; // White ring
-                    ctx.beginPath(); ctx.arc(item.x, item.y, item.width / 2 - 6, 0, Math.PI * 2); ctx.stroke();
-                    ctx.fillStyle = '#ef4444'; // Red bullseye
-                    ctx.beginPath(); ctx.arc(item.x, item.y, 3, 0, Math.PI * 2); ctx.fill();
-                }
-                else if (item.type === 'coat_rack') {
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - 4, item.y - item.height / 2, 8, item.height);
-                    ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2 + 10); ctx.lineTo(item.x - 20, item.y); ctx.lineTo(item.x + 20, item.y + 10); ctx.fill();
-                }
-                else if (item.type === 'egret_statue') {
-                    ctx.fillStyle = '#f4f4f5'; ctx.beginPath(); ctx.ellipse(item.x, item.y, 15, 20, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(item.x + 5, item.y - 10); ctx.lineTo(item.x + 10, item.y - 40); ctx.lineWidth = 6; ctx.strokeStyle = '#f4f4f5'; ctx.stroke();
-                    ctx.beginPath(); ctx.arc(item.x + 10, item.y - 40, 8, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.moveTo(item.x + 18, item.y - 40); ctx.lineTo(item.x + 30, item.y - 38); ctx.lineTo(item.x + 18, item.y - 36); ctx.fill();
-                    ctx.fillStyle = '#713f12'; ctx.fillRect(item.x - 20, item.y + 15, 40, 10);
-                }
-                else if (item.type === 'chalk_board') {
-                    ctx.fillStyle = '#78350f'; ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
-                    ctx.fillStyle = '#1c1917'; ctx.fillRect(item.x - item.width / 2 + 4, item.y - item.height / 2 + 4, item.width - 8, item.height - 16);
-                    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(item.x - 10, item.y - 10); ctx.lineTo(item.x + 10, item.y - 15); ctx.stroke();
-                    ctx.strokeStyle = '#38bdf8'; ctx.beginPath(); ctx.moveTo(item.x - 15, item.y); ctx.lineTo(item.x + 5, item.y + 5); ctx.stroke();
-                }
-                else if (item.type === 'fan') {
-                    ctx.fillStyle = '#3f3f46'; ctx.fillRect(item.x - 4, item.y, 8, item.height / 2);
-                    ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.arc(item.x, item.y - 10, 20, 0, Math.PI * 2); ctx.fill();
-                    ctx.save(); ctx.translate(item.x, item.y - 10); ctx.rotate(Math.sin(time * 3) * 0.5);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
-                    ctx.restore();
-                }
-                else if (item.type === 'pine_tree') {
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(item.x, item.y + item.height / 2, item.width / 2.5, 15, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#14532d';
-                    ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2); ctx.lineTo(item.x - item.width / 2, item.y + item.height / 2); ctx.lineTo(item.x + item.width / 2, item.y + item.height / 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(item.x, item.y - item.height / 2 - 40); ctx.lineTo(item.x - item.width / 2.5, item.y + item.height / 4); ctx.lineTo(item.x + item.width / 2.5, item.y + item.height / 4); ctx.fill();
-                    ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.arc(item.x - 20, item.y + 40, 10, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(item.x - 24, item.y + 38, 4, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#ef4444';
-                    for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(item.x - 30 + Math.random() * 60, item.y - 60 + Math.random() * 120, 3, 0, Math.PI * 2); ctx.fill(); }
-                }
-                else if (item.type === 'wood_stove') {
-                    ctx.fillStyle = '#18181b'; ctx.fillRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
-                    ctx.fillStyle = '#3f3f46'; ctx.fillRect(item.x - item.width / 2 + 10, item.y - item.height / 2 + 20, item.width - 20, item.height - 40);
-                    ctx.fillStyle = '#ea580c'; ctx.globalAlpha = 0.8 + Math.sin(time * 10) * 0.2;
-                    ctx.fillRect(item.x - item.width / 2 + 15, item.y - item.height / 2 + 60, item.width - 30, item.height - 85);
-                    ctx.globalAlpha = 1.0;
-                    ctx.fillRect(item.x - 6, item.y - item.height / 2 - 40, 12, 40);
                 }
             } else {
-                // --- DRAW PATRONS ---
-                const px = item.x || 0; const py = item.y || 0;
-                let scale = 1.6 + (py / h) * 1.0;
+                // --- DRAW PATRONS & CRAVING SPEECH BUBBLES ---
+                const px = item.x || 0;
+                const py = item.y || 0;
+                let scale = 1.55 + (py / h) * 0.95;
                 if (item.rosterKey === 'kid') scale *= 0.65;
 
-                const drawW = 64 * scale; const drawH = 64 * scale;
+                const drawW = 64 * scale;
+                const drawH = 64 * scale;
                 const patronConfig = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[item.rosterKey] : null;
-
                 const patronAlpha = item.alpha !== undefined ? item.alpha : 1.0;
 
                 if (patronConfig && patronConfig.isBoss) {
-                    ctx.save(); ctx.globalCompositeOperation = 'screen';
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
                     ctx.globalAlpha = patronAlpha;
                     const aura = ctx.createRadialGradient(px, py, 0, px, py, drawW * 1.2);
-                    aura.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); aura.addColorStop(1, 'rgba(239, 68, 68, 0)');
-                    ctx.fillStyle = aura; ctx.beginPath(); ctx.ellipse(px, py, drawW * 1.2, drawH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.moveTo((w / 2) - 40, 140); ctx.lineTo((w / 2) + 40, 140); ctx.lineTo(px + drawW * 0.8, py); ctx.lineTo(px - drawW * 0.8, py); ctx.fill();
+                    aura.addColorStop(0, 'rgba(239, 68, 68, 0.5)');
+                    aura.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                    ctx.fillStyle = aura;
+                    ctx.beginPath(); ctx.ellipse(px, py, drawW * 1.2, drawH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
                     ctx.restore();
                 }
 
                 ctx.globalAlpha = patronAlpha;
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)'; ctx.beginPath(); ctx.ellipse(px, py, drawW * 0.35, 10 * scale, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                ctx.beginPath(); ctx.ellipse(px, py, drawW * 0.35, 10 * scale, 0, 0, Math.PI * 2); ctx.fill();
 
-                const drawX = px - (drawW / 2); const drawY = py - drawH;
-
+                const drawX = px - (drawW / 2);
+                const drawY = py - drawH;
                 if (typeof spriteManager !== 'undefined' && spriteManager.isLoaded && item.rosterKey) {
                     let spriteState = item.spriteRow || 'walk';
                     let dir = item.facing || 'DOWN';
@@ -409,19 +350,16 @@ class GameRenderer {
                     if (spriteState === 'slash') maxFrames = 6;
                     if (spriteState === 'shoot') maxFrames = 13;
 
-                    let frame = rawFrame % maxFrames;
-
                     ctx.save();
                     ctx.translate(drawX, drawY);
                     ctx.scale(scale, scale);
-                    ctx.globalAlpha = item.alpha !== undefined ? item.alpha : 1;
-
-                    spriteManager.drawSprite(ctx, item.rosterKey, spriteState, dir, frame, 0, 0);
+                    ctx.globalAlpha = patronAlpha;
+                    spriteManager.drawSprite(ctx, item.rosterKey, spriteState, dir, rawFrame % maxFrames, 0, 0);
                     ctx.restore();
                 }
 
-                const bubbleY = drawY - (18 * scale);
-                let styleLookup = "premium";
+                const bubbleY = drawY - (14 * scale);
+                let styleLookup = 'premium';
                 if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
                 else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
 
@@ -435,36 +373,32 @@ class GameRenderer {
                 else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { bubbleColor = '#38bdf8'; hintIcon = '🥤'; }
                 else if (styleLookup.includes('cocktail')) { bubbleColor = '#c084fc'; hintIcon = '🍸'; }
 
-                const bubbleSize = Math.max(30, 20 * scale);
+                const bubbleSize = Math.max(28, 18 * scale);
                 ctx.globalAlpha = patronAlpha;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'; ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(px - 6, bubbleY - 2); ctx.lineTo(px + 6, bubbleY - 2); ctx.lineTo(px, bubbleY + 8); ctx.closePath(); ctx.fill();
-                ctx.strokeStyle = bubbleColor; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 8); ctx.closePath(); ctx.stroke();
-                ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(px - 5, bubbleY - 2); ctx.lineTo(px + 5, bubbleY - 2); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = bubbleColor; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.stroke();
+                ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
 
                 ctx.globalAlpha = 1.0;
             }
         });
 
-        // --- 6. THE BAR & FOREGROUND ---
-        const barGrad = ctx.createLinearGradient(0, barY, 0, h);
-        barGrad.addColorStop(0, '#291509'); barGrad.addColorStop(1, '#0c0a09');
-        ctx.fillStyle = barGrad; ctx.fillRect(0, barY, w, h - barY);
-        ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(0, barY, w, 20);
+        // 7. COMPACT SHIFT TIMER
+        const timeLeft = Math.max(0, Math.ceil(state.timeRemaining || state.timeLeft || 0));
+        ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+        ctx.beginPath(); ctx.roundRect((w / 2) - 65, 8, 130, 34, 8); ctx.fill();
+        ctx.strokeStyle = isBossRound ? '#ef4444' : '#dc2626';
+        ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 18px Oswald'; ctx.textAlign = 'center';
+        ctx.fillText(`SHIFT: ${timeLeft}s`, w / 2, 31);
 
-        let ledColor = '#facc15';
-        if (isBossRound) ledColor = `rgba(239, 68, 68, ${0.5 + Math.sin(time * 5) * 0.5})`;
-        else if (season === 'summer') ledColor = '#38bdf8';
-        else if (season === 'storm') ledColor = '#c084fc';
-        else if (season === 'fall') ledColor = '#ea580c';
-        else if (season === 'winter') ledColor = '#4ade80';
-
-        ctx.shadowColor = ledColor; ctx.shadowBlur = 15; ctx.fillStyle = ledColor; ctx.fillRect(0, barY + 22, w, 4); ctx.shadowBlur = 0;
-        ctx.fillStyle = '#b45309'; ctx.fillRect(0, barY + 70, w, 8);
-        ctx.fillStyle = '#fde68a'; ctx.fillRect(0, barY + 71, w, 2);
-
-        // --- 7. PROJECTILES ---
-        state.projectiles.forEach(p => {
+        // 8. PROJECTILES
+        (state.projectiles || []).forEach(p => {
             const px = p.x || 0; const py = p.y || 0; const pz = p.z || 0;
             const r = p.radius || 15; const renderY = py - pz;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
@@ -484,14 +418,14 @@ class GameRenderer {
             ctx.arc(px + r * 0.4, renderY - r, r * 0.45, 0, Math.PI * 2); ctx.fill();
         });
 
-        // --- 8. FOREGROUND AIMING & UI ---
-        if (state.isAiming) {
+        // 9. AIMING LINE, FLOATING TEXT, PARTICLES & DARTS
+        if (state.isAiming && state.aimStart && state.aimCurrent) {
             ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)'; ctx.lineWidth = 4; ctx.setLineDash([10, 10]);
             ctx.beginPath(); ctx.moveTo(state.aimStart.x, state.aimStart.y); ctx.lineTo(state.aimCurrent.x, state.aimCurrent.y); ctx.stroke();
             ctx.setLineDash([]);
         }
 
-        state.floatingTexts.forEach(ft => {
+        (state.floatingTexts || []).forEach(ft => {
             ctx.save(); ctx.fillStyle = ft.color; ctx.globalAlpha = ft.alpha;
             ctx.font = 'bold 28px Oswald'; ctx.textAlign = 'center';
             ctx.strokeStyle = '#000000'; ctx.lineWidth = 4;
@@ -499,43 +433,32 @@ class GameRenderer {
             ctx.restore();
         });
 
-        // --- 9. PARTICLE EFFECTS (Coins!) ---
-        if (state.particles) {
-            state.particles.forEach(p => {
-                ctx.save();
-                ctx.globalAlpha = Math.min(1, p.life * 1.5);
-                if (p.type === 'coin') {
-                    ctx.fillStyle = '#facc15';
-                    ctx.beginPath();
-                    const spinWidth = 8 * Math.abs(Math.sin(p.life * 15));
-                    ctx.ellipse(p.x, p.y, Math.max(1, spinWidth), 8, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
-                }
-                ctx.restore();
-            });
-        }
+        (state.particles || []).forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, p.life * 1.5);
+            if (p.type === 'coin') {
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                const spinWidth = 8 * Math.abs(Math.sin(p.life * 15));
+                ctx.ellipse(p.x, p.y, Math.max(1, spinWidth), 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
+            }
+            ctx.restore();
+        });
 
-        // --- 10. FLYING DARTS ---
-        if (state.darts) {
-            state.darts.forEach(d => {
-                const currentX = d.x + (d.targetX - d.x) * d.progress;
-                const currentY = d.y + (d.targetY - d.y) * d.progress;
-
-                ctx.save();
-                ctx.translate(currentX, currentY);
-                ctx.rotate(-Math.PI / 8);
-
-                ctx.fillStyle = '#cbd5e1';
-                ctx.fillRect(-8, 0, 8, 2);
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(0, -1, 10, 4);
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(16, -4); ctx.lineTo(16, 6); ctx.closePath(); ctx.fill();
-
-                ctx.restore();
-            });
-        }
+        (state.darts || []).forEach(d => {
+            const currentX = d.x + (d.targetX - d.x) * d.progress;
+            const currentY = d.y + (d.targetY - d.y) * d.progress;
+            ctx.save();
+            ctx.translate(currentX, currentY);
+            ctx.rotate(-Math.PI / 8);
+            ctx.fillStyle = '#cbd5e1'; ctx.fillRect(-8, 0, 8, 2);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, -1, 10, 4);
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(16, -4); ctx.lineTo(16, 6); ctx.closePath(); ctx.fill();
+            ctx.restore();
+        });
     }
 
     // --- BREWING RENDERING ---
@@ -1095,35 +1018,35 @@ class GameRenderer {
                 { bgTop: '#1e3a8a', bgBot: '#0f172a', border: '#60a5fa', icon: '#93c5fd' }, // L2: Tap (Standard Blue)
                 { bgTop: '#0369a1', bgBot: '#082f49', border: '#38bdf8', icon: '#7dd3fc' }, // L3: Filtered (Crisp Sky)
                 { bgTop: '#0e7490', bgBot: '#083344', border: '#22d3ee', icon: '#a5f3fc' }, // L4: Soft (Bright Cyan Glow)
-                { bgTop: '#312e81', bgBot: '#1e1b4b', border: '#818cf8', icon: '#c7d2fe' }  // L5: Hard (Deep Mineral Indigo)
+                { bgTop: '#312e81', bgBot: '#1e1b4b', border: '#818cf8', icon: '#c7d2fe' }  // L5: Hard (Deep Mineral Indigo)
             ],
             'Grain': [
                 { bgTop: '#422006', bgBot: '#1c1917', border: '#fde047', icon: '#fef08a' }, // L1: Wheat Malt
                 { bgTop: '#713f12', bgBot: '#271c19', border: '#facc15', icon: '#eab308' }, // L2: Maris Otter
                 { bgTop: '#78350f', bgBot: '#291509', border: '#f59e0b', icon: '#d97706' }, // L3: Pilsen Malt
                 { bgTop: '#7c2d12', bgBot: '#2a1208', border: '#fb923c', icon: '#b45309' }, // L4: Pale Malt
-                { bgTop: '#451a03', bgBot: '#1c0a00', border: '#f97316', icon: '#9a3412' }  // L5: Brewers Malt
+                { bgTop: '#451a03', bgBot: '#1c0a00', border: '#f97316', icon: '#9a3412' }  // L5: Brewers Malt
             ],
             'Adjunct': [
                 { bgTop: '#334155', bgBot: '#0f172a', border: '#e2e8f0', icon: '#f8fafc' }, // L1: Flaked Rice
                 { bgTop: '#713f12', bgBot: '#1c1917', border: '#fde047', icon: '#fde047' }, // L2: White Wheat
                 { bgTop: '#7c2d12', bgBot: '#271206', border: '#fb923c', icon: '#f97316' }, // L3: Caramel 90L
                 { bgTop: '#7f1d1d', bgBot: '#280909', border: '#f87171', icon: '#ef4444' }, // L4: Munich Malt
-                { bgTop: '#271c19', bgBot: '#09090b', border: '#a8a29e', icon: '#78350f' }  // L5: Chocolate Malt
+                { bgTop: '#271c19', bgBot: '#09090b', border: '#a8a29e', icon: '#78350f' }  // L5: Chocolate Malt
             ],
             'Yeast': [
                 { bgTop: '#3f6212', bgBot: '#1a2e05', border: '#a3e635', icon: '#fde047' }, // L1: Saison
                 { bgTop: '#7c2d12', bgBot: '#2a1205', border: '#fb923c', icon: '#f97316' }, // L2: Hornindal Kveik
                 { bgTop: '#1e3a8a', bgBot: '#0f172a', border: '#38bdf8', icon: '#bae6fd' }, // L3: Kolsch
                 { bgTop: '#14532d', bgBot: '#052e16', border: '#4ade80', icon: '#86efac' }, // L4: American Ale
-                { bgTop: '#701a75', bgBot: '#2e1065', border: '#e879f9', icon: '#f0abfc' }  // L5: Lactobacillus
+                { bgTop: '#701a75', bgBot: '#2e1065', border: '#e879f9', icon: '#f0abfc' }  // L5: Lactobacillus
             ],
             'Hops': [
                 { bgTop: '#14532d', bgBot: '#052e16', border: '#4ade80', icon: '#22c55e' }, // L1: Hallertau
                 { bgTop: '#065f46', bgBot: '#022c22', border: '#34d399', icon: '#10b981' }, // L2: Tettnang
                 { bgTop: '#3f6212', bgBot: '#1a2e05', border: '#facc15', icon: '#a3e635' }, // L3: Lemondrop
                 { bgTop: '#15803d', bgBot: '#052e16', border: '#fbbf24', icon: '#4ade80' }, // L4: Citra
-                { bgTop: '#365314', bgBot: '#14532d', border: '#fb923c', icon: '#84cc16' }  // L5: Mandarina Bavaria
+                { bgTop: '#365314', bgBot: '#14532d', border: '#fb923c', icon: '#84cc16' }  // L5: Mandarina Bavaria
             ]
         };
 
