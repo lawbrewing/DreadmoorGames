@@ -132,7 +132,270 @@ class GameRenderer {
         ctx.restore();
     }
 
-    // --- TAPROOM RENDERING (FINAL PERFECTED ALIGNMENT) ---
+    // --- SEASONAL WALL, DOORWAY & FLOOR FESTIVITIES (SPRING, SUMMER, FALL, WINTER) ---
+    drawSeasonalFestivities(ctx, w, h, season, venueTier, time) {
+        ctx.save();
+
+        // 1. Center Billiards Rug at Tier 2+ (Color-themed to the active season)
+        if (venueTier >= 2) {
+            const rx = w / 2;
+            const ry = 420;
+            ctx.save();
+            ctx.translate(rx, ry - 15);
+            const rugColors = {
+                spring: { fill: 'rgba(20, 83, 45, 0.50)', border: '#4ade80' },
+                summer: { fill: 'rgba(12, 74, 110, 0.50)', border: '#38bdf8' },
+                fall: { fill: 'rgba(124, 45, 18, 0.55)', border: '#f59e0b' },
+                winter: { fill: 'rgba(127, 29, 29, 0.58)', border: '#facc15' }
+            };
+            const rc = rugColors[season] || rugColors.spring;
+            ctx.fillStyle = rc.fill;
+            ctx.strokeStyle = rc.border;
+            ctx.lineWidth = venueTier >= 3 ? 3 : 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 148, 74, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            if (venueTier >= 3) {
+                ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 136, 66, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // 2. Back-Wall Festive Garlands, Bunting & String Lights
+        const swagCount = 8;
+        const swagWidth = w / swagCount;
+        const wallY = 14;
+
+        for (let i = 0; i < swagCount; i++) {
+            const startX = i * swagWidth;
+            const midX = startX + swagWidth / 2;
+            const endX = startX + swagWidth;
+
+            // Leave space around the top-center shift timer box
+            if (midX > (w / 2) - 85 && midX < (w / 2) + 85) continue;
+
+            if (season === 'winter') {
+                // Evergreen Pine Garland Swag + Red Velvet Bows + Twinkling Holiday Lights
+                ctx.strokeStyle = '#14532d';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(startX, wallY);
+                ctx.quadraticCurveTo(midX, wallY + 26, endX, wallY);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#166534';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(startX, wallY + 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                const bulbColors = ['#ef4444', '#22c55e', '#facc15', '#38bdf8', '#f472b6'];
+                for (let b = 1; b <= 3; b++) {
+                    const t = b / 4;
+                    const bx = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+                    const by = (1 - t) * (1 - t) * wallY + 2 * (1 - t) * t * (wallY + 26) + t * t * wallY;
+                    const col = bulbColors[(i + b) % bulbColors.length];
+                    const twinkle = 0.5 + 0.5 * Math.sin(time * 5 + i * 1.7 + b);
+
+                    ctx.save();
+                    ctx.globalAlpha = twinkle;
+                    ctx.shadowColor = col;
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = col;
+                    ctx.beginPath();
+                    ctx.arc(bx, by + 3, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            } else if (season === 'fall') {
+                // Oktoberfest Bavarian & Harvest Pennant Bunting
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(startX, wallY);
+                ctx.quadraticCurveTo(midX, wallY + 22, endX, wallY);
+                ctx.stroke();
+
+                const fallColors = ['#ea580c', '#facc15', '#38bdf8', '#f8fafc', '#b45309'];
+                for (let p = 1; p <= 4; p++) {
+                    const t = p / 5;
+                    const px = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+                    const py = (1 - t) * (1 - t) * wallY + 2 * (1 - t) * t * (wallY + 22) + t * t * wallY;
+                    ctx.fillStyle = fallColors[(i + p) % fallColors.length];
+                    ctx.beginPath();
+                    ctx.moveTo(px - 7, py);
+                    ctx.lineTo(px + 7, py);
+                    ctx.lineTo(px, py + 15);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            } else if (season === 'summer') {
+                // Warm Patio Edison String Lights & Tropical Pennants
+                ctx.strokeStyle = '#27272a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(startX, wallY);
+                ctx.quadraticCurveTo(midX, wallY + 24, endX, wallY);
+                ctx.stroke();
+
+                for (let b = 1; b <= 3; b++) {
+                    const t = b / 4;
+                    const bx = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+                    const by = (1 - t) * (1 - t) * wallY + 2 * (1 - t) * t * (wallY + 24) + t * t * wallY;
+                    ctx.save();
+                    ctx.shadowColor = '#fde047';
+                    ctx.shadowBlur = 12;
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(bx, by + 4, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            } else {
+                // Spring Hop-Vine & Cherry Blossom Garland
+                ctx.strokeStyle = '#15803d';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(startX, wallY);
+                ctx.quadraticCurveTo(midX, wallY + 22, endX, wallY);
+                ctx.stroke();
+
+                const springColors = ['#f472b6', '#fde047', '#a7f3d0', '#fb7185'];
+                for (let f = 1; f <= 3; f++) {
+                    const t = f / 4;
+                    const fx = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+                    const fy = (1 - t) * (1 - t) * wallY + 2 * (1 - t) * t * (wallY + 22) + t * t * wallY;
+                    ctx.fillStyle = springColors[(i + f) % springColors.length];
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 3. Seasonal Doorway & Floor Props
+        const doorCenterX = w / 2;
+        if (season === 'winter') {
+            // Holiday Holly Wreath on Rear Entrance Door
+            const wy = 82;
+            ctx.strokeStyle = '#15803d';
+            ctx.lineWidth = 7;
+            ctx.beginPath();
+            ctx.arc(doorCenterX, wy, 16, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(doorCenterX, wy - 15, 5, 0, Math.PI * 2);
+            ctx.arc(doorCenterX - 12, wy + 8, 3, 0, Math.PI * 2);
+            ctx.arc(doorCenterX + 12, wy + 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Decorated Holiday Pine Tree in the Upper-Left Corner (x: 92, y: 265)
+            const tx = 92;
+            const ty = 265;
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath(); ctx.ellipse(tx, ty, 38, 16, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(tx - 8, ty - 18, 16, 18);
+            const tiers = [[0, -28, 38], [0, -52, 30], [0, -74, 22]];
+            tiers.forEach(([ox, oy, rad]) => {
+                ctx.fillStyle = '#14532d';
+                ctx.strokeStyle = '#052e16';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(tx + ox, ty + oy - 34);
+                ctx.lineTo(tx + ox + rad, ty + oy + 8);
+                ctx.lineTo(tx + ox - rad, ty + oy + 8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            });
+            // Glowing Star Topper
+            ctx.save();
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 14;
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.arc(tx, ty - 110, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        } else if (season === 'fall') {
+            // Glowing Harvest Jack-o'-Lanterns flanking the doorway, stage & pizza oven
+            const drawPumpkin = (px, py, rad) => {
+                ctx.fillStyle = 'rgba(0,0,0,0.38)';
+                ctx.beginPath(); ctx.ellipse(px, py + rad * 0.7, rad * 1.15, rad * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ea580c';
+                ctx.strokeStyle = '#7c2d12';
+                ctx.lineWidth = 1.6;
+                ctx.beginPath(); ctx.ellipse(px, py, rad, rad * 0.82, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.strokeStyle = '#15803d';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(px, py - rad * 0.7); ctx.lineTo(px + 2, py - rad - 3); ctx.stroke();
+                // Warm candlelit grin
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(px - rad * 0.3, py - 2, 2, 0, Math.PI * 2);
+                ctx.arc(px + rad * 0.3, py - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+            };
+            drawPumpkin(doorCenterX - 96, 178, 13);
+            drawPumpkin(doorCenterX + 96, 178, 11);
+            drawPumpkin(135, 315, 14);
+            drawPumpkin(w - 140, 285, 12);
+        } else if (season === 'spring') {
+            // Cedar Barrel Flower Planters flanking the entrance door
+            const drawPlanter = (px, py) => {
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath(); ctx.ellipse(px, py + 10, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#78350f';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath(); ctx.roundRect(px - 14, py - 10, 28, 20, 4); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath(); ctx.arc(px, py - 12, 13, 0, Math.PI * 2); ctx.fill();
+                ['#f472b6', '#facc15', '#fb7185'].forEach((col, idx) => {
+                    ctx.fillStyle = col;
+                    ctx.beginPath(); ctx.arc(px + (idx - 1) * 7, py - 14 - (idx % 2) * 3, 3.5, 0, Math.PI * 2); ctx.fill();
+                });
+            };
+            drawPlanter(doorCenterX - 98, 172);
+            drawPlanter(doorCenterX + 98, 172);
+        } else if (season === 'summer') {
+            // Tropical Palm Planters flanking the entrance door
+            const drawPalm = (px, py) => {
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath(); ctx.ellipse(px, py + 10, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#b45309';
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath(); ctx.roundRect(px - 13, py - 10, 26, 20, 4); ctx.fill(); ctx.stroke();
+                ctx.strokeStyle = '#16a34a';
+                ctx.lineWidth = 3.5;
+                [-14, -6, 6, 14].forEach(dx => {
+                    ctx.beginPath();
+                    ctx.moveTo(px, py - 10);
+                    ctx.quadraticCurveTo(px + dx * 0.7, py - 28, px + dx * 1.3, py - 18);
+                    ctx.stroke();
+                });
+            };
+            drawPalm(doorCenterX - 98, 172);
+            drawPalm(doorCenterX + 98, 172);
+        }
+
+        ctx.restore();
+    }
+
+    // --- TAPROOM RENDERING (FINAL PERFECTED ALIGNMENT + COLLISIONS, LEVELS & SEASONS) ---
     drawTaproom(state) {
         if (typeof this.setupSlidingHud === 'function') {
             this.setupSlidingHud();
@@ -145,15 +408,19 @@ class GameRenderer {
 
         if (typeof spriteManager === 'undefined' || !spriteManager.isLoaded) return;
 
-        // 1. PROGRESSION TIER
-        const currentYear = state.year || 1;
-        const currentShift = state.shift || 1;
-        const season = (state.season || 'spring').toLowerCase();
+        // 1. LIVE PROGRESSION TIER & SEASON (Reads from progressionState + state)
+        const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+        const currentShift = state.shift || prog.shift || prog.currentShift || prog.day || 1;
+        const currentYear = state.year || prog.year || prog.currentYear || (1 + Math.floor((currentShift - 1) / 4));
         const unlockedKettles = (typeof playerState !== 'undefined' && playerState.unlockedKettles) ? playerState.unlockedKettles : 1;
-        const isBossRound = Boolean(state.isBossRound);
+        const isBossRound = Boolean(state.isBossRound || (typeof prog.isBossRound === 'function' ? prog.isBossRound() : prog.isBossRound));
+
+        const seasonCycle = ['spring', 'summer', 'fall', 'winter'];
+        const rawSeason = state.season || prog.season || prog.currentSeason || seasonCycle[(currentShift - 1) % 4];
+        const season = String(rawSeason).toLowerCase();
 
         const progressionScore = (currentYear - 1) * 2 + Math.floor((currentShift - 1) / 2) + (unlockedKettles - 1);
-        const venueTier = Math.min(3, Math.max(1, 1 + progressionScore));
+        const venueTier = Math.min(4, Math.max(1, 1 + progressionScore));
 
         let floorKey = 'floor_dark_bar';
         let wallKey = 'wall_brick_bar';
@@ -196,12 +463,15 @@ class GameRenderer {
 
         ctx.imageSmoothingEnabled = true;
 
+        // Draw Seasonal Garlands, Holiday Wreath, Planters & Center Billiards Rug
+        this.drawSeasonalFestivities(ctx, w, h, season, venueTier, time);
+
         // Draw Shrunk Law Brewing Neon Sign (Cleanly scaled and positioned)
-        this.drawNeonSign(state, 305, 175, 0.18);
+        this.drawNeonSign(state, 465, 80, 0.10);
 
         // 2. AMBIENT FLOOR LIGHTING
-        const stageX = 255;
-        const stageY = 295;
+        const stageX = 250;
+        const stageY = 310;
         const ovenX = w - 235;
         const ovenY = 275;
 
@@ -224,8 +494,7 @@ class GameRenderer {
         ctx.beginPath(); ctx.ellipse(stageX, stageY - 15, 135, 68, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // 3. PERFECTLY ALIGNED U-COUNTERS & ZONES
-        // dx: 92, dy: -42 locks the front rails and join seams flush
+        // 3. PERFECTLY ALIGNED U-COUNTERS & ZONES (Exact User Coordinates + Elliptical Collision Hitboxes)
         const beerBaseX = 245;
         const beerBaseY = 650;
         const cafeBaseX = w - 245;
@@ -233,47 +502,83 @@ class GameRenderer {
 
         let roomProps = [
             // --- ZONE A: STAGE & JUKEBOX ---
-            { type: 'stage_small_lights', x: stageX, y: stageY, scale: 0.88 },
-            { type: 'jukebox', x: stageX + 130, y: stageY - 30, scale: 0.78 },
+            { type: 'stage_small_lights', x: stageX, y: stageY, scale: 0.88, rx: 95, ry: 48, hitOffsetY: -35, allowStage: true },
+            { type: 'jukebox', x: stageX + 130, y: stageY - 30, scale: 0.78, rx: 45, ry: 30, hitOffsetY: -22 },
 
             // --- ZONE B: KITCHEN & SHELF ---
             { type: 'bookshelf_wall_cafe', x: (w / 2) + 205, y: 205, scale: 0.76 },
-            { type: 'pizza_oven_brick', x: ovenX, y: ovenY, scale: 0.85, flipX: true },
+            { type: 'pizza_oven_brick', x: ovenX, y: ovenY, scale: 0.85, flipX: true, rx: 82, ry: 45, hitOffsetY: -35 },
 
             // --- ZONE C: LOUNGE ---
-            { type: 'lamp_floor_rattan', x: 115, y: 420, scale: 0.78 },
-            { type: venueTier >= 2 ? 'booth_sofa_double' : 'booth_leather', x: 235, y: 435, scale: 0.84 },
+            { type: 'lamp_floor_rattan', x: 115, y: 450, scale: 0.78, rx: 38, ry: 25, hitOffsetY: -18 },
+            { type: venueTier >= 2 ? 'booth_sofa_double' : 'booth_leather', x: 235, y: 465, scale: 0.84, rx: 86, ry: 46, hitOffsetY: -35 },
 
             // --- ZONE D: GAME FLOOR ---
-            { type: 'pool_table', x: w / 2, y: 420, scale: 0.88 },
+            { type: 'pool_table', x: w / 2, y: 420, scale: 0.88, rx: 112, ry: 56, hitOffsetY: -38 },
 
             // --- ZONE E: LEFT BEER BAR (Flushed U-Shape) ---
-            { type: 'bar_counter_straight', x: beerBaseX + 92, y: beerBaseY - 42, scale: 0.90, flipX: false },
-            { type: 'bar_counter_corner', x: beerBaseX, y: beerBaseY, scale: 0.90, flipX: false },
+            { type: 'bar_counter_straight', x: beerBaseX + 92, y: beerBaseY - 25, scale: 0.90, flipX: false, rx: 82, ry: 44, hitOffsetY: -32 },
+            { type: 'bar_counter_corner', x: beerBaseX, y: beerBaseY, scale: 0.90, flipX: false, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'beer_tap_tower', x: beerBaseX + 72, y: beerBaseY - 96, renderY: beerBaseY + 2, scale: 0.74 },
-            { type: 'beer_mugs_group', x: beerBaseX - 5, y: beerBaseY - 65, renderY: beerBaseY + 3, scale: 0.45 },
+            { type: 'beer_mugs_group', x: beerBaseX - 5, y: beerBaseY - 90, renderY: beerBaseY + 3, scale: 0.30 },
+            // 3 Barstools positioned in front of the Beer U-Counter
+            { type: 'stool_bar_metal_row', x: beerBaseX + 120, y: beerBaseY + 30, scale: 0.82 },
 
             // --- ZONE F: RIGHT COFFEE BAR (Flushed U-Shape) ---
-            { type: 'bar_counter_straight', x: cafeBaseX - 92, y: cafeBaseY - 42, scale: 0.90, flipX: true },
-            { type: 'bar_counter_corner', x: cafeBaseX, y: cafeBaseY, scale: 0.90, flipX: true },
-            { type: 'espresso_machine_commercial', x: cafeBaseX - 75, y: cafeBaseY - 94, renderY: cafeBaseY + 2, scale: 0.62, flipX: false },
-            { type: 'macaron_tower', x: cafeBaseX - 10, y: cafeBaseY - 72, renderY: cafeBaseY + 3, scale: 0.44 },
-            { type: 'grinder_coffee', x: cafeBaseX + 32, y: cafeBaseY - 58, renderY: cafeBaseY + 4, scale: 0.42 },
+            { type: 'bar_counter_straight', x: cafeBaseX - 92, y: cafeBaseY - 25, scale: 0.90, flipX: true, rx: 82, ry: 44, hitOffsetY: -32 },
+            { type: 'bar_counter_corner', x: cafeBaseX, y: cafeBaseY, scale: 0.90, flipX: true, rx: 82, ry: 44, hitOffsetY: -32 },
+            { type: 'espresso_machine_commercial', x: cafeBaseX - 75, y: cafeBaseY - 115, renderY: cafeBaseY + 2, scale: 0.40, flipX: false },
+            { type: 'macaron_tower', x: cafeBaseX - 10, y: cafeBaseY - 92, renderY: cafeBaseY + 3, scale: 0.35 },
+            { type: 'grinder_coffee', x: cafeBaseX + 32, y: cafeBaseY - 88, renderY: cafeBaseY + 4, scale: 0.35 },
+            { type: 'stool_wood_high', x: cafeBaseX - 145, y: cafeBaseY + -10, renderY: cafeBaseY + 95, scale: 0.58, flipX: true },
 
             // --- ZONE G: HANGING PLANTS ---
             { type: 'plant_hanging_rope_pot', x: 115, y: 165, scale: 0.68, renderY: 9999 },
-            { type: 'plant_hanging_rope_pot', x: w - 115, y: 165, scale: 0.68, renderY: 9999 }
+            { type: 'plant_hanging_rope_pot', x: w - 115, y: 165, scale: 0.68, renderY: 9999 },
+
+            // Mounted Dartboard on the Right Wall (Always present so DARTS activity always has a target!)
+            { type: 'dartboard_mounted', x: w - 100, y: 350, scale: 0.78, flipX: false }
         ];
 
-        // 4. MID-RIGHT CAFE DINING ZONE
-        if (venueTier >= 3) {
-            roomProps.push({ type: 'table_family_long', x: w - 235, y: 410, scale: 0.82 });
-            roomProps.push({ type: 'cake_display_case_curved', x: w - 415, y: cafeBaseY - 82, renderY: cafeBaseY - 40, scale: 0.76 });
-        } else {
-            roomProps.push({ type: 'table_cafe_small_round', x: w - 235, y: 405, scale: 0.82 });
-            roomProps.push({ type: 'chair_wood_cafe', x: w - 295, y: 397, scale: 0.78, flipX: false });
-            roomProps.push({ type: 'chair_wood_cafe', x: w - 175, y: 411, scale: 0.78, flipX: true });
+        // 4. LEVEL-BASED PROGRESSION SWAPS & UPGRADES
+        if (venueTier === 1) {
+            roomProps.push({ type: 'table_high_round', x: w - 265, y: 435, scale: 0.82, rx: 56, ry: 34, hitOffsetY: -25 });
+            roomProps.push({ type: 'stool_wood_high', x: w - 330, y: 435, scale: 0.60, flipX: true });
+        } else if (venueTier === 2) {
+            // Tier 2 upgrades high round table to a cafe bistro table with two wood chairs + entrance coat stand
+            roomProps.push({ type: 'table_cafe_small_round', x: w - 265, y: 435, scale: 0.82, rx: 62, ry: 38, hitOffsetY: -25 });
+            roomProps.push({ type: 'chair_wood_cafe', x: w - 330, y: 430, scale: 0.76, flipX: false });
+            roomProps.push({ type: 'chair_wood_cafe', x: w - 200, y: 440, scale: 0.76, flipX: true });
+            roomProps.push({ type: 'coat_hook_stand', x: (w / 2) + 115, y: 210, scale: 0.72, rx: 28, ry: 18, hitOffsetY: -12 });
+            roomProps.push({ type: 'divider_screen_folding', x: ovenX - 135, y: ovenY - 10, scale: 0.76, rx: 52, ry: 28, hitOffsetY: -20 });
+        } else if (venueTier >= 3) {
+            // Tier 3+ upgrades to the long family banquet table & curved pastry display case
+            roomProps.push({ type: 'table_family_long', x: w - 255, y: 435, scale: 0.82, rx: 88, ry: 48, hitOffsetY: -32 });
+            roomProps.push({ type: 'cake_display_case_curved', x: ovenX - 140, y: ovenY, scale: 0.76, rx: 62, ry: 36, hitOffsetY: -25 });
+            roomProps.push({ type: 'coat_hook_stand', x: (w / 2) + 115, y: 210, scale: 0.72, rx: 28, ry: 18, hitOffsetY: -12 });
         }
+
+        if (venueTier >= 4) {
+            // Tier 4 Master Taproom adds extra hanging plants framing the entrance
+            roomProps.push({ type: 'plant_hanging_rope_pot', x: (w / 2) - 140, y: 150, scale: 0.60, renderY: 9999 });
+            roomProps.push({ type: 'plant_hanging_rope_pot', x: (w / 2) + 140, y: 150, scale: 0.60, renderY: 9999 });
+        }
+
+        // Export live collision footprints & navigation targets onto state (taproomPhase)
+        state.obstacles = roomProps
+            .filter(p => p.rx && p.ry)
+            .map(p => ({
+                x: p.x,
+                y: p.y + (p.hitOffsetY || 0),
+                rx: p.rx,
+                ry: p.ry,
+                allowStage: Boolean(p.allowStage)
+            }));
+
+        state.nav = {
+            door: { x: w / 2, y: 132 },
+            dartboardTarget: { x: w - 100, y: 295 }
+        };
 
         // 5. MERGE & DEPTH-SORT RENDERABLES
         let renderables = [];
@@ -358,44 +663,49 @@ class GameRenderer {
                     ctx.restore();
                 }
 
-                const bubbleY = drawY - (14 * scale);
-                let styleLookup = 'premium';
-                if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
-                else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
+                // Only show craving bubble while patron is waiting to be served
+                if (!item.isLeaving && (item.currentState === 'ENTER' || item.currentState === 'IDLE')) {
+                    const bubbleY = drawY - (14 * scale);
+                    let styleLookup = 'premium';
+                    if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
+                    else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
 
-                let bubbleColor = '#d97706'; let hintIcon = '⭐';
-                if (styleLookup.includes('ipa')) { bubbleColor = '#22c55e'; hintIcon = '🌿'; }
-                else if (styleLookup.includes('stout') || styleLookup.includes('imperial')) { bubbleColor = '#451a03'; hintIcon = '☕'; }
-                else if (styleLookup.includes('porter') || styleLookup.includes('ale') || styleLookup.includes('mild')) { bubbleColor = '#b45309'; hintIcon = '🍺'; }
-                else if (styleLookup.includes('sour')) { bubbleColor = '#f43f5e'; hintIcon = '🍒'; }
-                else if (styleLookup.includes('lager') || styleLookup.includes('pilsner') || styleLookup.includes('oktoberfest')) { bubbleColor = '#facc15'; hintIcon = '🍻'; }
-                else if (styleLookup.includes('saison')) { bubbleColor = '#fb923c'; hintIcon = '🌾'; }
-                else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { bubbleColor = '#38bdf8'; hintIcon = '🥤'; }
-                else if (styleLookup.includes('cocktail')) { bubbleColor = '#c084fc'; hintIcon = '🍸'; }
+                    let bubbleColor = '#d97706'; let hintIcon = '⭐';
+                    if (styleLookup.includes('ipa')) { bubbleColor = '#22c55e'; hintIcon = '🌿'; }
+                    else if (styleLookup.includes('stout') || styleLookup.includes('imperial')) { bubbleColor = '#451a03'; hintIcon = '☕'; }
+                    else if (styleLookup.includes('porter') || styleLookup.includes('ale') || styleLookup.includes('mild')) { bubbleColor = '#b45309'; hintIcon = '🍺'; }
+                    else if (styleLookup.includes('sour')) { bubbleColor = '#f43f5e'; hintIcon = '🍒'; }
+                    else if (styleLookup.includes('lager') || styleLookup.includes('pilsner') || styleLookup.includes('oktoberfest')) { bubbleColor = '#facc15'; hintIcon = '🍻'; }
+                    else if (styleLookup.includes('saison')) { bubbleColor = '#fb923c'; hintIcon = '🌾'; }
+                    else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { bubbleColor = '#38bdf8'; hintIcon = '🥤'; }
+                    else if (styleLookup.includes('cocktail')) { bubbleColor = '#c084fc'; hintIcon = '🍸'; }
 
-                const bubbleSize = Math.max(28, 18 * scale);
-                ctx.globalAlpha = patronAlpha;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(px - 5, bubbleY - 2); ctx.lineTo(px + 5, bubbleY - 2); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.fill();
-                ctx.strokeStyle = bubbleColor; ctx.lineWidth = 2.5;
-                ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.stroke();
-                ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
+                    const bubbleSize = Math.max(28, 18 * scale);
+                    ctx.globalAlpha = patronAlpha;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(px - 5, bubbleY - 2); ctx.lineTo(px + 5, bubbleY - 2); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = bubbleColor; ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.stroke();
+                    ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
+                }
 
                 ctx.globalAlpha = 1.0;
             }
         });
 
-        // 7. COMPACT SHIFT TIMER
+        // 7. COMPACT SHIFT & SEASON TIMER HUD
         const timeLeft = Math.max(0, Math.ceil(state.timeRemaining || state.timeLeft || 0));
+        const seasonIcons = { spring: '🌸', summer: '☀️', fall: '🍂', winter: '❄️' };
+        const sIcon = seasonIcons[season] || '🍻';
         ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
-        ctx.beginPath(); ctx.roundRect((w / 2) - 65, 8, 130, 34, 8); ctx.fill();
+        ctx.beginPath(); ctx.roundRect((w / 2) - 80, 8, 160, 34, 8); ctx.fill();
         ctx.strokeStyle = isBossRound ? '#ef4444' : '#dc2626';
         ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 18px Oswald'; ctx.textAlign = 'center';
-        ctx.fillText(`SHIFT: ${timeLeft}s`, w / 2, 31);
+        ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
+        ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
 
         // 8. PROJECTILES
         (state.projectiles || []).forEach(p => {
