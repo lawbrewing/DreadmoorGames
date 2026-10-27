@@ -9,12 +9,14 @@ class BrewingPhase {
         this.rows = 5;
         this.tileSize = 90;
 
-        // MOVED RIGHT: Shifted from 350 to 500 to make room for the sacks
         this.gridOffset = { x: 500, y: 140 };
         this.grid = [];
         this.dragState = null;
 
-        // 6 Specific Ingredient Bags (Balanced early costs)
+        // Tracks consecutive ingredient merges for /api/scores/taproom_chaos (highestComboMerges)
+        this.currentMergeCombo = 0;
+
+        // 6 Specific Ingredient Bags
         this.sacks = [
             { id: 'sack_water', category: 'Water', cost: 1, x: 280, y: 140, w: 80, h: 80, color: '#3b82f6' },
             { id: 'sack_grain', category: 'Grain', cost: 1, x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
@@ -24,17 +26,17 @@ class BrewingPhase {
             { id: 'sack_specialty', category: 'Specialty', cost: 6, x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
         ];
 
-        // 3-Kettle Brewhouse Array (Side-by-side along the bottom)
+        // 3-Kettle Brewhouse Array
         this.kettles = [
             { id: 0, x: 460, y: 595, w: 250, h: 110, items: [], btnX: 625, btnY: 642, btnW: 75, btnH: 46 },
             { id: 1, x: 730, y: 595, w: 250, h: 110, items: [], btnX: 895, btnY: 642, btnW: 75, btnH: 46 },
             { id: 2, x: 1000, y: 595, w: 250, h: 110, items: [], btnX: 1165, btnY: 642, btnW: 75, btnH: 46 }
         ];
 
-        // Floor Drain (Trash slot to prevent board deadlocks)
+        // Floor Drain
         this.drain = { x: 280, y: 595, w: 150, h: 105 };
 
-        // Floating feedback text popups (+5 nIPLy, Merged!, etc.)
+        // Floating feedback text popups
         this.floatingTexts = [];
 
         this.setupEventListeners();
@@ -50,18 +52,15 @@ class BrewingPhase {
                 const isUnlocked = i < playerState.unlockedKettles;
 
                 if (!isUnlocked) {
-                    // Clicked a LOCKED kettle -> Try to buy/unlock it!
                     if (this.isHit(pos, k.x, k.y, k.w, k.h)) {
                         this.unlockKettle(i);
                         return;
                     }
                 } else {
-                    // Clicked the BREW button on an unlocked kettle
                     if (this.isHit(pos, k.btnX, k.btnY, k.btnW, k.btnH)) {
                         this.brewKettle(i);
                         return;
                     }
-                    // Clicked inside the kettle vat to undo/pop the last ingredient back out
                     if (this.isHit(pos, k.x, k.y, k.w - 90, k.h)) {
                         if (k.items.length > 0) {
                             const emptyCell = this.findEmptyCell();
@@ -112,8 +111,9 @@ class BrewingPhase {
             const startCol = this.dragState.startCol;
             const startRow = this.dragState.startRow;
 
-            // 0. NEW: Did they drop it into the Floor Drain to discard it?
+            // 0. Did they drop it into the Floor Drain to discard it? (Resets active merge combo)
             if (this.isHit(pos, this.drain.x, this.drain.y, this.drain.w, this.drain.h)) {
+                this.currentMergeCombo = 0;
                 this.floatingTexts.push(new FloatingTitle(
                     this.drain.x + (this.drain.w / 2),
                     this.drain.y,
@@ -138,45 +138,48 @@ class BrewingPhase {
             // 2. Otherwise, handle Grid Drops
             this.dragState = null;
 
-            if (!valid) {
-                this.grid[startRow][startCol] = sourceItem; // Out of bounds, snap back
+            if (!valid || (row === startRow && col === startCol)) {
+                this.grid[startRow][startCol] = sourceItem;
                 return;
             }
 
             const targetItem = this.grid[row][col];
 
             if (!targetItem) {
-                // Drop in empty space
                 this.grid[row][col] = sourceItem;
             } else if (targetItem.name === sourceItem.name) {
-                // Try to Merge using the config engine!
                 const upgradedName = gameRecipes.getMergeResult(targetItem.name);
 
                 if (upgradedName) {
-                    console.log(`Merged ${targetItem.name} into ${upgradedName}!`);
+                    // Increment consecutive merge combo chain & record in telemetry!
+                    this.currentMergeCombo++;
+                    if (window.taproomTelemetry) {
+                        window.taproomTelemetry.recordMergeCombo(this.currentMergeCombo);
+                    }
+                    gameEvents.emit('MERGE_COMBO', this.currentMergeCombo);
+
+                    console.log(`Merged ${targetItem.name} into ${upgradedName}! (Combo: ${this.currentMergeCombo}x)`);
                     this.grid[row][col] = {
                         id: Math.random().toString(),
                         name: upgradedName,
                         category: sourceItem.category
                     };
-                    // Floating Merge Feedback!
+
                     const cellCenterX = this.gridOffset.x + (col * this.tileSize) + (this.tileSize / 2);
                     const cellCenterY = this.gridOffset.y + (row * this.tileSize) + 20;
-                    this.floatingTexts.push(new FloatingTitle(cellCenterX, cellCenterY, `✨ ${upgradedName}!`, '#facc15'));
+                    const comboSuffix = this.currentMergeCombo >= 2 ? ` (${this.currentMergeCombo}x COMBO!)` : '';
+                    this.floatingTexts.push(new FloatingTitle(cellCenterX, cellCenterY, `✨ ${upgradedName}!${comboSuffix}`, '#facc15'));
                 } else {
-                    // It's max level or un-mergeable, swap them
                     this.grid[row][col] = sourceItem;
                     this.grid[startRow][startCol] = targetItem;
                 }
             } else {
-                // Different items, just swap their places
                 this.grid[row][col] = sourceItem;
                 this.grid[startRow][startCol] = targetItem;
             }
         });
     }
 
-    // --- PUZZLE SPAWN LOGIC ---
     spawnItem(category, cost) {
         if (!playerState.canAfford(cost)) {
             console.log(`Need $${cost} to pull from ${category}!`);
@@ -204,7 +207,7 @@ class BrewingPhase {
                 }
             }
         }
-        return null; // Grid is full!
+        return null;
     }
 
     unlockKettle(index) {
@@ -227,7 +230,6 @@ class BrewingPhase {
         const k = this.kettles[kettleIndex];
         if (!k || k.items.length === 0) return;
 
-        // Baseline Check: Single ingredients cannot be brewed!
         if (k.items.length < 2) {
             this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, "Need at least 2 ingredients!", "#ef4444"));
             return;
@@ -244,6 +246,9 @@ class BrewingPhase {
         }
 
         gameEvents.emit('SPEND_TIPS', totalBrewCost);
+
+        // Reset the active merge chain once a kettle batch is brewed
+        this.currentMergeCombo = 0;
 
         const ingredients = k.items.map(item => item.name);
         const brewResult = gameRecipes.evaluateBrew(ingredients);
@@ -263,7 +268,6 @@ class BrewingPhase {
                 this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `+${brewResult.count} ${brewResult.name}`, popupColor));
             }
         } else {
-            // Ruined batch! Money is lost, no free Swill is given.
             this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `-$${totalBrewCost} (Ruined Batch — Wasted!)`, '#ef4444'));
         }
 
@@ -284,8 +288,8 @@ class BrewingPhase {
     init() {
         this.isActive = true;
         this.dragState = null;
+        this.currentMergeCombo = 0;
 
-        // Initialize a completely EMPTY board to force the player to use Sacks
         this.grid = [];
         for (let r = 0; r < this.rows; r++) {
             let newRow = [];

@@ -2,13 +2,14 @@
 
 class GameHUD {
     constructor() {
-        // Main Panels
+        // Main Unified Drawer Panels
         this.taproomHUD = document.getElementById('taproomHUD');
         this.brewingHUD = document.getElementById('brewingHUD');
-        this.btnToggleHUD = document.getElementById('btnToggleHUD'); // NEW: Mobile Menu Button
+        this.btnToggleHUD = document.getElementById('btnToggleHUD');
 
         // Brewing Elements
         this.hudTips = document.getElementById('hudTips');
+        this.hudTaproomTips = document.getElementById('hudTaproomTips');
         this.inventoryList = document.getElementById('inventoryList');
 
         // Taproom Elements
@@ -17,6 +18,9 @@ class GameHUD {
 
         // Core Buttons & Screens
         this.gameOverScreen = document.getElementById('gameOverScreen');
+        this.gameOverStatsBox = document.getElementById('gameOverStatsBox');
+        this.playerNameInput = document.getElementById('playerNameInput');
+        this.btnSubmitScore = document.getElementById('btnSubmitScore');
         this.btnRestart = document.getElementById('btnRestart');
         this.btnStartShift = document.getElementById('btnStartShift');
 
@@ -27,15 +31,25 @@ class GameHUD {
         this.recipeBookOverlay = document.getElementById('recipeBookOverlay');
         this.recipeListContainer = document.getElementById('recipeListContainer');
 
+        this.activePhase = 'BREWING';
         this.lastTips = -1;
         this.lastTime = -1;
-        this.lastAmmo = [];
+        this.lastAmmo = '';
         this.lastInventory = '';
 
         this.setupListeners();
     }
 
     setupListeners() {
+        // Remove inline onclick so GameHUD controls the active drawer cleanly across both phases
+        if (this.btnToggleHUD) {
+            this.btnToggleHUD.removeAttribute('onclick');
+            this.btnToggleHUD.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleActiveDrawer();
+            });
+        }
+
         if (this.btnRestart) {
             this.btnRestart.addEventListener('click', () => location.reload());
         }
@@ -58,27 +72,68 @@ class GameHUD {
                 if (this.recipeBookOverlay) this.recipeBookOverlay.style.display = 'none';
             });
         }
+
+        if (this.playerNameInput) {
+            const savedName = localStorage.getItem('law_player_name') || 'Michael Law';
+            this.playerNameInput.value = savedName;
+        }
+
+        if (this.btnSubmitScore) {
+            this.btnSubmitScore.addEventListener('click', async () => {
+                const chosenName = (this.playerNameInput && this.playerNameInput.value.trim()) || 'Michael Law';
+                localStorage.setItem('law_player_name', chosenName);
+                if (window.taproomTelemetry) {
+                    window.taproomTelemetry.hasSubmittedRun = false; // Allow explicit re-sync with updated name
+                    this.btnSubmitScore.innerText = 'SYNCING...';
+                    await window.taproomTelemetry.submitScore(chosenName);
+                    this.btnSubmitScore.innerText = '✓ SYNCED';
+                    this.btnSubmitScore.style.background = '#059669';
+                }
+            });
+        }
+    }
+
+    toggleActiveDrawer() {
+        const activePanel = this.activePhase === 'TAPROOM' ? this.taproomHUD : this.brewingHUD;
+        if (!activePanel) return;
+
+        const isOpen = activePanel.classList.toggle('open');
+        if (this.btnToggleHUD) {
+            this.btnToggleHUD.innerText = isOpen ? '✕ CLOSE' : '☰ MENU';
+        }
     }
 
     switchPhase(phaseName) {
+        this.activePhase = phaseName;
+
+        // Always keep the unified MENU button visible in both phases!
+        if (this.btnToggleHUD) {
+            this.btnToggleHUD.style.display = 'block';
+        }
+
         if (phaseName === 'TAPROOM') {
-            if (this.taproomHUD) this.taproomHUD.style.display = 'block';
             if (this.forecastTicker) this.forecastTicker.style.display = 'none';
 
-            // MOBILE FIX: Hide the toggle button and slide the brewing drawer away!
-            if (this.btnToggleHUD) this.btnToggleHUD.style.display = 'none';
             if (this.brewingHUD) {
                 this.brewingHUD.classList.remove('open');
-                this.brewingHUD.style.pointerEvents = 'none'; // Prevent invisible clicks
+            }
+            if (this.taproomHUD) {
+                // Start closed in Taproom so the player has an unobstructed view of the bar,
+                // or click ☰ MENU anytime to slide the ON TAP drawer in!
+                this.taproomHUD.classList.remove('open');
+            }
+            if (this.btnToggleHUD) {
+                this.btnToggleHUD.innerText = '☰ MENU';
             }
         } else {
-            if (this.taproomHUD) this.taproomHUD.style.display = 'none';
-
-            // MOBILE FIX: Show the toggle button and auto-open the drawer for brewing!
-            if (this.btnToggleHUD) this.btnToggleHUD.style.display = 'block';
+            if (this.taproomHUD) {
+                this.taproomHUD.classList.remove('open');
+            }
             if (this.brewingHUD) {
-                this.brewingHUD.style.pointerEvents = 'auto';
                 this.brewingHUD.classList.add('open');
+            }
+            if (this.btnToggleHUD) {
+                this.btnToggleHUD.innerText = '✕ CLOSE';
             }
 
             if (this.forecastTicker) {
@@ -104,7 +159,7 @@ class GameHUD {
 
         const headerDiv = document.createElement('div');
         headerDiv.style.cssText = `
-            display: flex; justify-content: space-between; align-items: center;
+            grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center;
             background: #27272a; padding: 10px 14px; margin-bottom: 12px;
             border-radius: 6px; border: 1px solid #52525b;
         `;
@@ -116,7 +171,7 @@ class GameHUD {
 
         if (recipesToRender.length === 0) {
             const emptyDiv = document.createElement('div');
-            emptyDiv.style.cssText = `color: #71717a; text-align: center; padding: 20px; font-style: italic;`;
+            emptyDiv.style.cssText = `grid-column: 1 / -1; color: #71717a; text-align: center; padding: 20px; font-style: italic;`;
             emptyDiv.innerHTML = `No recipes discovered yet!<br>Experiment in the brew kettles to unlock craft styles.`;
             container.appendChild(emptyDiv);
             return;
@@ -145,10 +200,11 @@ class GameHUD {
     }
 
     update() {
-        if (this.hudTips && typeof playerState !== 'undefined') {
+        if (typeof playerState !== 'undefined') {
             if (this.lastTips !== playerState.tips) {
                 this.lastTips = playerState.tips;
-                this.hudTips.innerText = `Tips: $${this.lastTips}`;
+                if (this.hudTips) this.hudTips.innerText = `Tips: $${this.lastTips}`;
+                if (this.hudTaproomTips) this.hudTaproomTips.innerText = `Tips: $${this.lastTips}`;
             }
         }
 
@@ -171,7 +227,7 @@ class GameHUD {
                         display: flex; justify-content: space-between; align-items: center; font-size: 13px;
                     `;
 
-                    const countText = ammo.count === Infinity ? '∞' : `x${ammo.count}`;
+                    const countText = ammo.count === Infinity || ammo.count === 'Infinite' ? '∞' : `x${ammo.count}`;
                     li.innerHTML = `
                         <span style="color: #f4f4f5; font-weight: 600;">🛢️ ${ammo.name}</span>
                         <span style="color: ${badgeColor}; font-weight: bold;">${countText}</span>
@@ -185,8 +241,11 @@ class GameHUD {
             const seconds = Math.ceil(taproomPhase.timeRemaining);
             if (this.lastTime !== seconds && this.hudTimer) {
                 this.lastTime = seconds;
-                this.hudTimer.innerText = `${progressionState.getShiftName()} | TIME LEFT: ${seconds}s`;
-                this.hudTimer.style.color = progressionState.isBossRound() ? '#ef4444' : '#facc15';
+                const shiftTitle = (typeof progressionState !== 'undefined' && typeof progressionState.getShiftName === 'function')
+                    ? progressionState.getShiftName()
+                    : `SHIFT ${taproomPhase.shift || 1}`;
+                this.hudTimer.innerText = `${shiftTitle} | ${seconds}s`;
+                this.hudTimer.style.color = (typeof progressionState !== 'undefined' && progressionState.isBossRound && progressionState.isBossRound()) ? '#ef4444' : '#facc15';
             }
 
             if (typeof playerState !== 'undefined' && this.ammoList) {
@@ -197,16 +256,16 @@ class GameHUD {
 
                     playerState.ammo.forEach((ammo, index) => {
                         const li = document.createElement('li');
-                        const countStr = ammo.count === Infinity ? '∞' : `x${ammo.count}`;
+                        const countStr = ammo.count === Infinity || ammo.count === 'Infinite' ? '∞' : `x${ammo.count}`;
                         const isSelected = index === taproomPhase.selectedAmmoIndex;
 
                         li.style.cssText = `
-                            cursor: pointer; pointer-events: auto; padding: 6px 10px;
-                            margin-bottom: 5px; border-radius: 6px;
-                            background: ${isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(39, 39, 42, 0.7)'};
-                            border: 2px solid ${isSelected ? '#10b981' : 'transparent'};
+                            cursor: pointer; pointer-events: auto; padding: 8px 10px;
+                            margin-bottom: 6px; border-radius: 6px;
+                            background: ${isSelected ? 'rgba(16, 185, 129, 0.22)' : '#18181b'};
+                            border: 2px solid ${isSelected ? '#10b981' : '#3f3f46'};
                             color: ${isSelected ? '#10b981' : '#f4f4f5'};
-                            font-size: 16px; user-select: none;
+                            font-size: 14px; user-select: none;
                         `;
 
                         li.innerText = `[${index + 1}] ${isSelected ? '▶ ' : ''}${ammo.name} (${countStr})`;
@@ -224,6 +283,33 @@ class GameHUD {
     }
 
     showGameOver() {
+        // Render run telemetry summary and auto-post to /api/scores/taproom_chaos
+        if (window.taproomTelemetry) {
+            const st = window.taproomTelemetry.stats;
+            const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+            const levelReached = prog.shift || prog.currentShift || (typeof taproomPhase !== 'undefined' ? taproomPhase.shift : 1) || 1;
+            const finalScore = (typeof playerState !== 'undefined')
+                ? Math.max(0, Math.floor(playerState.totalEarned || playerState.score || playerState.tips || 0))
+                : 0;
+
+            if (this.gameOverStatsBox) {
+                this.gameOverStatsBox.innerHTML = `
+                    <div style="color: #facc15; font-weight: bold; margin-bottom: 6px; text-align: center;">📊 SHIFT TELEMETRY (LEVEL ${levelReached})</div>
+                    <div style="display: flex; justify-content: space-between;"><span>Final Score:</span> <b>$${finalScore}</b></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Shifts Cleared:</span> <b>${st.shiftsCleared}</b></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Highest Combo Merges:</span> <b style="color:#38bdf8;">${st.highestComboMerges}x</b></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Perfect Serves:</span> <b style="color:#4ade80;">${st.perfectServes}</b></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Glasses Smashed:</span> <b style="color:#f87171;">${st.glassesSmashed}</b></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Kiddie Hordes Triggered:</span> <b>${st.kiddieHordesTriggered}</b></div>
+                `;
+            }
+
+            const chosenName = (this.playerNameInput && this.playerNameInput.value.trim())
+                || localStorage.getItem('law_player_name')
+                || 'Michael Law';
+            window.taproomTelemetry.submitScore(chosenName);
+        }
+
         if (this.gameOverScreen) {
             this.gameOverScreen.style.display = 'flex';
         }

@@ -15,8 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Mobile-First Viewport & UI Scaling -->
-    <!-- Mobile-First Viewport & UI Scaling -->
+    <!-- Mobile-First Viewport & Unified Sliding Drawer Styling -->
     <style>
         body {
             margin: 0;
@@ -34,7 +33,7 @@
         #gameContainer {
             position: relative;
             width: 100vw;
-            height: 100vh; /* Fills screen completely */
+            height: 100vh;
             background: #000;
             overflow: hidden;
         }
@@ -42,7 +41,7 @@
         canvas {
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover; /* Eliminates black bars, fills screen */
+            object-fit: cover;
             display: block;
         }
 
@@ -75,48 +74,95 @@
             }
         }
 
-        /* --- COLLAPSIBLE BREWERY HUD DRAWER --- */
-        #brewingHUD {
-            transition: transform 0.3s ease;
-            transform: translateX(-100%); /* Hidden by default */
+        /* --- UNIFIED COLLAPSIBLE HUD DRAWER (BOTH BREWING & TAPROOM) --- */
+        #brewingHUD,
+        #taproomHUD {
+            position: absolute;
+            z-index: 100;
+            top: 0;
+            left: 0;
+            height: 100%;
             width: 300px;
             max-width: 80vw;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.8);
+            background: rgba(24, 24, 27, 0.96);
+            border-right: 2px solid #3f3f46;
+            padding: 74px 18px 20px 18px;
+            color: #f4f4f5;
+            box-sizing: border-box;
+            box-shadow: 5px 0 20px rgba(0, 0, 0, 0.85);
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            transform: translateX(-100%);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            pointer-events: none;
         }
 
-            #brewingHUD.open {
-                transform: translateX(0); /* Slides in */
+            #brewingHUD.open,
+            #taproomHUD.open {
+                transform: translateX(0);
+                pointer-events: auto;
             }
 
         #btnToggleHUD {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 101;
+            top: 16px;
+            left: 16px;
+            z-index: 110;
             background: #6366f1;
             color: white;
-            border: none;
-            padding: 10px 15px;
-            font-family: 'Oswald';
-            font-size: 20px;
+            border: 2px solid #818cf8;
+            padding: 8px 16px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
             border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            user-select: none;
         }
+
+            #btnToggleHUD:hover {
+                background: #4f46e5;
+            }
+
+        .hud-library-link {
+            display: block;
+            margin-top: auto;
+            padding: 12px;
+            text-align: center;
+            background: #18181b;
+            color: #a1a1aa;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            font-family: 'Oswald', sans-serif;
+            text-decoration: none;
+            font-size: 15px;
+            letter-spacing: 0.8px;
+            transition: all 0.2s ease;
+        }
+
+            .hud-library-link:hover {
+                background: #27272a;
+                color: #f4f4f5;
+                border-color: #71717a;
+            }
 
         /* Responsive UI Scaling */
         .hud-panel h2 {
             margin-top: 0;
-            font-size: clamp(16px, 2.5vw, 24px);
+            margin-bottom: 8px;
+            font-size: clamp(16px, 2vw, 22px);
         }
 
         .hud-panel p, .hud-panel ul {
-            font-size: clamp(14px, 2vw, 20px);
+            font-size: clamp(13px, 1.6vw, 16px);
+            margin-top: 4px;
         }
 
         .hud-panel button {
-            font-size: clamp(14px, 2vw, 20px);
-            padding: 15px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            padding: 12px;
         }
     </style>
 </head>
@@ -129,41 +175,42 @@
         PLEASE ROTATE DEVICE<br>TO LANDSCAPE
     </div>
 
-    <!-- HUD Toggle Button -->
-    <button id="btnToggleHUD" onclick="document.getElementById('brewingHUD').classList.toggle('open')">☰ MENU</button>
+    <!-- Unified HUD Toggle Button (Works in both Brewing and Taproom phases!) -->
+    <button id="btnToggleHUD">☰ MENU</button>
 
     <!-- Responsive Game Viewport -->
     <div id="gameContainer">
-        <!-- Internal resolution remains 1280x720, CSS handles the physical screen scaling -->
         <canvas id="gameCanvas" width="1280" height="720" style="position: absolute; top: 0; left: 0;"></canvas>
 
         <!-- FORECAST TICKER -->
-        <div id="forecastTicker" style="position: absolute; top: 2%; left: 20%; width: 60%; text-align: center; color: #38bdf8; font-family: 'Inter'; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; pointer-events: none; z-index: 100; display: none; font-size: clamp(12px, 1.5vw, 18px);">
-            <!-- Javascript will inject the forecast here -->
+        <div id="forecastTicker" style="position: absolute; top: 2%; left: 20%; width: 60%; text-align: center; color: #38bdf8; font-family: 'Inter'; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; pointer-events: none; z-index: 95; display: none; font-size: clamp(12px, 1.5vw, 18px);">
         </div>
 
-        <!-- TAPROOM HUD -->
-        <div id="taproomHUD" class="hud-panel" style="position: absolute; z-index: 100; display: none; top: 2%; left: 2%; background: rgba(9, 9, 11, 0.8); padding: 2%; border-radius: 8px; color: #f4f4f5; max-width: 25%;">
-            <h2 style="color: #dc2626; font-family: 'Oswald';">ON TAP:</h2>
-            <h2 id="hudTimer" style="color: #facc15; font-family: 'Oswald'; margin-top: 15%;">TIME LEFT: 60s</h2>
-            <ul id="ammoList" style="list-style: none; padding: 0; font-weight: bold; font-family: 'Inter';">
+        <!-- TAPROOM HUD DRAWER -->
+        <div id="taproomHUD" class="hud-panel">
+            <h2 style="color: #dc2626; font-family: 'Oswald';">ON TAP</h2>
+            <h2 id="hudTimer" style="color: #facc15; font-family: 'Oswald'; margin-top: 8px;">TIME LEFT: 60s</h2>
+            <p id="hudTaproomTips" style="font-family: 'Inter'; color: #4ade80; font-weight: 600; margin-bottom: 12px;">Tips: $0</p>
+            <ul id="ammoList" style="list-style: none; padding: 0; font-weight: bold; font-family: 'Inter'; margin-bottom: 16px;">
             </ul>
+            <a href="../index.html" class="hud-library-link">❮ BACK TO LIBRARY</a>
         </div>
 
-        <!-- BREWING HUD -->
-        <div id="brewingHUD" class="hud-panel" style="position: absolute; z-index: 100; top: 0; left: 0; height: 100%; background: #27272a; padding: 2%; color: #f4f4f5; box-sizing: border-box;">
+        <!-- BREWING HUD DRAWER -->
+        <div id="brewingHUD" class="hud-panel">
             <h2 style="color: #dc2626; font-family: 'Oswald';">BREWERY BALANCE</h2>
-            <p id="hudTips" style="font-family: 'Inter';">Tips: $0.00</p>
+            <p id="hudTips" style="font-family: 'Inter'; color: #4ade80; font-weight: 600;">Tips: $0.00</p>
 
-            <h2 style="color: #dc2626; font-family: 'Oswald'; margin-top: 15%;">INVENTORY</h2>
+            <h2 style="color: #dc2626; font-family: 'Oswald'; margin-top: 16px;">INVENTORY</h2>
             <ul id="inventoryList" style="list-style: none; padding: 0; font-family: 'Inter';">
             </ul>
-            <button id="btnOpenRecipeBook" style="width: 100%; margin-top: 10%; font-family: 'Oswald'; background: #6366f1; color: white; border: none; cursor: pointer; border-radius: 4px;">
+            <button id="btnOpenRecipeBook" style="width: 100%; margin-top: 12px; font-family: 'Oswald'; background: #6366f1; color: white; border: none; cursor: pointer; border-radius: 6px;">
                 📖 RECIPE BOOK
             </button>
-            <button id="btnStartShift" style="width: 100%; margin-top: 15%; font-family: 'Oswald'; background: #10b981; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px;">
+            <button id="btnStartShift" style="width: 100%; margin-top: 12px; margin-bottom: 16px; font-family: 'Oswald'; background: #10b981; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 6px;">
                 OPEN TAPROOM
             </button>
+            <a href="../index.html" class="hud-library-link">❮ BACK TO LIBRARY</a>
         </div>
 
         <!-- RECIPE BOOK OVERLAY -->
@@ -174,21 +221,33 @@
             </div>
         </div>
 
-        <!-- GAME OVER OVERLAY -->
-        <div id="gameOverScreen" style="position: absolute; z-index: 200; display: none; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; justify-content: center; align-items: center; color: #f4f4f5;">
-            <h1 style="color: #ef4444; font-family: 'Oswald'; margin: 0; text-shadow: 2px 2px 10px rgba(239,68,68,0.5); font-size: clamp(40px, 8vw, 100px);">BANKRUPT!</h1>
-            <p style="font-family: 'Inter'; font-size: clamp(16px, 2vw, 24px);">You ran out of tips and lost the brewery.</p>
-            <button id="btnRestart" style="margin-top: 5%; padding: 2% 5%; font-family: 'Oswald'; font-size: clamp(16px, 2.5vw, 24px); font-weight: bold; cursor: pointer; background: #dc2626; color: white; border: none; border-radius: 8px;">TRY AGAIN</button>
+        <!-- GAME OVER OVERLAY (With Telemetry Summary & Player Name Sync) -->
+        <div id="gameOverScreen" style="position: absolute; z-index: 200; display: none; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.94); flex-direction: column; justify-content: center; align-items: center; color: #f4f4f5;">
+            <h1 style="color: #ef4444; font-family: 'Oswald'; margin: 0; text-shadow: 2px 2px 10px rgba(239,68,68,0.5); font-size: clamp(36px, 6vw, 76px);">BANKRUPT!</h1>
+            <p style="font-family: 'Inter'; color: #a1a1aa; margin: 6px 0 14px 0; font-size: clamp(14px, 1.8vw, 20px);">You ran out of tips and lost the brewery.</p>
+
+            <div id="gameOverStatsBox" style="background: #18181b; border: 1px solid #3f3f46; border-radius: 10px; padding: 14px 22px; min-width: 280px; margin-bottom: 14px; font-family: 'Inter'; font-size: 14px; line-height: 1.7;">
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+                <input id="playerNameInput" type="text" maxlength="24" placeholder="Enter Brewer Name" style="padding: 10px 14px; border-radius: 6px; border: 1px solid #52525b; background: #27272a; color: #f4f4f5; font-family: 'Inter'; font-size: 14px;" />
+                <button id="btnSubmitScore" style="padding: 10px 16px; font-family: 'Oswald'; font-size: 15px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">SYNC SCORE</button>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button id="btnRestart" style="padding: 12px 28px; font-family: 'Oswald'; font-size: clamp(16px, 2vw, 22px); font-weight: bold; cursor: pointer; background: #dc2626; color: white; border: none; border-radius: 8px;">TRY AGAIN</button>
+                <a href="../index.html" style="padding: 12px 24px; font-family: 'Oswald'; font-size: clamp(16px, 2vw, 22px); text-decoration: none; background: #27272a; color: #e4e4e7; border: 1px solid #52525b; border-radius: 8px;">LIBRARY</a>
+            </div>
         </div>
 
         <!-- UI Overlay -->
         <div id="ui-layer">
-            <a href="../index.html" id="btn-exit" class="dread-btn" style="font-size: clamp(12px, 1.5vw, 16px);">❮ BACK TO LIBRARY</a>
             <button id="test-toggle-phase" style="position: absolute; top: 2%; right: 2%; padding: 1% 2%; background: #dc2626; color: white; border: none; font-family: 'Oswald', sans-serif; cursor: pointer; pointer-events: auto; z-index: 100; font-size: clamp(10px, 1.2vw, 16px);">
                 TEST: TOGGLE PHASE
             </button>
         </div>
-    </div> <!-- END GAME CONTAINER -->
+    </div>
+
     <!-- Scripts -->
     <script src="js/core/events.js"></script>
     <script src="js/core/audio.js"></script>
@@ -196,10 +255,8 @@
     <script src="js/core/renderer.js"></script>
     <script src="js/config/economy.js"></script>
     <script src="js/config/population.js"></script>
-    <!-- 1. Data & Configs -->
     <script src="js/config/recipes.js"></script>
     <script src="js/config/patrons.js"></script>
-    <!-- 2. Core Engine & Managers -->
     <script src="js/data/megaPack.js"></script>
     <script src="js/engine/SpriteManager.js"></script>
     <script src="js/state/player.js"></script>

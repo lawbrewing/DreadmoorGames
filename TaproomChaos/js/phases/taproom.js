@@ -1,5 +1,109 @@
 // js/phases/taproom.js
 
+// --- GLOBAL TELEMETRY & SCORE SYNC FOR /api/scores/taproom_chaos ---
+class TaproomTelemetry {
+    constructor() {
+        this.reset();
+        this.bindEvents();
+    }
+
+    reset() {
+        this.stats = {
+            shiftsCleared: 0,
+            highestComboMerges: 0,
+            perfectServes: 0,
+            glassesSmashed: 0,
+            kiddieHordesTriggered: 0
+        };
+        this.currentMergeChain = 0;
+        this.lastMergeTimestamp = 0;
+        this.hasSubmittedRun = false;
+    }
+
+    bindEvents() {
+        if (typeof gameEvents === 'undefined') return;
+
+        // Track consecutive merge combos (can be emitted from brewing.js or auto-detected)
+        gameEvents.on('MERGE_COMBO', (chainCount) => {
+            const val = typeof chainCount === 'number' ? chainCount : 1;
+            if (val > this.stats.highestComboMerges) {
+                this.stats.highestComboMerges = val;
+            }
+        });
+
+        // Fallback: if brewing phase emits INGREDIENT_MERGED, chain merges within a 4s window
+        gameEvents.on('INGREDIENT_MERGED', () => {
+            const now = Date.now();
+            if (now - this.lastMergeTimestamp <= 4000) {
+                this.currentMergeChain++;
+            } else {
+                this.currentMergeChain = 1;
+            }
+            this.lastMergeTimestamp = now;
+            if (this.currentMergeChain > this.stats.highestComboMerges) {
+                this.stats.highestComboMerges = this.currentMergeChain;
+            }
+        });
+    }
+
+    recordMergeCombo(chainCount = 1) {
+        if (chainCount > this.stats.highestComboMerges) {
+            this.stats.highestComboMerges = chainCount;
+        }
+    }
+
+    async submitScore(overrideName = null) {
+        if (this.hasSubmittedRun) return;
+        this.hasSubmittedRun = true;
+
+        const playerName = overrideName
+            || (typeof playerState !== 'undefined' && (playerState.playerName || playerState.name))
+            || localStorage.getItem('law_player_name')
+            || '';
+
+        const currentRunScore = (typeof playerState !== 'undefined')
+            ? Math.max(0, Math.floor(playerState.totalEarned || playerState.score || playerState.tips || 0))
+            : 0;
+
+        const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+        const currentShift = prog.shift || prog.currentShift || (typeof taproomPhase !== 'undefined' ? taproomPhase.shift : 1) || 1;
+
+        // Cumulative career tips/score accumulated (falls back to currentRunScore if not tracked separately)
+        const totalTipsEarned = (typeof playerState !== 'undefined' && playerState.lifetimeScore !== undefined)
+            ? playerState.lifetimeScore
+            : currentRunScore;
+
+        const payload = {
+            player_name: playerName,
+            score: currentRunScore,        // Score for this specific run
+            level_reached: currentShift,   // Shift reached
+            stats: {
+                shiftsCleared: this.stats.shiftsCleared,
+                highestComboMerges: this.stats.highestComboMerges,
+                perfectServes: this.stats.perfectServes,
+                glassesSmashed: this.stats.glassesSmashed,
+                kiddieHordesTriggered: this.stats.kiddieHordesTriggered,
+                lifetimeScore: totalTipsEarned // Cumulative career tips/score accumulated
+            }
+        };
+
+        try {
+            const response = await fetch('https://lawbrewing.tail03b2f1.ts.net/api/scores/taproom_chaos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            console.log('[Telemetry] Successfully posted score to Tailscale server:', payload, response.status);
+            return await response.json();
+        } catch (err) {
+            console.warn('[Telemetry] Failed to reach Tailscale server endpoint:', err);
+            return null;
+        }
+    }
+}
+
+window.taproomTelemetry = window.taproomTelemetry || new TaproomTelemetry();
+
 class TaproomPhase {
     constructor() {
         this.patrons = [];
@@ -60,7 +164,6 @@ class TaproomPhase {
 
             if (swipeDy < -20) {
                 const swipeDistance = Math.hypot(swipeDx, swipeDy);
-                // Launch from the Beer Bar tap tower or Coffee Counter based on aim direction/ammo
                 const currentAmmo = (playerState && playerState.ammo) ? playerState.ammo[this.selectedAmmoIndex] : null;
                 const isCafeDrink = currentAmmo && ['soda', 'mocktail', 'stout', 'sour', 'cocktail'].includes((currentAmmo.type || '').toLowerCase());
                 const targetXEst = this.aimStart.x + swipeDx * 1.5;
@@ -76,7 +179,6 @@ class TaproomPhase {
 
         gameEvents.on('DART_THROWN', (pos) => {
             if (!this.isActive) return;
-            // Aim directly at the mounted dartboard on the right wall (x: w - 100, y: 350)
             const boardX = (this.nav && this.nav.dartboardTarget) ? this.nav.dartboardTarget.x : 1180;
             const boardY = (this.nav && this.nav.dartboardTarget) ? this.nav.dartboardTarget.y : 295;
             this.darts.push({
@@ -91,6 +193,11 @@ class TaproomPhase {
         gameEvents.on('GLASS_SMASHED', (data) => {
             if (!this.isActive) return;
 
+            // Track broken glasses for /api/scores/taproom_chaos
+            if (window.taproomTelemetry) {
+                window.taproomTelemetry.stats.glassesSmashed++;
+            }
+
             let splashRadius = data.type === 'Swill' ? 180 : (data.type === 'Pastry Stout' ? 80 : 40);
             let pushbackForce = data.type === 'Swill' ? 120 : (data.type === 'Pastry Stout' ? 40 : 10);
 
@@ -100,9 +207,9 @@ class TaproomPhase {
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance <= splashRadius && (patron.currentState === 'ENTER' || patron.currentState === 'IDLE')) {
-                    patron.y -= pushbackForce;
-                    patron.x += (patron.x > data.x) ? pushbackForce / 4 : -pushbackForce / 4;
-                    if (patron.y < 165) patron.y = 165;
+                    patron.y -= pushbackForce * 0.6;
+                    patron.x += (patron.x > data.x) ? pushbackForce / 3 : -pushbackForce / 3;
+                    patron.y = Math.max(210, Math.min(700, patron.y));
                     if (typeof patron.resolveObstacleCollisions === 'function') {
                         patron.resolveObstacleCollisions(this.obstacles || []);
                     }
@@ -140,18 +247,151 @@ class TaproomPhase {
         this.timeRemaining = this.shiftDuration;
         this.shiftCount++;
 
-        // Sync progression data onto taproomPhase so renderer always sees live progression
         const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
         this.shift = prog.shift || prog.currentShift || prog.day || this.shiftCount;
-        this.year = prog.year || prog.currentYear || (1 + Math.floor((this.shift - 1) / 4));
 
+        // Auto-reset telemetry at the start of Shift 1
+        if (this.shift === 1 && window.taproomTelemetry) {
+            window.taproomTelemetry.reset();
+        }
+
+        // Auto-hook hud.showGameOver once so score submits automatically on bankruptcy
+        if (typeof hud !== 'undefined' && hud.showGameOver && !hud._telemetryWrapped) {
+            const origShowGameOver = hud.showGameOver.bind(hud);
+            hud.showGameOver = (...args) => {
+                if (window.taproomTelemetry) window.taproomTelemetry.submitScore();
+                return origShowGameOver(...args);
+            };
+            hud._telemetryWrapped = true;
+        }
+
+        const shiftsPerSeason = 4;
         const seasons = ['spring', 'summer', 'fall', 'winter'];
-        this.season = prog.season || prog.currentSeason || seasons[(this.shift - 1) % 4];
+        const seasonIndex = Math.floor((this.shift - 1) / shiftsPerSeason) % 4;
+
+        this.season = prog.season || prog.currentSeason || seasons[seasonIndex];
+        this.shiftInSeason = ((this.shift - 1) % shiftsPerSeason) + 1;
+        this.year = prog.year || prog.currentYear || (1 + Math.floor((this.shift - 1) / (shiftsPerSeason * 4)));
+
         this.isBossRound = (typeof prog.isBossRound === 'function') ? prog.isBossRound() : Boolean(prog.isBossRound);
 
         const mod = prog.forecast ? prog.forecast.modifier : 'none';
         this.spawnInterval = (mod === 'crowd_spike') ? 2.0 : 3.5;
         this.maxPatrons = 7 + Math.min(5, Math.floor(this.shift / 2));
+    }
+
+    // Checks if a candidate (x, y) landing spot is safely outside all furniture hitboxes
+    isSpotClear(x, y, buffer = 34) {
+        const obstacles = this.obstacles || [];
+        for (const obs of obstacles) {
+            const rx = (obs.rx || obs.r || 55) + buffer;
+            const ry = (obs.ry || (obs.r ? obs.r * 0.65 : 38)) + (buffer * 0.75);
+            const dx = x - obs.x;
+            const dy = y - obs.y;
+            if (Math.hypot(dx / rx, dy / ry) < 1.05) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Picks a randomized, obstacle-safe destination anywhere across the taproom scene
+    pickRandomSceneDestination() {
+        const w = 1280;
+
+        // 18 scenic hangout spots distributed throughout the entire room
+        const scenicPool = [
+            // Mid-Left Lounge & Booth Front
+            { x: 165, y: 525 }, { x: 245, y: 535 }, { x: 335, y: 505 },
+            // Upper-Left Jukebox & Stage Groove Area
+            { x: 375, y: 345 }, { x: 445, y: 330 },
+            // Center Pool Table Perimeter (North, West, East, South)
+            { x: 565, y: 318 }, { x: 715, y: 318 },
+            { x: 460, y: 415 }, { x: 820, y: 415 },
+            { x: 565, y: 495 }, { x: 715, y: 495 },
+            // Center Open Taproom Floor
+            { x: 515, y: 575 }, { x: 640, y: 560 }, { x: 765, y: 575 },
+            // Mid-Right Bistro & Darts Lounge
+            { x: 865, y: 345 }, { x: 885, y: 495 }, { x: 1095, y: 490 },
+            // Front-Left Beer Bar & Front-Right Coffee Bar (Outside the stools & corners)
+            { x: 245, y: 702 }, { x: 355, y: 702 }, { x: 475, y: 635 },
+            { x: w - 475, y: 635 }, { x: w - 355, y: 702 }, { x: w - 245, y: 702 }
+        ];
+
+        // Generate 6 additional completely random floor coordinates per spawn
+        for (let i = 0; i < 6; i++) {
+            scenicPool.push({
+                x: 155 + Math.random() * (w - 310),
+                y: 295 + Math.random() * 395
+            });
+        }
+
+        // Shuffle candidates so every patron picks a fresh area of the room
+        const shuffled = scenicPool
+            .map(pt => ({
+                x: pt.x + (Math.random() * 28 - 14),
+                y: pt.y + (Math.random() * 22 - 11),
+                sortKey: Math.random()
+            }))
+            .sort((a, b) => a.sortKey - b.sortKey);
+
+        let bestSpot = { x: 640 + (Math.random() * 140 - 70), y: 540 };
+        let bestCrowding = Infinity;
+
+        for (const candidate of shuffled) {
+            if (!this.isSpotClear(candidate.x, candidate.y, 34)) continue;
+
+            let crowding = 0;
+            for (const other of this.patrons) {
+                const ox = other.targetX || other.x;
+                const oy = other.targetY || other.y;
+                const d = Math.hypot(ox - candidate.x, oy - candidate.y);
+                if (d < 70) crowding += (70 - d);
+            }
+
+            if (crowding < bestCrowding) {
+                bestCrowding = crowding;
+                bestSpot = { x: candidate.x, y: candidate.y };
+                if (crowding === 0) break;
+            }
+        }
+
+        return bestSpot;
+    }
+
+    // Builds an obstacle-safe path from the rear entrance door to any (destX, destY) in the scene
+    buildEntryPath(destX, destY) {
+        const w = 1280;
+        const isRightSide = destX >= (w / 2);
+        const path = [];
+
+        // Step 1: Step south into the foyer clear of the rear wall & seasonal centerpiece
+        path.push({
+            x: (w / 2) + (isRightSide ? 48 : -48) + (Math.random() * 14 - 7),
+            y: 205
+        });
+
+        // Step 2: If heading deeper into the room, route through the wide left or right main aisle
+        if (destY > 345) {
+            const aisleX = isRightSide ? 825 : 455;
+            path.push({
+                x: aisleX + (Math.random() * 18 - 9),
+                y: 335
+            });
+
+            // Step 3: If heading to the lower half of the room, walk down the open aisle first
+            // so the patron never cuts diagonally across the pool table or bar counter corners
+            if (destY > 515) {
+                path.push({
+                    x: aisleX + (Math.random() * 18 - 9),
+                    y: Math.min(545, destY - 20)
+                });
+            }
+        }
+
+        // Final Step: Arrive at the randomized scene destination
+        path.push({ x: destX, y: destY });
+        return path;
     }
 
     spawnPatron(forcedKey = null, groupId = null) {
@@ -168,73 +408,24 @@ class TaproomPhase {
         if (!config) return;
 
         const w = 1280;
-
-        // 1. ALL PATRONS ENTER THROUGH THE REAR DOOR
-        const startX = (w / 2) + (Math.random() * 20 - 10);
+        const startX = (w / 2) + (Math.random() * 18 - 9);
         const startY = 132;
 
-        // 2. ROUTE TO BEER BAR (LEFT) OR COFFEE COUNTER (RIGHT) AROUND THE CENTER POOL TABLE
-        const cravesStr = ((config.favoriteStyle || '') + ' ' + (config.craves || []).join(' ')).toLowerCase();
-        const prefersCafe = cravesStr.includes('stout') || cravesStr.includes('soda') || cravesStr.includes('mocktail') || cravesStr.includes('sour') || cravesStr.includes('coffee') || rosterKey === 'kid';
-        const goToCoffeeCounter = prefersCafe ? (Math.random() < 0.8) : (Math.random() < 0.35);
-
-        const beerSpots = [
-            { x: 405, y: 545 },
-            { x: 435, y: 585 },
-            { x: 355, y: 695 },
-            { x: 285, y: 695 },
-            { x: 185, y: 545 }
-        ];
-        const coffeeSpots = [
-            { x: w - 405, y: 545 },
-            { x: w - 435, y: 585 },
-            { x: w - 355, y: 695 },
-            { x: w - 285, y: 695 },
-            { x: w - 185, y: 545 }
-        ];
-
-        const spotPool = goToCoffeeCounter ? coffeeSpots : beerSpots;
-        // Pick a spot with the fewest nearby patrons
-        let chosenSpot = spotPool[Math.floor(Math.random() * spotPool.length)];
-        let bestScore = Infinity;
-        for (const candidate of spotPool) {
-            let crowding = 0;
-            for (const other of this.patrons) {
-                const d = Math.hypot((other.targetX || other.x) - candidate.x, (other.targetY || other.y) - candidate.y);
-                if (d < 55) crowding++;
-            }
-            if (crowding < bestScore) {
-                bestScore = crowding;
-                chosenSpot = candidate;
-            }
-        }
-
-        const destX = chosenSpot.x + (Math.random() * 22 - 11);
-        const destY = chosenSpot.y + (Math.random() * 18 - 9);
-
-        // Waypoints: Foyer -> Corridor around Pool Table -> Counter Service Spot
-        const foyerWaypoint = {
-            x: (w / 2) + (goToCoffeeCounter ? 35 : -35) + (Math.random() * 16 - 8),
-            y: 220
-        };
-        const corridorWaypoint = goToCoffeeCounter
-            ? { x: (w / 2) + 185 + (Math.random() * 24 - 12), y: 365 + (Math.random() * 20 - 10) }
-            : { x: (w / 2) - 185 + (Math.random() * 24 - 12), y: 365 + (Math.random() * 20 - 10) };
-
-        const path = [
-            foyerWaypoint,
-            corridorWaypoint,
-            { x: destX, y: destY }
-        ];
+        const dest = this.pickRandomSceneDestination();
+        const path = this.buildEntryPath(dest.x, dest.y);
 
         const patron = new Patron(startX, startY, rosterKey, { ...config, speed: config.speed ? config.speed * 1.5 : 42 });
         patron.groupId = groupId;
-        patron.stationSide = goToCoffeeCounter ? 'COFFEE' : 'BEER';
         patron.setPath(path);
         this.patrons.push(patron);
     }
 
     triggerKidHorde() {
+        // Track kiddieHordesTriggered for /api/scores/taproom_chaos
+        if (window.taproomTelemetry) {
+            window.taproomTelemetry.stats.kiddieHordesTriggered++;
+        }
+
         let currentHordeSize = (typeof progressionState !== 'undefined' && typeof progressionState.isBossRound === 'function' && progressionState.isBossRound()) ? 10 : 5;
         for (let i = 0; i < currentHordeSize; i++) {
             setTimeout(() => { if (this.isActive) this.spawnPatron('kid', 'horde_group'); }, i * 650);
@@ -248,6 +439,12 @@ class TaproomPhase {
         if (this.timeRemaining <= 0) {
             if (!this.isTransitioning) {
                 this.isTransitioning = true;
+
+                // Track shiftsCleared for /api/scores/taproom_chaos
+                if (window.taproomTelemetry) {
+                    window.taproomTelemetry.stats.shiftsCleared++;
+                }
+
                 if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
                     progressionState.advanceShift();
                 }
@@ -331,29 +528,38 @@ class TaproomPhase {
                     const isStyleMatch = config.favoriteStyle && (p.name.includes(config.favoriteStyle) || p.type === config.favoriteStyle.toLowerCase());
                     const isCraved = config.craves && config.craves.includes(p.type);
 
-                    // Route happy patrons to the Left Dance Stage, the Right Dartboard, or Rear Exit
                     const assignActivity = (pt) => {
                         const roll = Math.random();
+                        const isLeftSide = pt.x < 640;
+                        const safeAisleX = isLeftSide ? 455 : 825;
+
                         if (roll > 0.60) {
                             pt.activity = 'DANCE';
-                            // Walk onto the live music stage platform on the left!
-                            pt.waypoints = [
-                                { x: 440, y: 360 },
-                                { x: 245 + (Math.random() * 55 - 27), y: 295 + (Math.random() * 24 - 12) }
-                            ];
+                            const route = [];
+                            if (pt.y > 500) route.push({ x: safeAisleX, y: 515 });
+                            if (!isLeftSide) route.push({ x: 640, y: 315 });
+                            route.push({ x: 435, y: 325 });
+                            route.push({ x: 245 + (Math.random() * 48 - 24), y: 292 + (Math.random() * 18 - 9) });
+                            pt.waypoints = route;
                         } else if (roll > 0.28) {
                             pt.activity = 'DARTS';
-                            // Walk to the throwing line in front of the right-wall dartboard
-                            pt.waypoints = [
-                                { x: 835, y: 365 },
-                                { x: 1055 + (Math.random() * 24 - 12), y: 345 + (Math.random() * 24 - 12) }
-                            ];
+                            const route = [];
+                            if (pt.y > 500) route.push({ x: safeAisleX, y: 515 });
+                            if (isLeftSide) route.push({ x: 640, y: 315 });
+                            route.push({ x: 845, y: 340 });
+                            route.push({ x: 1055 + (Math.random() * 22 - 11), y: 345 + (Math.random() * 20 - 10) });
+                            pt.waypoints = route;
                         } else {
                             pt.activity = 'EXIT';
                         }
                     };
 
                     if (isExactMatch) {
+                        // Track flawless delivery for /api/scores/taproom_chaos
+                        if (window.taproomTelemetry) {
+                            window.taproomTelemetry.stats.perfectServes++;
+                        }
+
                         gameEvents.emit('EARN_TIPS', baseTip * 3);
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip * 3} (Favorite!)`, "#f59e0b"));
                         patron.receivedPreferredDrink = true;
@@ -390,7 +596,7 @@ class TaproomPhase {
                             groupMembers.forEach((pt, idx) => {
                                 pt.activity = 'DARTS';
                                 pt.waypoints = [
-                                    { x: 835, y: 365 },
+                                    { x: 845, y: 340 },
                                     { x: 1045 + ((idx % 3) * 26), y: 335 + (idx * 12) }
                                 ];
                             });
