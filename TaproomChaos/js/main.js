@@ -46,7 +46,7 @@ function draw() {
 // 5. The Core Loop Heartbeat
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
-    let deltaTime = (timestamp - lastTime) / 1000; // Syntax fixed!
+    let deltaTime = Math.min(0.1, (timestamp - lastTime) / 1000);
     lastTime = timestamp;
 
     // --- BANKRUPTCY CHECK ---
@@ -54,48 +54,38 @@ function gameLoop(timestamp) {
         console.log("BANKRUPT!");
         currentState = GAME_STATES.GAME_OVER;
 
-        // Shut down both phases so gameplay freezes
         if (typeof taproomPhase !== 'undefined') taproomPhase.shutdown();
         if (typeof brewingPhase !== 'undefined') brewingPhase.shutdown();
 
-        // Throw up the Game Over UI
         hud.showGameOver();
-        return; // Stop the game loop completely!
+        return;
     }
 
-    // Run Engine Updates
     update(deltaTime);
 
-    // Update HTML DOM
     if (typeof hud !== 'undefined') hud.update();
 
-    // Draw Canvas
     draw();
 
-    // Ask the browser to run this function again on the next frame
     requestAnimationFrame(gameLoop);
 }
 
 // --- STATE TRANSITION LISTENERS ---
 gameEvents.on('CHANGE_STATE', (data) => {
     if (GAME_STATES[data.newState]) {
-        // 1. Shut down the current phase
         if (currentState === GAME_STATES.TAPROOM) {
             taproomPhase.shutdown();
         } else if (currentState === GAME_STATES.BREWING) {
             brewingPhase.shutdown();
         }
 
-        // 2. Flip the internal switch
         currentState = data.newState;
         console.log(`[Main] State changed to: ${currentState}`);
 
-        // 3. Flip the HTML HUD switch!
         if (typeof hud !== 'undefined') {
             hud.switchPhase(currentState);
         }
 
-        // 4. Boot up the new phase
         if (currentState === GAME_STATES.TAPROOM) {
             taproomPhase.init();
         } else if (currentState === GAME_STATES.BREWING) {
@@ -115,7 +105,7 @@ if (toggleBtn) {
 
 // 6. Boot it up! (Wait for sprites to load first!)
 spriteManager.preloadAll(PATRON_ROSTER).then(() => {
-    console.log("[Engine] All Patron Spritesheets Loaded!");
+    console.log("[Engine] All Patron & MegaPack Sprites Loaded!");
 
     if (currentState === GAME_STATES.TAPROOM) {
         taproomPhase.init();
@@ -123,6 +113,5 @@ spriteManager.preloadAll(PATRON_ROSTER).then(() => {
         brewingPhase.init();
     }
 
-    // Start the heartbeat
     requestAnimationFrame(gameLoop);
 });

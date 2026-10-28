@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Taproom Chaos | Dreadmoor Games</title>
 
     <!-- PWA Continuity -->
@@ -17,31 +17,38 @@
 
     <!-- Mobile-First Viewport & Unified Sliding Drawer Styling -->
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background-color: #09090b;
             overflow: hidden;
+            overscroll-behavior: none;
             touch-action: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             width: 100vw;
             height: 100vh;
+            width: 100dvw;
+            height: 100dvh;
+            position: fixed;
+            inset: 0;
         }
 
         #gameContainer {
-            position: relative;
+            position: fixed;
+            inset: 0;
             width: 100vw;
             height: 100vh;
+            width: 100dvw;
+            height: 100dvh;
             background: #000;
             overflow: hidden;
         }
 
         canvas {
+            position: absolute;
+            inset: 0;
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover;
+            object-fit: fill !important; /* Stretches full 1280x720 edge-to-edge without cropping or touch offset */
             display: block;
         }
 
