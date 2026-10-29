@@ -231,6 +231,8 @@ class TaproomPhase {
             x: x, y: y, z: 0, vx: vx, vy: vy, vz: vz,
             name: currentAmmo.name, type: currentAmmo.type || 'crowd_control', radius: 12, active: true
         });
+
+        gameEvents.emit('BEER_TOSSED');
     }
 
     init(ammoList = []) {
