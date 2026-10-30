@@ -5,9 +5,10 @@ class BrewingPhase {
         this.isActive = false;
 
         // Grid configuration
-        this.cols = 6;
-        this.rows = 5;
-        this.tileSize = 90;
+        this.cols = 5;
+        this.rows = 4;
+        this.tileSize = 115; // Increased from default for massive mobile hitboxes
+        this.gridOffset = { x: 30, y: 110 }; // Snug against the top-left
 
         this.gridOffset = { x: 500, y: 140 };
         this.grid = [];
@@ -18,12 +19,12 @@ class BrewingPhase {
 
         // 6 Specific Ingredient Bags
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 1, x: 280, y: 140, w: 80, h: 80, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 1, x: 380, y: 140, w: 80, h: 80, color: '#eab308' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 2, x: 280, y: 240, w: 80, h: 80, color: '#f97316' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 2, x: 380, y: 240, w: 80, h: 80, color: '#d9f99d' },
-            { id: 'sack_hops', category: 'Hops', cost: 3, x: 280, y: 340, w: 80, h: 80, color: '#22c55e' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 6, x: 380, y: 340, w: 80, h: 80, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0, x: 680, y: 110, w: 90, h: 90, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0, x: 810, y: 110, w: 90, h: 90, color: '#eab308' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0, x: 680, y: 230, w: 90, h: 90, color: '#d9f99d' },
+            { id: 'sack_hops', category: 'Hops', cost: 1, x: 810, y: 230, w: 90, h: 90, color: '#22c55e' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 2, x: 680, y: 350, w: 90, h: 90, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 4, x: 810, y: 350, w: 90, h: 90, color: '#a855f7' }
         ];
 
         // 3-Kettle Brewhouse Array
@@ -34,7 +35,7 @@ class BrewingPhase {
         ];
 
         // Floor Drain
-        this.drain = { x: 280, y: 595, w: 150, h: 105 };
+        this.drain = { x: 680, y: 470, w: 220, h: 90 };
 
         // Floating feedback text popups
         this.floatingTexts = [];
@@ -104,79 +105,82 @@ class BrewingPhase {
         });
 
         gameEvents.on('DRAG_END', (pos) => {
-            if (!this.isActive || !this.dragState) return;
+            if (!this.isActive || !this.dragState || !this.dragState.item) return;
 
-            const { col, row, valid } = this.getGridCoords(pos.x, pos.y);
-            const sourceItem = this.dragState.item;
-            const startCol = this.dragState.startCol;
-            const startRow = this.dragState.startRow;
+            const dragItem = this.dragState.item;
+            const startR = this.dragState.startRow;
+            const startC = this.dragState.startCol;
+            this.dragState = null;
 
-            // 0. Did they drop it into the Floor Drain to discard it? (Resets active merge combo)
-            if (this.isHit(pos, this.drain.x, this.drain.y, this.drain.w, this.drain.h)) {
-                this.currentMergeCombo = 0;
-                this.floatingTexts.push(new FloatingTitle(
-                    this.drain.x + (this.drain.w / 2),
-                    this.drain.y,
-                    `Dumped ${sourceItem.name}`,
-                    '#94a3b8'
-                ));
-                this.dragState = null;
+            // 1. DUMP IN DRAIN
+            if (this.drain && pos.x >= this.drain.x && pos.x <= this.drain.x + this.drain.w &&
+                pos.y >= this.drain.y && pos.y <= this.drain.y + this.drain.h) {
+                this.grid[startR][startC] = null;
+                this.floatingTexts.push(new FloatingTitle(pos.x, pos.y, "Dumped!", "#ef4444"));
                 return;
             }
 
-            // 1. Did they drop it into one of the Unlocked Kettles?
-            for (let i = 0; i < this.kettles.length; i++) {
+            // 2. ADD TO KETTLES
+            const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
+            for (let i = 0; i < unlockedCount; i++) {
                 const k = this.kettles[i];
-                if (i < playerState.unlockedKettles && this.isHit(pos, k.x, k.y - 15, k.w, k.h + 15)) {
-                    k.items.push(sourceItem);
-                    console.log(`Splashed ${sourceItem.name} into Kettle #${i + 1}!`);
-                    this.dragState = null;
+                if (pos.x >= k.x && pos.x <= k.x + k.w && pos.y >= k.y && pos.y <= k.y + k.h) {
+                    if (k.items.length < 5) {
+                        k.items.push(dragItem);
+                        this.grid[startR][startC] = null;
+                    } else {
+                        this.grid[startR][startC] = dragItem; // Snap back
+                        this.floatingTexts.push(new FloatingTitle(pos.x, pos.y, "Kettle Full!", "#ef4444"));
+                    }
                     return;
                 }
             }
 
-            // 2. Otherwise, handle Grid Drops
-            this.dragState = null;
+            // 3. GRID MERGING & SWAPPING
+            const targetCol = Math.floor((pos.x - this.gridOffset.x) / this.tileSize);
+            const targetRow = Math.floor((pos.y - this.gridOffset.y) / this.tileSize);
 
-            if (!valid || (row === startRow && col === startCol)) {
-                this.grid[startRow][startCol] = sourceItem;
+            if (targetRow >= 0 && targetRow < this.rows && targetCol >= 0 && targetCol < this.cols) {
+                // Prevent self-deletion if dropped in the exact same spot
+                if (targetRow === startR && targetCol === startC) {
+                    this.grid[startR][startC] = dragItem;
+                    return;
+                }
+
+                const targetItem = this.grid[targetRow][targetCol];
+
+                // MERGE: Same exact ingredient level and category
+                if (targetItem && targetItem.name === dragItem.name && targetItem.category === dragItem.category) {
+                    const nextName = gameRecipes.getMergeResult(dragItem.name);
+                    if (nextName) {
+                        this.grid[targetRow][targetCol] = {
+                            id: Math.random().toString(),
+                            name: nextName,
+                            category: dragItem.category
+                        };
+                        this.grid[startR][startC] = null; // Clear old spot
+
+                        this.currentMergeCombo = (this.currentMergeCombo || 0) + 1;
+                        gameEvents.emit('MERGE_COMBO', this.currentMergeCombo);
+                        return;
+                    }
+                }
+
+                // SWAP: Different items
+                if (targetItem) {
+                    this.grid[startR][startC] = targetItem;
+                    this.grid[targetRow][targetCol] = dragItem;
+                    return;
+                }
+
+                // MOVE: Empty spot
+                this.grid[targetRow][targetCol] = dragItem;
+                this.grid[startR][startC] = null;
                 return;
             }
 
-            const targetItem = this.grid[row][col];
-
-            if (!targetItem) {
-                this.grid[row][col] = sourceItem;
-            } else if (targetItem.name === sourceItem.name) {
-                const upgradedName = gameRecipes.getMergeResult(targetItem.name);
-
-                if (upgradedName) {
-                    // Increment consecutive merge combo chain & record in telemetry!
-                    this.currentMergeCombo++;
-                    if (window.taproomTelemetry) {
-                        window.taproomTelemetry.recordMergeCombo(this.currentMergeCombo);
-                    }
-                    gameEvents.emit('MERGE_COMBO', this.currentMergeCombo);
-
-                    console.log(`Merged ${targetItem.name} into ${upgradedName}! (Combo: ${this.currentMergeCombo}x)`);
-                    this.grid[row][col] = {
-                        id: Math.random().toString(),
-                        name: upgradedName,
-                        category: sourceItem.category
-                    };
-
-                    const cellCenterX = this.gridOffset.x + (col * this.tileSize) + (this.tileSize / 2);
-                    const cellCenterY = this.gridOffset.y + (row * this.tileSize) + 20;
-                    const comboSuffix = this.currentMergeCombo >= 2 ? ` (${this.currentMergeCombo}x COMBO!)` : '';
-                    this.floatingTexts.push(new FloatingTitle(cellCenterX, cellCenterY, `✨ ${upgradedName}!${comboSuffix}`, '#facc15'));
-                } else {
-                    this.grid[row][col] = sourceItem;
-                    this.grid[startRow][startCol] = targetItem;
-                }
-            } else {
-                this.grid[row][col] = sourceItem;
-                this.grid[startRow][startCol] = targetItem;
-            }
+            // 4. MISS: Snap back to original spot if dropped off the grid
+            this.grid[startR][startC] = dragItem;
         });
     }
 
