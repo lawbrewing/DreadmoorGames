@@ -180,15 +180,15 @@ class GameHUD {
 
     renderRecipeBook(unlockedList = null) {
         const container = this.recipeListContainer || document.getElementById('recipeListContainer');
-        if (!container) return;
+        if (!container || typeof gameRecipes === 'undefined') return;
         container.innerHTML = '';
 
-        const recipesToRender = (unlockedList && unlockedList.length > 0)
+        const unlockedRecipes = (unlockedList && unlockedList.length > 0)
             ? unlockedList
             : (typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []);
 
-        const totalMasterRecipes = (typeof gameRecipes !== 'undefined' && gameRecipes.recipeList) ? gameRecipes.recipeList.length : 25;
-        const unlockedCount = recipesToRender.length;
+        const allRecipes = gameRecipes.recipeList || [];
+        const unlockedCount = unlockedRecipes.length;
 
         const headerDiv = document.createElement('div');
         headerDiv.style.cssText = `
@@ -198,47 +198,69 @@ class GameHUD {
         `;
         headerDiv.innerHTML = `
             <span style="color: #f4f4f5; font-weight: bold; font-size: 13px;">📖 BREWHOUSE LOG</span>
-            <span style="color: #4ade80; font-weight: bold; font-size: 13px;">Unlocked: ${unlockedCount} / ${totalMasterRecipes}</span>
+            <span style="color: #4ade80; font-weight: bold; font-size: 13px;">Unlocked: ${unlockedCount} / ${allRecipes.length}</span>
         `;
         container.appendChild(headerDiv);
 
-        if (recipesToRender.length === 0) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.style.cssText = `grid-column: 1 / -1; color: #71717a; text-align: center; padding: 20px; font-style: italic;`;
-            emptyDiv.innerHTML = `No recipes discovered yet!<br>Experiment in the brew kettles to unlock craft styles.`;
-            container.appendChild(emptyDiv);
-            return;
-        }
-
-        recipesToRender.forEach(recipeName => {
-            const recipeData = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList.find(r => r.name === recipeName) : null;
-            const recipeType = recipeData ? recipeData.type : 'premium';
-            const tacticalHint = typeof gameRecipes !== 'undefined' ? gameRecipes.getForecastHint(recipeName, recipeType) : 'Reliable craft beer for steady tips.';
-            const ingredientsString = recipeData && recipeData.ingredients ? recipeData.ingredients.join(', ') : 'Standard Baseline Ingredients';
-            const styleIcon = typeof gameRecipes !== 'undefined' ? gameRecipes.getStyleIcon(recipeName, recipeType) : '🍺';
-
+        allRecipes.forEach(recipeData => {
+            const isUnlocked = unlockedRecipes.includes(recipeData.name);
+            const styleIcon = gameRecipes.getStyleIcon(recipeData.name, recipeData.type);
             const card = document.createElement('div');
-            card.style.cssText = `
-                background: #18181b; border: 1px solid #3f3f46;
-                padding: 12px; margin-bottom: 10px; border-radius: 6px;
-            `;
 
-            card.innerHTML = `
-                <div style="color: #facc15; font-weight: bold; font-size: 14px;">${styleIcon} ${recipeName}</div>
-                <div style="color: #38bdf8; font-size: 11.5px; margin-top: 5px;">🧪 <b>Recipe:</b> ${ingredientsString}</div>
-                <div style="color: #a1a1aa; font-size: 11px; margin-top: 6px; line-height: 1.4;">📈 <b>Forecast Synergy:</b> ${tacticalHint}</div>
-            `;
+            if (isUnlocked) {
+                // UNLOCKED RECIPE
+                const ingredientsString = recipeData.ingredients.join(', ');
+                const tacticalHint = gameRecipes.getForecastHint(recipeData.name, recipeData.type);
+
+                card.style.cssText = `background: #18181b; border: 1px solid #4ade80; padding: 12px; margin-bottom: 10px; border-radius: 6px;`;
+                card.innerHTML = `
+                    <div style="color: #facc15; font-weight: bold; font-size: 14px;">${styleIcon} ${recipeData.name}</div>
+                    <div style="color: #38bdf8; font-size: 11.5px; margin-top: 5px;">🧪 <b>Recipe:</b> ${ingredientsString}</div>
+                    <div style="color: #a1a1aa; font-size: 11px; margin-top: 6px; line-height: 1.4;">📈 <b>Forecast Synergy:</b> ${tacticalHint}</div>
+                `;
+            } else {
+                // LOCKED RECIPE HINT SYSTEM
+                // Tally the categories needed for this recipe to give the player a puzzle to solve
+                const catCounts = {};
+                recipeData.ingredients.forEach(ing => {
+                    const cat = gameRecipes.getCategory(ing) || 'Specialty';
+                    catCounts[cat] = (catCounts[cat] || 0) + 1;
+                });
+                const hintArray = Object.entries(catCounts).map(([cat, qty]) => `${qty}x ${cat}`);
+                const hintString = hintArray.join(', ');
+
+                card.style.cssText = `background: #09090b; border: 1px dashed #52525b; padding: 12px; margin-bottom: 10px; border-radius: 6px; opacity: 0.8;`;
+                card.innerHTML = `
+                    <div style="color: #71717a; font-weight: bold; font-size: 14px;">🔒 UNDISCOVERED (${styleIcon})</div>
+                    <div style="color: #a1a1aa; font-size: 11.5px; margin-top: 5px;">💡 <b>Hint:</b> Needs ${hintString}</div>
+                `;
+            }
             container.appendChild(card);
         });
     }
 
     update() {
         if (typeof playerState !== 'undefined') {
-            if (this.lastTips !== playerState.tips) {
+
+            // DYNAMIC SHIFT GOAL LOGIC
+            const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+            const currentShift = prog.shift || prog.currentShift || 1;
+            const shiftGoal = currentShift * 40; // $40 per shift level (approx 3-4 patrons)
+
+            if (this.lastTips !== playerState.tips || this.lastGoal !== shiftGoal) {
                 this.lastTips = playerState.tips;
-                // Force strict 2-decimal formatting so $1.25 renders cleanly
-                if (this.hudTips) this.hudTips.innerText = `Tips: $${this.lastTips.toFixed(2)}`;
-                if (this.hudTaproomTips) this.hudTaproomTips.innerText = `Tips: $${this.lastTips.toFixed(2)}`;
+                this.lastGoal = shiftGoal;
+
+                const tipDisplay = `$${this.lastTips.toFixed(2)}`;
+                const isFailing = this.lastTips < shiftGoal;
+                const goalColor = isFailing ? '#ef4444' : '#4ade80'; // Red if failing, Green if passing
+
+                if (this.hudTips) {
+                    this.hudTips.innerHTML = `Bank: <span style="color: #4ade80;">${tipDisplay}</span> <br> <span style="font-size: 12px; color: ${goalColor};">Shift Goal: $${shiftGoal} (~${Math.ceil(shiftGoal / 12)} patrons)</span>`;
+                }
+                if (this.hudTaproomTips) {
+                    this.hudTaproomTips.innerHTML = `Bank: <span style="color: #4ade80;">${tipDisplay}</span> / <span style="color: ${goalColor};">$${shiftGoal}</span>`;
+                }
             }
         }
 

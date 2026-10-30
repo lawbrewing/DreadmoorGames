@@ -147,6 +147,7 @@ class TaproomPhase {
             this.aimCurrent = { x: pos.x, y: pos.y };
         });
 
+        // INSIDE setupEventListeners() -> DRAG_END
         gameEvents.on('DRAG_END', (pos) => {
             if (!this.isAiming) return;
             this.isAiming = false;
@@ -164,16 +165,14 @@ class TaproomPhase {
 
             if (swipeDy < -20) {
                 const swipeDistance = Math.hypot(swipeDx, swipeDy);
-                const currentAmmo = (playerState && playerState.ammo) ? playerState.ammo[this.selectedAmmoIndex] : null;
-                const isCafeDrink = currentAmmo && ['soda', 'mocktail', 'stout', 'sour', 'cocktail'].includes((currentAmmo.type || '').toLowerCase());
-                const targetXEst = this.aimStart.x + swipeDx * 1.5;
-                const launchFromCafe = isCafeDrink || targetXEst > 680;
 
-                const bartenderX = launchFromCafe ? (1280 - 315) : 317;
-                const bartenderY = 585;
+                // FIXED 1:1 AIMING! The beer now spawns exactly where you started your swipe on the X-axis
+                const spawnX = this.aimStart.x;
+                const spawnY = 585;
+
                 const throwMult = 4.5;
                 const zMult = 1.8;
-                this.fireProjectile(bartenderX, bartenderY, swipeDx * throwMult, swipeDy * throwMult, swipeDistance * zMult);
+                this.fireProjectile(spawnX, spawnY, swipeDx * throwMult, swipeDy * throwMult, swipeDistance * zMult);
             }
         });
 
@@ -437,16 +436,38 @@ class TaproomPhase {
     update(dt) {
         if (!this.isActive) return;
 
+        // FIXED: OUT OF AMMO = INSTANT SHIFT SURVIVAL (No negative penalties!)
+        let totalAmmo = 0;
+        if (typeof playerState !== 'undefined' && playerState.ammo) {
+            playerState.ammo.forEach(a => totalAmmo += (a.count === 'Infinite' ? 999 : a.count));
+        }
+        if (totalAmmo <= 0 && this.projectiles.length === 0 && this.timeRemaining > 0) {
+            this.floatingTexts.push(new FloatingTitle(640, 360, "OUT OF AMMO! SHIFT OVER!", "#facc15"));
+            this.timeRemaining = 0; // Force immediate shift end
+        }
+
         this.timeRemaining -= dt;
         if (this.timeRemaining <= 0) {
             if (!this.isTransitioning) {
                 this.isTransitioning = true;
 
-                // Track shiftsCleared for /api/scores/taproom_chaos
-                if (window.taproomTelemetry) {
-                    window.taproomTelemetry.stats.shiftsCleared++;
+                // --- NEW SHIFT GOAL CHECK ---
+                const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+                const currentShift = prog.shift || prog.currentShift || this.shift;
+                const shiftGoal = currentShift * 40;
+
+                if (typeof playerState !== 'undefined' && playerState.tips < shiftGoal) {
+                    // Failed to meet the quota!
+                    this.floatingTexts.push(new FloatingTitle(640, 360, "MISSED SHIFT QUOTA!", "#ef4444"));
+                    setTimeout(() => {
+                        this.shutdown();
+                        gameEvents.emit('BANKRUPT');
+                    }, 1500);
+                    return;
                 }
 
+                // Success! Advance normally.
+                if (window.taproomTelemetry) window.taproomTelemetry.stats.shiftsCleared++;
                 if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
                     progressionState.advanceShift();
                 }

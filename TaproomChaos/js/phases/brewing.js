@@ -2,10 +2,11 @@
 
 class BrewingPhase {
     constructor() {
+        // HUGE MOBILE TILES (125px) AND WIDER 6-COLUMN GRID
+        this.cols = 6;
         this.rows = 4;
-        this.cols = 5;
-        this.tileSize = 108; // Enlarged for mobile touch accuracy
-        this.gridOffset = { x: 530, y: 78 };
+        this.tileSize = 125;
+        this.gridOffset = { x: 20, y: 55 }; // Flushed to top-left
 
         this.grid = [];
         this.isActive = false;
@@ -13,24 +14,23 @@ class BrewingPhase {
         this.floatingTexts = [];
         this.currentMergeCombo = 0;
 
-        // Positioned right of the 300px sliding drawer with larger touch hitboxes
+        // Push dispensers to the right to fit the huge grid
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 290, y: 78, w: 98, h: 102, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 400, y: 78, w: 98, h: 102, color: '#eab308' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 290, y: 192, w: 98, h: 102, color: '#d9f99d' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 400, y: 192, w: 98, h: 102, color: '#22c55e' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 290, y: 306, w: 98, h: 102, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 400, y: 306, w: 98, h: 102, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: 800, y: 55, w: 105, h: 110, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 925, y: 55, w: 105, h: 110, color: '#eab308' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 800, y: 185, w: 105, h: 110, color: '#d9f99d' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 925, y: 185, w: 105, h: 110, color: '#22c55e' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 800, y: 315, w: 105, h: 110, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 925, y: 315, w: 105, h: 110, color: '#a855f7' }
         ];
 
-        // Floor drain tucked cleanly beneath the dispensers
-        this.drain = { x: 290, y: 420, w: 208, h: 100 };
+        this.drain = { x: 800, y: 445, w: 230, h: 100 };
 
-        // 3 Horizontal Brew Kettles along the bottom
+        // Spread kettles across the bottom
         this.kettles = [
-            { x: 290, y: 568, w: 300, h: 110, btnX: 502, btnY: 598, btnW: 76, btnH: 52, items: [] },
-            { x: 615, y: 568, w: 300, h: 110, btnX: 827, btnY: 598, btnW: 76, btnH: 52, items: [] },
-            { x: 940, y: 568, w: 300, h: 110, btnX: 1152, btnY: 598, btnW: 76, btnH: 52, items: [] }
+            { x: 30, y: 568, w: 320, h: 110, btnX: 250, btnY: 598, btnW: 86, btnH: 52, items: [] },
+            { x: 380, y: 568, w: 320, h: 110, btnX: 600, btnY: 598, btnW: 86, btnH: 52, items: [] },
+            { x: 730, y: 568, w: 320, h: 110, btnX: 950, btnY: 598, btnW: 86, btnH: 52, items: [] }
         ];
 
         this.resetGrid();
@@ -284,6 +284,51 @@ class BrewingPhase {
         this.currentMergeCombo = 0;
 
         let brewResult = brewPreview;
+
+        // FIXED SWILL PILL BUG
+        if (typeof gameRecipes !== 'undefined') {
+            const ingNames = k.items.map(i => i.name);
+            let pillText = '⚠️ Need at least 2 ingredients';
+            let pillBg = 'rgba(127, 29, 29, 0.94)';
+            let pillBorder = '#ef4444';
+
+            if (k.items.length >= 2) {
+                const preview = gameRecipes.evaluateBrew(ingNames);
+
+                // IF IT IS NULL OR SWILL, IT IS TRASH
+                if (!preview || preview.name === 'Swill') {
+                    pillText = '❌ Trash Batch (Swill)';
+                    pillBg = 'rgba(127, 29, 29, 0.94)';
+                    pillBorder = '#ef4444';
+                } else {
+                    const isKnown = (typeof playerState !== 'undefined') && playerState.unlockedRecipes.includes(preview.name);
+                    const styleIcon = gameRecipes.getStyleIcon(preview.name, preview.type);
+
+                    if (preview.type === 'soda' || preview.type === 'crowd_control' || isKnown) {
+                        pillText = `${styleIcon} ${preview.name}`;
+                        pillBg = 'rgba(20, 83, 45, 0.95)';
+                        pillBorder = '#4ade80';
+                    } else {
+                        pillText = '✨ Mystery Valid Recipe!';
+                        pillBg = 'rgba(88, 28, 135, 0.95)';
+                        pillBorder = '#c084fc';
+                    }
+                }
+            }
+
+            this.ctx.fillStyle = pillBg;
+            this.ctx.strokeStyle = pillBorder;
+            this.ctx.lineWidth = 1.8;
+            this.ctx.beginPath();
+            this.ctx.roundRect(k.x + 12, k.y - 13, k.w - 24, 21, 10);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 11px Inter';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(pillText, k.x + (k.w / 2), k.y + 1);
+        }
 
         if (!brewResult || brewResult.name === 'Swill') {
             brewResult = { name: 'Swill', type: 'Swill', count: 5 };
