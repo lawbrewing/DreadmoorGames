@@ -177,15 +177,24 @@ class GameAudioManager {
 
     // --- JUKEBOX PLAYBACK & SCRATCH TRANSITIONS ---
     startJukebox() {
-        if (this.isUnlocked) return;
-        this.isUnlocked = true;
+        if (this.isMuted) return;
 
-        // If we haven't picked a track yet, pick one. 
-        // If we already picked one and it got blocked, just retry playing the existing track!
+        // If we haven't picked a track yet, pick one and assign it to the audio element.
+        // We do NOT pick a new track if one is already queued up!
         if (!this.currentTrackFile) {
-            this.playNextTrackDirect();
-        } else {
-            this.musicPlayer.play().catch(err => {
+            this.currentTrackFile = this.getNextTrack();
+            this.setAudioSourceWithFallback(this.musicPlayer, this.currentTrackFile);
+        }
+
+        this.musicPlayer.volume = this.musicVolume;
+        const playPromise = this.musicPlayer.play();
+
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                this.isUnlocked = true;
+                this.isTransitioningTrack = false;
+            }).catch(err => {
+                console.warn('[Audio] Autoplay blocked, waiting for next touch.');
                 this.isUnlocked = false;
             });
         }
@@ -196,14 +205,16 @@ class GameAudioManager {
         this.isTransitioningTrack = false;
 
         this.currentTrackFile = this.getNextTrack();
+        this.setAudioSourceWithFallback(this.musicPlayer, this.currentTrackFile);
 
-        this.setAudioSourceWithFallback(this.musicPlayer, this.currentTrackFile, () => {
-            this.musicPlayer.volume = this.musicVolume;
-            this.musicPlayer.play().catch(err => {
-                console.warn('[Audio] Autoplay waiting for stronger interaction:', err);
-                this.isUnlocked = false; // Allow retry on next click without skipping the track
+        this.musicPlayer.volume = this.musicVolume;
+        const playPromise = this.musicPlayer.play();
+
+        if (playPromise !== undefined) {
+            playPromise.catch(() => {
+                this.isUnlocked = false;
             });
-        });
+        }
     }
 
     transitionWithScratch() {
@@ -265,23 +276,21 @@ class GameAudioManager {
 
     // --- EVENT BUS & GAMEPLAY HOOKS ---
     setupEventListeners() {
-        // 1. Unlock & start jukebox on the very first pointer/touch/key interaction
+        // 1. Debounced Unlock Handler
         const unlockHandler = () => {
-            if (!this.isUnlocked) {
+            if (this.isMuted) return;
+            // Only attempt to start if we are locked, OR if unlocked but the browser paused it
+            if (!this.isUnlocked || this.musicPlayer.paused) {
                 this.startJukebox();
-            } else if (this.musicPlayer.paused && !this.isTransitioningTrack && !this.isMuted && this.currentTrackFile) {
-                // Failsafe: If unlocked but paused by a browser interruption, force resume
-                this.musicPlayer.play().catch(() => { });
             }
         };
+
+        // ONLY use pointerdown and keydown. 
+        // (Removed touchstart and mousedown to prevent mobile multi-fire glitches)
         window.addEventListener('pointerdown', unlockHandler, { passive: true });
-        window.addEventListener('touchstart', unlockHandler, { passive: true });
-        window.addEventListener('mousedown', unlockHandler, { passive: true });
         window.addEventListener('keydown', unlockHandler, { passive: true });
 
         if (typeof gameEvents === 'undefined') return;
-
-        gameEvents.on('DRAG_START', () => unlockHandler());
 
         // 2. SFX: Two tiles combined and upgraded -> upgrade.mp3
         gameEvents.on('MERGE_COMBO', () => {
@@ -298,12 +307,22 @@ class GameAudioManager {
             this.playSFX('shoot');
         });
 
-        // 5. Check season lock on phase transitions (Only scratch if season actually changed)
+        // 5. New Gameplay Audio Hooks
+        gameEvents.on('PATRON_ANGRY', () => this.playSFX('angry'));
+        gameEvents.on('EARN_TIPS', () => this.playSFX('cheer'));
+        gameEvents.on('BREW_FINISH', () => this.playSFX('brew'));
+        gameEvents.on('RECIPE_DISCOVERED', () => this.playSFX('discover'));
+        gameEvents.on('BANKRUPT', () => {
+            this.musicPlayer.pause();
+            this.playSFX('bankrupt');
+        });
+
+        // 6. Check season lock on phase transitions (Only scratch if season actually changed)
         gameEvents.on('CHANGE_STATE', () => {
             setTimeout(() => {
                 const newSeason = this.getCurrentSeason();
 
-                // If the player is just toggling states (Brewing <-> Taproom) and the music is already playing, DO NOT restart or scratch!
+                // If the player is just toggling states (Brewing <-> Taproom) and the music is already playing, DO NOT restart!
                 if (this.isUnlocked && !this.musicPlayer.paused && this.activeSeason === newSeason) {
                     return;
                 }
@@ -312,15 +331,6 @@ class GameAudioManager {
                     this.transitionWithScratch();
                 }
             }, 50);
-        });
-        // 6. New Gameplay Audio Hooks
-        gameEvents.on('PATRON_ANGRY', () => this.playSFX('angry'));
-        gameEvents.on('EARN_TIPS', () => this.playSFX('cheer'));
-        gameEvents.on('BREW_FINISH', () => this.playSFX('brew'));
-        gameEvents.on('RECIPE_DISCOVERED', () => this.playSFX('discover'));
-        gameEvents.on('BANKRUPT', () => {
-            this.musicPlayer.pause(); // Kill the music
-            this.playSFX('bankrupt');
         });
     }
 }
