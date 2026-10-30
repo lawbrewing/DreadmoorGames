@@ -49,7 +49,7 @@ const gameRecipes = {
         { name: 'Margarita', type: 'cocktail', count: 5, ingredients: ['Lime', 'Tequila'] }
     ],
 
-    getForecastHint: function(recipeName, type) {
+    getForecastHint: function (recipeName, type) {
         const nameLower = recipeName.toLowerCase();
         if (nameLower.includes('ipa') || nameLower.includes('hopped') || nameLower.includes('ninjas') || nameLower.includes('niply')) {
             return '⚡ High synergy with Tech Conventions and heavy afternoon IPA demand surges.';
@@ -69,7 +69,7 @@ const gameRecipes = {
         return '📈 Reliable baseline craft beer for steady, dependable daily tip flow.';
     },
 
-    getStyleIcon: function(recipeName, type) {
+    getStyleIcon: function (recipeName, type) {
         const styleLookup = (recipeName + ' ' + (type || 'premium')).toLowerCase();
 
         if (styleLookup.includes('ipa')) return '🌿';
@@ -84,7 +84,7 @@ const gameRecipes = {
         return '⭐';
     },
 
-    getMergeResult: function(itemName) {
+    getMergeResult: function (itemName) {
         for (const category in this.chains) {
             const chain = this.chains[category];
             const index = chain.indexOf(itemName);
@@ -95,7 +95,7 @@ const gameRecipes = {
         return null;
     },
 
-    getCategory: function(itemName) {
+    getCategory: function (itemName) {
         for (const category in this.chains) {
             if (this.chains[category].includes(itemName)) return category;
         }
@@ -103,55 +103,48 @@ const gameRecipes = {
         return null;
     },
 
-    getIngredientCost(itemName) {
-        const tier1 = ['Tap Water', 'Base Malt', 'Standard Yeast', 'Cascade Hops'];
-        if (tier1.includes(itemName)) return 0.25;
+    // Dynamically prices ingredients by their actual chain tier (L1 = $0.25 -> 4 core L1s = $1.00)
+    getIngredientCost: function (itemName) {
+        const tierPrices = [0.25, 0.50, 0.75, 1.00, 1.50];
 
-        const tier2 = ['Spring Water', 'Roasted Malt', 'Belgian Yeast', 'Citra Hops'];
-        if (tier2.includes(itemName)) return 0.50;
+        for (const category in this.chains) {
+            const idx = this.chains[category].indexOf(itemName);
+            if (idx !== -1) {
+                return tierPrices[idx] || 0.25;
+            }
+        }
 
-        const tier3 = ['Glacial Water', 'Caramel Malt', 'Champagne Yeast', 'Galaxy Hops'];
-        if (tier3.includes(itemName)) return 1.00;
+        if (this.specialties.includes(itemName)) {
+            return 1.50;
+        }
 
-        if (itemName === 'Coffee Beans' || itemName === 'Cacao Nibs') return 1.50;
+        return 0.25;
+    },
 
-        return 0.50;
-    }, // <-- Added comma here
+    // Drops actual ingredients from this.chains & this.specialties with Broke Brewer protection
+    getRandomDrop: function (category) {
+        if (category === 'Specialty') {
+            return this.specialties[Math.floor(Math.random() * this.specialties.length)];
+        }
 
-    getRandomDrop(category) {
+        const chain = this.chains[category];
+        if (!chain || chain.length === 0) return 'Winnebago';
+
         const currentTips = (typeof playerState !== 'undefined') ? playerState.tips : 10.00;
         const isBroke = currentTips < 3.00;
 
+        // Force Level 1 ($0.25) drops if player is under $3.00 so they can always brew a $1.00 batch
+        if (isBroke) {
+            return chain[0];
+        }
+
         const roll = Math.random();
+        if (roll < 0.65) return chain[0]; // 65% Level 1 ($0.25)
+        if (roll < 0.90) return chain[1]; // 25% Level 2 ($0.50)
+        return chain[2];                  // 10% Level 3 ($0.75)
+    },
 
-        if (category === 'Water') {
-            if (isBroke || roll < 0.50) return 'Tap Water';
-            if (roll < 0.85) return 'Spring Water';
-            return 'Glacial Water';
-        }
-        if (category === 'Grain') {
-            if (isBroke || roll < 0.50) return 'Base Malt';
-            if (roll < 0.85) return 'Roasted Malt';
-            return 'Caramel Malt';
-        }
-        if (category === 'Yeast') {
-            if (isBroke || roll < 0.50) return 'Standard Yeast';
-            if (roll < 0.85) return 'Belgian Yeast';
-            return 'Champagne Yeast';
-        }
-        if (category === 'Hops') {
-            if (isBroke || roll < 0.50) return 'Cascade Hops';
-            if (roll < 0.85) return 'Citra Hops';
-            return 'Galaxy Hops';
-        }
-        if (category === 'Adjunct') {
-            return roll < 0.5 ? 'Coffee Beans' : 'Cacao Nibs';
-        }
-
-        return 'Tap Water';
-    }, // <-- Added comma here
-
-    evaluateBrew: function(ingredientsList) {
+    evaluateBrew: function (ingredientsList) {
         if (!ingredientsList || ingredientsList.length < 2) return null;
 
         const sortedInput = [...ingredientsList].sort();
@@ -200,7 +193,7 @@ const gameRecipes = {
         const hasYeast = ingredientsList.some(i => this.getCategory(i) === 'Yeast');
 
         if (hasWater && hasGrain && hasHop && hasYeast) {
-            return { name: 'Swill', type: 'crowd_control', count: 5 };
+            return { name: 'Swill', type: 'Swill', count: 5 };
         }
 
         return null;
