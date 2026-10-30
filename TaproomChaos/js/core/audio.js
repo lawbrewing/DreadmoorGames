@@ -179,20 +179,29 @@ class GameAudioManager {
     startJukebox() {
         if (this.isUnlocked) return;
         this.isUnlocked = true;
-        this.playNextTrackDirect();
+
+        // If we haven't picked a track yet, pick one. 
+        // If we already picked one and it got blocked, just retry playing the existing track!
+        if (!this.currentTrackFile) {
+            this.playNextTrackDirect();
+        } else {
+            this.musicPlayer.play().catch(err => {
+                this.isUnlocked = false;
+            });
+        }
     }
 
     playNextTrackDirect() {
         if (this.isMuted) return;
         this.isTransitioningTrack = false;
-        const nextTrack = this.getNextTrack();
-        this.currentTrackFile = nextTrack;
 
-        this.setAudioSourceWithFallback(this.musicPlayer, nextTrack, () => {
+        this.currentTrackFile = this.getNextTrack();
+
+        this.setAudioSourceWithFallback(this.musicPlayer, this.currentTrackFile, () => {
             this.musicPlayer.volume = this.musicVolume;
             this.musicPlayer.play().catch(err => {
-                console.warn('[Audio] Autoplay waiting for interaction:', err);
-                this.isUnlocked = false;
+                console.warn('[Audio] Autoplay waiting for stronger interaction:', err);
+                this.isUnlocked = false; // Allow retry on next click without skipping the track
             });
         });
     }
@@ -260,6 +269,9 @@ class GameAudioManager {
         const unlockHandler = () => {
             if (!this.isUnlocked) {
                 this.startJukebox();
+            } else if (this.musicPlayer.paused && !this.isTransitioningTrack && !this.isMuted && this.currentTrackFile) {
+                // Failsafe: If unlocked but paused by a browser interruption, force resume
+                this.musicPlayer.play().catch(() => { });
             }
         };
         window.addEventListener('pointerdown', unlockHandler, { passive: true });

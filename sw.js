@@ -1,5 +1,5 @@
 // Change this version number (e.g., 'dreadmoor-v2') whenever you push an update to GitHub
-const CACHE_NAME = 'dreadmoor-v14';
+const CACHE_NAME = 'dreadmoor-v15';
 
 // Add the exact paths of the core files you want available offline
 const ASSETS_TO_CACHE = [
