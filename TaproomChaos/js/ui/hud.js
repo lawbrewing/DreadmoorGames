@@ -219,20 +219,13 @@ class GameHUD {
                     <div style="color: #a1a1aa; font-size: 11px; margin-top: 6px; line-height: 1.4;">📈 <b>Forecast Synergy:</b> ${tacticalHint}</div>
                 `;
             } else {
-                // LOCKED RECIPE HINT SYSTEM
-                // Tally the categories needed for this recipe to give the player a puzzle to solve
-                const catCounts = {};
-                recipeData.ingredients.forEach(ing => {
-                    const cat = gameRecipes.getCategory(ing) || 'Specialty';
-                    catCounts[cat] = (catCounts[cat] || 0) + 1;
-                });
-                const hintArray = Object.entries(catCounts).map(([cat, qty]) => `${qty}x ${cat}`);
-                const hintString = hintArray.join(', ');
+                // LOCKED RECIPE (DYNAMIC HINT)
+                const hintString = gameRecipes.getDynamicContractHint(recipeData);
 
                 card.style.cssText = `background: #09090b; border: 1px dashed #52525b; padding: 12px; margin-bottom: 10px; border-radius: 6px; opacity: 0.8;`;
                 card.innerHTML = `
                     <div style="color: #71717a; font-weight: bold; font-size: 14px;">🔒 UNDISCOVERED (${styleIcon})</div>
-                    <div style="color: #a1a1aa; font-size: 11.5px; margin-top: 5px;">💡 <b>Hint:</b> Needs ${hintString}</div>
+                    <div style="color: #a1a1aa; font-size: 11.5px; margin-top: 5px; line-height: 1.4;">💡 <b>Hint:</b> ${hintString}</div>
                 `;
             }
             container.appendChild(card);

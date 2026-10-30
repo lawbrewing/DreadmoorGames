@@ -19,7 +19,6 @@ class GameRenderer {
         if (this.hudInitialized) return;
         this.hudInitialized = true;
 
-        // Find any loose "BACK TO LIBRARY" or "LIBRARY" button floating over the top-left canvas
         const allEls = document.querySelectorAll('a, button, div, span');
         let libraryBtn = null;
         let menuBar = null;
@@ -34,7 +33,6 @@ class GameRenderer {
             }
         }
 
-        // If a collapsible HUD drawer/bar exists, tuck the Library link inside it; otherwise hide the floating button
         if (libraryBtn) {
             if (menuBar && menuBar !== libraryBtn && !menuBar.contains(libraryBtn)) {
                 libraryBtn.style.position = 'static';
@@ -70,7 +68,6 @@ class GameRenderer {
         const judgePresent = patrons.some(c => c.type === 'judge' || c.rosterKey === 'judge' || (typeof PATRON_ROSTER !== 'undefined' && PATRON_ROSTER[c.rosterKey] && PATRON_ROSTER[c.rosterKey].isBoss));
         const timeLeft = state.timeRemaining !== undefined ? state.timeRemaining : 60;
 
-        // 1. Seasonal Base Palette (cycles smoothly when idle)
         let primaryColor = "rgba(255, 204, 0, 1)";
         let secondaryColor = "rgba(255, 204, 0, 0.35)";
 
@@ -92,7 +89,6 @@ class GameRenderer {
             secondaryColor = "rgba(16, 185, 129, 0.35)";
         }
 
-        // 2. Gameplay-Reactive Color & Blink Pattern Overrides
         let blinkPattern = 1.0;
         let pulse = 0.8 + Math.sin(time * 5) * 0.15;
 
@@ -146,11 +142,10 @@ class GameRenderer {
         ctx.restore();
     }
 
-    // --- ENHANCE EXISTING SPRITES (FLOWERS IN POTS & BLINKING FIXTURE LIGHTS) ---
+    // --- ENHANCE EXISTING SPRITES ---
     drawExistingSpriteEnhancements(ctx, item, season, seasonStage, time) {
         ctx.save();
 
-        // 1. Draw Vibrant Seasonal Flowers Inside Existing Hanging Pots & Bookshelf Pots
         if (item.type === 'plant_hanging_rope_pot' || item.type === 'bookshelf_wall_cafe') {
             const flowerPalettes = {
                 spring: ['#f472b6', '#fde047', '#c084fc', '#fb7185'],
@@ -216,7 +211,6 @@ class GameRenderer {
             }
         }
 
-        // 2. Blinking Truss Spotlights on stage_small_lights
         if (item.type === 'stage_small_lights') {
             const spotColors = ['#ef4444', '#38bdf8', '#facc15', '#c084fc'];
             const lampOffsets = [
@@ -258,7 +252,6 @@ class GameRenderer {
             });
         }
 
-        // 3. Chasing Neon Arch Tube & Blinking Marquee on Jukebox
         if (item.type === 'jukebox') {
             ctx.globalCompositeOperation = 'screen';
             const jukeColors = ['#f43f5e', '#38bdf8', '#facc15', '#4ade80'];
@@ -277,7 +270,6 @@ class GameRenderer {
             }
         }
 
-        // 4. Warm Breathing/Blinking Bulb Halo inside Rattan Floor Lamp
         if (item.type === 'lamp_floor_rattan') {
             ctx.globalCompositeOperation = 'screen';
             const lampPulse = 0.55 + 0.35 * Math.sin(time * 4.5);
@@ -292,7 +284,6 @@ class GameRenderer {
             ctx.fill();
         }
 
-        // 5. Dancing Fire & Blinking Embers inside the Brick Pizza Oven
         if (item.type === 'pizza_oven_brick') {
             const mouthX = item.x - 28;
             const mouthY = item.y - 98;
@@ -314,7 +305,7 @@ class GameRenderer {
         ctx.restore();
     }
 
-    // --- CUSTOM DEPTH-SORTED SEASONAL HERO PROPS (TREES, STATUES, BUNNIES, HEATWAVE) ---
+    // --- CUSTOM DEPTH-SORTED SEASONAL HERO PROPS ---
     drawCustomSeasonalProp(ctx, item, seasonStage, time) {
         const x = item.x;
         const y = item.y;
@@ -322,7 +313,6 @@ class GameRenderer {
         ctx.translate(x, y);
 
         if (item.customType === 'christmas_tree') {
-            // 1. Red & Gold Tree Skirt + Floor Shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
             ctx.beginPath(); ctx.ellipse(0, 4, 54, 22, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#991b1b';
@@ -330,11 +320,9 @@ class GameRenderer {
             ctx.lineWidth = 2.5;
             ctx.beginPath(); ctx.ellipse(0, 0, 48, 19, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
-            // Trunk
             ctx.fillStyle = '#451a03';
             ctx.fillRect(-10, -24, 20, 24);
 
-            // 2. Four Scalloped Evergreen Pine Tiers
             const tiers = [
                 { y: -20, w: 52, h: 42 },
                 { y: -52, w: 43, h: 38 },
@@ -369,7 +357,6 @@ class GameRenderer {
                 ctx.stroke();
             });
 
-            // 3. Creative Taproom Ornaments (Mini Beer Mugs & Candy Canes)
             const drawMiniMug = (ox, oy) => {
                 ctx.fillStyle = '#facc15';
                 ctx.strokeStyle = '#fef08a';
@@ -400,7 +387,6 @@ class GameRenderer {
             drawCandyCane(-24, -62, -0.25);
             drawCandyCane(12, -92, 0.2);
 
-            // 4. Blinking Multi-Color LED Fairy Lights
             const lights = [
                 [-32, -22], [-12, -26], [10, -24], [32, -20],
                 [-26, -50], [-4, -54], [18, -48],
@@ -423,7 +409,6 @@ class GameRenderer {
                 ctx.restore();
             });
 
-            // 5. Radiant Pulsing Star Topper
             ctx.save();
             const starPulse = 0.85 + 0.2 * Math.sin(time * 5);
             ctx.translate(0, -138);
@@ -442,7 +427,6 @@ class GameRenderer {
             ctx.fill();
             ctx.restore();
 
-            // 6. SHIFT 2+ PROGRESSION: Wrapped Christmas Presents Under the Tree
             if (seasonStage >= 2) {
                 const gifts = [
                     { gx: -34, gy: 6, gw: 22, gh: 18, box: '#dc2626', rib: '#facc15' },
@@ -719,7 +703,6 @@ class GameRenderer {
     drawSeasonalFestivities(ctx, w, h, season, seasonStage, time, beerBaseX, beerBaseY, cafeBaseX, cafeBaseY) {
         ctx.save();
 
-        // 1. Seasonal Center Billiards Rug (Stage 2+)
         if (seasonStage >= 2) {
             const rx = w / 2;
             const ry = 420;
@@ -748,7 +731,6 @@ class GameRenderer {
             ctx.restore();
         }
 
-        // 2. Back-Wall Festive Bunting, Garlands & Blinking String Lights
         const swagCount = 8;
         const swagWidth = w / swagCount;
         const wallY = 14;
@@ -850,7 +832,6 @@ class GameRenderer {
             }
         }
 
-        // 3. Doorway & Progressive Shift Accents
         const doorCenterX = w / 2;
 
         if (season === 'winter') {
@@ -976,7 +957,6 @@ class GameRenderer {
 
         if (typeof spriteManager === 'undefined' || !spriteManager.isLoaded) return;
 
-        // 1. LIVE PROGRESSION TIER & SEASON (Locked for 4 shifts per season)
         const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
         const currentShift = state.shift || prog.shift || prog.currentShift || prog.day || 1;
         const unlockedKettles = (typeof playerState !== 'undefined' && playerState.unlockedKettles) ? playerState.unlockedKettles : 1;
@@ -995,7 +975,6 @@ class GameRenderer {
         const progressionScore = (currentYear - 1) * 2 + Math.floor((currentShift - 1) / shiftsPerSeason) + (unlockedKettles - 1);
         const venueTier = Math.min(4, Math.max(1, 1 + progressionScore));
 
-        // STRICTLY SEASONAL FLOORS & WALLS
         const seasonalArchitecture = {
             spring: { floor: 'floor_wood_restaurant', wall: 'wall_wainscot_restaurant' },
             summer: { floor: 'floor_tile_cafe_pattern', wall: 'wall_cream_cafe' },
@@ -1011,7 +990,6 @@ class GameRenderer {
 
         ctx.imageSmoothingEnabled = false;
 
-        // Draw Tiled Floor
         const floorImg = spriteManager.images[floorKey] || spriteManager.images['floor_dark_bar'];
         if (floorImg && floorImg.complete && floorImg.naturalWidth > 0) {
             for (let y = -100; y < h + 200; y += 109) {
@@ -1021,7 +999,6 @@ class GameRenderer {
             }
         }
 
-        // Draw Back Wall
         const wallImg = spriteManager.images[wallKey] || spriteManager.images['wall_brick_bar'];
         if (wallImg && wallImg.complete && wallImg.naturalWidth > 0) {
             for (let x = -100; x < w + 200; x += 180) {
@@ -1029,7 +1006,6 @@ class GameRenderer {
             }
         }
 
-        // Rear Entrance Door
         const doorImg = spriteManager.images['door_entrance_glass_wood_frame'];
         if (doorImg && doorImg.complete && doorImg.naturalWidth > 0) {
             ctx.drawImage(doorImg, Math.floor((w / 2) - (doorImg.width / 2)), -15);
@@ -1046,13 +1022,9 @@ class GameRenderer {
         const cafeBaseX = w - 245;
         const cafeBaseY = 650;
 
-        // Draw Seasonal Wall Bunting, Doorway Wreaths/Flags & Center Rug
         this.drawSeasonalFestivities(ctx, w, h, season, seasonStage, time, beerBaseX, beerBaseY, cafeBaseX, cafeBaseY);
-
-        // Draw Seasonal & Gameplay-Reactive Law Brewing Neon Sign
         this.drawNeonSign(state, 465, 80, 0.10, season);
 
-        // 2. AMBIENT FLOOR LIGHTING
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
 
@@ -1072,47 +1044,30 @@ class GameRenderer {
         ctx.beginPath(); ctx.ellipse(stageX, stageY - 15, 135, 68, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // 3. PERFECTLY ALIGNED U-COUNTERS & CALIBRATED ISOMETRIC DEPTH SORTING (renderY)
         let roomProps = [
-            // --- ZONE A: STAGE & JUKEBOX ---
             { type: 'stage_small_lights', x: stageX, y: stageY, renderY: stageY - 58, scale: 0.88, rx: 95, ry: 48, hitOffsetY: -35, allowStage: true },
             { type: 'jukebox', x: stageX + 130, y: stageY - 30, renderY: stageY - 44, scale: 0.78, rx: 45, ry: 30, hitOffsetY: -22 },
-
-            // --- ZONE B: KITCHEN & SHELF ---
             { type: 'bookshelf_wall_cafe', x: (w / 2) + 205, y: 205, renderY: 140, scale: 0.76 },
             { type: 'pizza_oven_brick', x: ovenX, y: ovenY, renderY: ovenY - 22, scale: 0.85, flipX: true, rx: 82, ry: 45, hitOffsetY: -35 },
-
-            // --- ZONE C: LOUNGE ---
             { type: 'lamp_floor_rattan', x: 115, y: 450, renderY: 434, scale: 0.78, rx: 38, ry: 25, hitOffsetY: -18 },
             { type: venueTier >= 2 ? 'booth_sofa_double' : 'booth_leather', x: 235, y: 465, renderY: 442, scale: 0.84, rx: 86, ry: 46, hitOffsetY: -35 },
-
-            // --- ZONE D: GAME FLOOR ---
             { type: 'pool_table', x: w / 2, y: 420, renderY: 396, scale: 0.88, rx: 112, ry: 56, hitOffsetY: -38 },
-
-            // --- ZONE E: LEFT BEER BAR (Flushed U-Shape) ---
             { type: 'bar_counter_straight', x: beerBaseX + 92, y: beerBaseY - 25, renderY: beerBaseY - 45, scale: 0.90, flipX: false, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'bar_counter_corner', x: beerBaseX, y: beerBaseY, renderY: beerBaseY - 22, scale: 0.90, flipX: false, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'beer_tap_tower', x: beerBaseX + 72, y: beerBaseY - 96, renderY: beerBaseY - 20, scale: 0.74 },
             { type: 'beer_mugs_group', x: beerBaseX - 5, y: beerBaseY - 90, renderY: beerBaseY - 19, scale: 0.30 },
             { type: 'stool_bar_metal_row', x: beerBaseX + 120, y: beerBaseY + 30, renderY: beerBaseY + 2, scale: 0.82 },
-
-            // --- ZONE F: RIGHT COFFEE BAR (Flushed U-Shape — Exact Coordinates Preserved) ---
             { type: 'bar_counter_straight', x: cafeBaseX - 92, y: cafeBaseY - 25, renderY: cafeBaseY - 45, scale: 0.90, flipX: true, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'bar_counter_corner', x: cafeBaseX, y: cafeBaseY, renderY: cafeBaseY - 22, scale: 0.90, flipX: true, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'espresso_machine_commercial', x: cafeBaseX - 75, y: cafeBaseY - 115, renderY: cafeBaseY - 20, scale: 0.40, flipX: false },
             { type: 'macaron_tower', x: cafeBaseX - 10, y: cafeBaseY - 92, renderY: cafeBaseY - 19, scale: 0.35 },
             { type: 'grinder_coffee', x: cafeBaseX + 32, y: cafeBaseY - 88, renderY: cafeBaseY - 18, scale: 0.35 },
             { type: 'stool_wood_high', x: cafeBaseX - 145, y: cafeBaseY - 10, renderY: cafeBaseY - 26, scale: 0.58, flipX: true },
-
-            // --- ZONE G: HANGING PLANTS ---
             { type: 'plant_hanging_rope_pot', x: 115, y: 165, scale: 0.68, renderY: 9999 },
             { type: 'plant_hanging_rope_pot', x: w - 115, y: 165, scale: 0.68, renderY: 9999 },
-
-            // Mounted Dartboard on the Right Wall (Locked to wall depth so patrons never clip behind it)
             { type: 'dartboard_mounted', x: w - 100, y: 350, renderY: 180, scale: 0.78, flipX: false }
         ];
 
-        // 4. SEASONAL DEPTH-SORTED HERO PROPS
         if (season === 'winter') {
             roomProps.push({ customType: 'christmas_tree', x: 525, y: 265, renderY: 255, rx: 52, ry: 28, hitOffsetY: -8 });
         } else if (season === 'fall') {
@@ -1135,7 +1090,6 @@ class GameRenderer {
             }
         }
 
-        // 5. LEVEL-BASED PROGRESSION SWAPS
         if (venueTier >= 3) {
             roomProps.push({ type: 'table_family_long', x: w - 235, y: 410, renderY: 386, scale: 0.82, rx: 88, ry: 48, hitOffsetY: -32 });
             roomProps.push({ type: 'cake_display_case_curved', x: w - 415, y: cafeBaseY - 82, renderY: cafeBaseY - 98, scale: 0.76, rx: 62, ry: 36, hitOffsetY: -25 });
@@ -1163,7 +1117,6 @@ class GameRenderer {
             dartboardTarget: { x: w - 100, y: 295 }
         };
 
-        // 6. MERGE & DEPTH-SORT RENDERABLES
         let renderables = [];
         roomProps.forEach(p => { p.isProp = true; renderables.push(p); });
 
@@ -1172,7 +1125,6 @@ class GameRenderer {
 
         renderables.sort((a, b) => (a.renderY || a.y) - (b.renderY || b.y));
 
-        // 7. UNIFIED RENDER LOOP
         renderables.forEach(item => {
             if (item.isProp) {
                 if (item.customType) {
@@ -1205,7 +1157,6 @@ class GameRenderer {
                     this.drawExistingSpriteEnhancements(ctx, item, season, seasonStage, time);
                 }
             } else {
-                // --- DRAW PATRONS & CRAVING SPEECH BUBBLES ---
                 const px = item.x || 0;
                 const py = item.y || 0;
                 let scale = 1.55 + (py / h) * 0.95;
@@ -1253,7 +1204,7 @@ class GameRenderer {
                     ctx.restore();
                 }
 
-                // 8. NEW: DRAW THE PULSING PATIENCE BUBBLE 
+                // PULSING PATIENCE BUBBLE 
                 if (!item.isLeaving && (item.currentState === 'ENTER' || item.currentState === 'IDLE')) {
                     const bubbleY = drawY - (14 * scale);
                     const isImpatient = item.maxWaitTime && (item.timeWaiting / item.maxWaitTime) > 0.70;
@@ -1278,28 +1229,24 @@ class GameRenderer {
                     ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(px - 5, bubbleY - 2); ctx.lineTo(px + 5, bubbleY - 2); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.fill();
 
-                    // --- The Patience Pulse Outline ---
                     ctx.lineWidth = 3.5;
                     if (isImpatient) {
-                        const pulse = 0.5 + Math.abs(Math.sin(time * 12)) * 0.5; // Rapid heartbeat pulse
-                        ctx.strokeStyle = `rgba(239, 68, 68, ${pulse})`; // Red
+                        const pulse = 0.5 + Math.abs(Math.sin(time * 12)) * 0.5;
+                        ctx.strokeStyle = `rgba(239, 68, 68, ${pulse})`;
                     } else {
-                        ctx.strokeStyle = '#4ade80'; // Solid Green
+                        ctx.strokeStyle = '#4ade80';
                     }
 
                     ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.stroke();
 
-                    // --- Inner Style Icon ---
                     ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`;
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
                 }
-
                 ctx.globalAlpha = 1.0;
             }
         });
 
-        // 9. COMPACT SHIFT & SEASON TIMER HUD
         const timeLeft = Math.max(0, Math.ceil(state.timeRemaining || state.timeLeft || 0));
         const seasonIcons = { spring: '🌸', summer: '🎆', fall: '🎃', winter: '🎄' };
         const sIcon = seasonIcons[season] || '🍻';
@@ -1310,7 +1257,6 @@ class GameRenderer {
         ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
         ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
 
-        // 10. PROJECTILES
         (state.projectiles || []).forEach(p => {
             const px = p.x || 0; const py = p.y || 0; const pz = p.z || 0;
             const r = p.radius || 15; const renderY = py - pz;
@@ -1333,7 +1279,6 @@ class GameRenderer {
             });
         });
 
-        // 11. AIMING LINE, FLOATING TEXT, PARTICLES & DARTS
         if (state.isAiming && state.aimStart && state.aimCurrent) {
             ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)'; ctx.lineWidth = 4; ctx.setLineDash([10, 10]);
             ctx.beginPath(); ctx.moveTo(state.aimStart.x, state.aimStart.y); ctx.lineTo(state.aimCurrent.x, state.aimCurrent.y); ctx.stroke();
@@ -1392,7 +1337,6 @@ class GameRenderer {
         const dragX = state.dragState ? state.dragState.mouseX : -999;
         const dragY = state.dragState ? state.dragState.mouseY : -999;
 
-        // 1. INDUSTRIAL CRAFT BREWHOUSE ENVIRONMENT BACKGROUND
         const bgGrad = ctx.createRadialGradient(w / 2, h * 0.45, 60, w / 2, h / 2, 820);
         bgGrad.addColorStop(0, '#27272a');
         bgGrad.addColorStop(0.55, '#141418');
@@ -1424,10 +1368,8 @@ class GameRenderer {
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
 
-        // 2. DRAW THE 6 CUSTOM INGREDIENT DISPENSERS
         (state.sacks || []).forEach(sack => this.drawGeneratorSack(sack, time));
 
-        // 3. DRAW THE STAINLESS STEEL MERGE TABLE & INTERACTIVE SLOTS
         const trayX = state.gridOffset.x - 14;
         const trayY = state.gridOffset.y - 14;
         const trayW = (state.cols * state.tileSize) + 28;
@@ -1485,7 +1427,6 @@ class GameRenderer {
                 const cellCenterY = cellY + state.tileSize / 2;
                 const item = state.grid[r][c];
 
-                // Detect Newly Merged or Newly Spawned Tiles for Tactile Bounce & Shockwave
                 const prevSig = this.prevBrewGrid[cellKey];
                 const currSig = item ? `${item.category}:${item.name}` : null;
                 if (currSig && prevSig !== currSig) {
@@ -1575,10 +1516,8 @@ class GameRenderer {
             }
         }
 
-        // Render Active Merge Shockwaves & Sparkle Particles Over the Grid
         this.updateAndDrawMergeEffects(ctx, time);
 
-        // 4. DRAW THE 3-KETTLE BREWHOUSE LINE
         const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
 
         if (unlockedCount > 1 && state.kettles && state.kettles.length >= unlockedCount) {
@@ -1828,7 +1767,7 @@ class GameRenderer {
 
                     if (kettle.items.length >= 2) {
                         const preview = gameRecipes.evaluateBrew(ingNames);
-                        if (preview) {
+                        if (preview && preview.name !== 'Swill') {
                             const isKnown = (typeof playerState !== 'undefined') && playerState.unlockedRecipes.includes(preview.name);
                             const styleIcon = gameRecipes.getStyleIcon(preview.name, preview.type);
 
@@ -1842,7 +1781,7 @@ class GameRenderer {
                                 pillBorder = '#c084fc';
                             }
                         } else {
-                            pillText = '❌ Trash Batch';
+                            pillText = '❌ Trash Batch (Swill)';
                             pillBg = 'rgba(127, 29, 29, 0.94)';
                             pillBorder = '#ef4444';
                         }
@@ -1909,7 +1848,6 @@ class GameRenderer {
             }
         });
 
-        // 5B. DRAW THE INDUSTRIAL FLOOR DRAIN
         if (state.drain) {
             const dx = state.drain.x;
             const dy = state.drain.y;
@@ -1955,7 +1893,6 @@ class GameRenderer {
             this.ctx.fillText('(Drag here to dump)', gcx, dy + dh - 7);
         }
 
-        // 6. DRAW THE ITEM CURRENTLY BEING DRAGGED + LIVE MERGE PREVIEW TOOLTIP
         if (dragItem) {
             ctx.save();
             ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
@@ -1999,7 +1936,6 @@ class GameRenderer {
             }
         }
 
-        // 7. DRAW BREWING FLOATING FEEDBACK POPUPS
         if (state.floatingTexts) {
             state.floatingTexts.forEach(ft => {
                 this.ctx.save();
@@ -2013,6 +1949,49 @@ class GameRenderer {
                 this.ctx.fillText(ft.text, ft.x, ft.y);
                 this.ctx.restore();
             });
+        }
+
+        // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE
+        const boardX = 1020;
+        const boardY = 60;
+        const boardW = 240;
+        const boardMid = boardX + (boardW / 2);
+
+        ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
+        ctx.strokeStyle = '#3f3f46';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(boardX, boardY, boardW, 400, 8); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 18px Oswald';
+        ctx.textAlign = 'center';
+        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 30);
+        ctx.fillStyle = '#a1a1aa';
+        ctx.fillRect(boardX + 15, boardY + 40, boardW - 30, 2);
+
+        if (state.activeOrders && state.activeOrders.length > 0) {
+            state.activeOrders.forEach((order, i) => {
+                const oy = boardY + 70 + (i * 90);
+
+                ctx.fillStyle = '#4ade80';
+                ctx.font = 'bold 16px Inter';
+                ctx.fillText(`+ $${order.bounty.toFixed(2)} BOUNTY`, boardMid, oy);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Inter';
+                ctx.fillText(order.name, boardMid, oy + 22, boardW - 20);
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = '11.5px Inter';
+                ctx.fillText(order.hint, boardMid, oy + 42, boardW - 20);
+
+                ctx.fillStyle = '#3f3f46';
+                ctx.fillRect(boardX + 25, oy + 60, boardW - 50, 1);
+            });
+        } else {
+            ctx.fillStyle = '#71717a';
+            ctx.font = 'italic 14px Inter';
+            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 120);
         }
     }
 
@@ -2379,25 +2358,25 @@ class GameRenderer {
             ctx.stroke();
         }
 
-        const iconY = isMini ? ty + (s / 2) - 4 : ty + (s * 0.44);
-        const iconScale = isMini ? 0.62 : 0.96;
+        const iconY = isMini ? ty + (s / 2) - 4 : ty + (s * 0.40);
+        const iconScale = isMini ? 0.62 : 1.1;
         this.drawCustomIcon(tx + (s / 2), iconY, item.category, item.name, pal.icon, iconScale, level || 1);
 
         if (!isMini) {
             const badgeText = isSpecialty ? 'SPEC' : (isMaxTier ? '★MAX' : `L${level}`);
-            const badgeW = isSpecialty || isMaxTier ? 28 : 19;
+            const badgeW = isSpecialty || isMaxTier ? 38 : 28;
             ctx.fillStyle = isMaxTier ? '#facc15' : (isSpecialty ? '#c084fc' : 'rgba(9, 9, 11, 0.78)');
             ctx.strokeStyle = pal.border;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.roundRect(tx + 4, ty + 4, badgeW, 13, 4);
+            ctx.roundRect(tx + 4, ty + 4, badgeW, 18, 4);
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = (isMaxTier || isSpecialty) ? '#09090b' : '#f4f4f5';
-            ctx.font = 'bold 8.5px Inter';
+            ctx.font = 'bold 12px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText(badgeText, tx + 4 + (badgeW / 2), ty + 13.5);
+            ctx.fillText(badgeText, tx + 4 + (badgeW / 2), ty + 17.5);
 
             if (level > 0) {
                 const startPipX = tx + s - 38;
@@ -2423,7 +2402,7 @@ class GameRenderer {
             }
         }
 
-        const bannerH = isMini ? 14 : 23;
+        const bannerH = isMini ? 14 : 32;
         const bannerY = ty + s - bannerH - 2;
 
         ctx.fillStyle = 'rgba(9, 9, 11, 0.90)';
@@ -2433,7 +2412,7 @@ class GameRenderer {
 
         if (!isMini) {
             ctx.fillStyle = isMaxTier ? '#facc15' : pal.border;
-            ctx.fillRect(tx + 4, bannerY, s - 8, 1.8);
+            ctx.fillRect(tx + 4, bannerY, s - 8, 2.5);
         }
 
         ctx.fillStyle = isMaxTier ? '#fef08a' : '#f8fafc';
@@ -2442,15 +2421,15 @@ class GameRenderer {
             ctx.font = 'bold 8px Inter';
             ctx.fillText(item.name.substring(0, 7), tx + (s / 2), ty + s - 5.5);
         } else {
-            ctx.font = 'bold 9.5px Inter';
+            ctx.font = 'bold 13.5px Inter';
             const words = item.name.split(' ');
             if (words.length > 1) {
-                ctx.fillText(words[0], tx + (s / 2), bannerY + 10.5);
+                ctx.fillText(words[0], tx + (s / 2), bannerY + 15);
                 ctx.fillStyle = '#e4e4e7';
-                ctx.font = 'bold 8.8px Inter';
-                ctx.fillText(words.slice(1).join(' '), tx + (s / 2), bannerY + 20);
+                ctx.font = 'bold 12px Inter';
+                ctx.fillText(words.slice(1).join(' '), tx + (s / 2), bannerY + 27);
             } else {
-                ctx.fillText(item.name, tx + (s / 2), bannerY + 15);
+                ctx.fillText(item.name, tx + (s / 2), bannerY + 21);
             }
         }
 
@@ -2846,7 +2825,7 @@ class GameRenderer {
                     ctx.fill();
                     ctx.stroke();
 
-                    // Golden-Brown Toasted Cap (not burnt marshmallow)
+                    // Golden-Brown Toasted Cap
                     ctx.fillStyle = '#d97706';
                     ctx.beginPath();
                     ctx.ellipse(0, -7, 9, 3.8, 0, 0, Math.PI * 2);

@@ -6,27 +6,29 @@ class BrewingPhase {
         this.cols = 6;
         this.rows = 4;
         this.tileSize = 125;
-        this.gridOffset = { x: 20, y: 55 }; // Flushed to top-left
+
+        // SACKS ON THE LEFT, GRID IN THE MIDDLE
+        this.gridOffset = { x: 290, y: 55 };
 
         this.grid = [];
         this.isActive = false;
         this.dragState = null;
         this.floatingTexts = [];
         this.currentMergeCombo = 0;
+        this.activeOrders = []; // NEW: Store active shift goals
 
-        // Push dispensers to the right to fit the huge grid
+        // Sacks returned to the left side!
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 800, y: 55, w: 105, h: 110, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 925, y: 55, w: 105, h: 110, color: '#eab308' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 800, y: 185, w: 105, h: 110, color: '#d9f99d' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 925, y: 185, w: 105, h: 110, color: '#22c55e' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 800, y: 315, w: 105, h: 110, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 925, y: 315, w: 105, h: 110, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: 30, y: 55, w: 105, h: 110, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 155, y: 55, w: 105, h: 110, color: '#eab308' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 30, y: 185, w: 105, h: 110, color: '#d9f99d' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 155, y: 185, w: 105, h: 110, color: '#22c55e' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 30, y: 315, w: 105, h: 110, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 155, y: 315, w: 105, h: 110, color: '#a855f7' }
         ];
 
-        this.drain = { x: 800, y: 445, w: 230, h: 100 };
+        this.drain = { x: 30, y: 445, w: 230, h: 100 };
 
-        // Spread kettles across the bottom
         this.kettles = [
             { x: 30, y: 568, w: 320, h: 110, btnX: 250, btnY: 598, btnW: 86, btnH: 52, items: [] },
             { x: 380, y: 568, w: 320, h: 110, btnX: 600, btnY: 598, btnW: 86, btnH: 52, items: [] },
@@ -53,6 +55,10 @@ class BrewingPhase {
         this.dragState = null;
         if (!this.grid || this.grid.length === 0) {
             this.resetGrid();
+        }
+        // Generate 2 new Contract Orders at the start of every shift!
+        if (typeof gameRecipes !== 'undefined') {
+            this.activeOrders = gameRecipes.getDailyOrders(2);
         }
     }
 
@@ -254,7 +260,6 @@ class BrewingPhase {
         const ingredients = k.items.map(item => item.name);
         const brewPreview = gameRecipes.evaluateBrew(ingredients);
 
-        // Allow valid Cocktails/Sodas OR require all 4 core beer components (Water, Grain, Yeast, Hops)
         const isSpecialDrink = brewPreview && (brewPreview.type === 'cocktail' || brewPreview.type === 'soda');
         const hasWater = k.items.some(i => i.category === 'Water');
         const hasGrain = k.items.some(i => i.category === 'Grain');
@@ -285,57 +290,21 @@ class BrewingPhase {
 
         let brewResult = brewPreview;
 
-        // FIXED SWILL PILL BUG
-        if (typeof gameRecipes !== 'undefined') {
-            const ingNames = k.items.map(i => i.name);
-            let pillText = '⚠️ Need at least 2 ingredients';
-            let pillBg = 'rgba(127, 29, 29, 0.94)';
-            let pillBorder = '#ef4444';
-
-            if (k.items.length >= 2) {
-                const preview = gameRecipes.evaluateBrew(ingNames);
-
-                // IF IT IS NULL OR SWILL, IT IS TRASH
-                if (!preview || preview.name === 'Swill') {
-                    pillText = '❌ Trash Batch (Swill)';
-                    pillBg = 'rgba(127, 29, 29, 0.94)';
-                    pillBorder = '#ef4444';
-                } else {
-                    const isKnown = (typeof playerState !== 'undefined') && playerState.unlockedRecipes.includes(preview.name);
-                    const styleIcon = gameRecipes.getStyleIcon(preview.name, preview.type);
-
-                    if (preview.type === 'soda' || preview.type === 'crowd_control' || isKnown) {
-                        pillText = `${styleIcon} ${preview.name}`;
-                        pillBg = 'rgba(20, 83, 45, 0.95)';
-                        pillBorder = '#4ade80';
-                    } else {
-                        pillText = '✨ Mystery Valid Recipe!';
-                        pillBg = 'rgba(88, 28, 135, 0.95)';
-                        pillBorder = '#c084fc';
-                    }
-                }
-            }
-
-            this.ctx.fillStyle = pillBg;
-            this.ctx.strokeStyle = pillBorder;
-            this.ctx.lineWidth = 1.8;
-            this.ctx.beginPath();
-            this.ctx.roundRect(k.x + 12, k.y - 13, k.w - 24, 21, 10);
-            this.ctx.fill();
-            this.ctx.stroke();
-
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 11px Inter';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(pillText, k.x + (k.w / 2), k.y + 1);
-        }
-
         if (!brewResult || brewResult.name === 'Swill') {
             brewResult = { name: 'Swill', type: 'Swill', count: 5 };
             this.floatingTexts.push(
                 new FloatingTitle(k.x + (k.w / 2), k.y - 20, `Brewed Swill (Cost: $${totalBrewCost.toFixed(2)})`, '#94a3b8')
             );
         } else {
+            // NEW: CONTRACT ORDER FULFILLMENT CHECK!
+            const orderIndex = this.activeOrders.findIndex(o => o.name === brewResult.name);
+            if (orderIndex !== -1) {
+                const bounty = this.activeOrders[orderIndex].bounty;
+                gameEvents.emit('EARN_TIPS', bounty);
+                this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y - 60, `CONTRACT DONE! +$${bounty}`, '#4ade80'));
+                this.activeOrders.splice(orderIndex, 1); // Remove fulfilled order
+            }
+
             const isNew = (typeof playerState !== 'undefined') && !playerState.unlockedRecipes.includes(brewResult.name);
             if (isNew) gameEvents.emit('RECIPE_DISCOVERED', brewResult.name);
             const prefix = isNew ? '📖 NEW: ' : `+${brewResult.count} `;

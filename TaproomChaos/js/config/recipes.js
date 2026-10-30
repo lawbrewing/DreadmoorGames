@@ -105,7 +105,7 @@ const gameRecipes = {
 
     // Dynamically prices ingredients by their actual chain tier (L1 = $0.25 -> 4 core L1s = $1.00)
     getIngredientCost: function (itemName) {
-        const tierPrices = [0.25, 0.50, 0.75, 1.00, 1.50];
+        const tierPrices = [0.25, 0.50, 0.75, 1.00, 1.25]; // Softer economy curve!
 
         for (const category in this.chains) {
             const idx = this.chains[category].indexOf(itemName);
@@ -113,12 +113,56 @@ const gameRecipes = {
                 return tierPrices[idx] || 0.25;
             }
         }
+        if (this.specialties.includes(itemName)) return 1.50;
+        return 0.25;
+    },
 
-        if (this.specialties.includes(itemName)) {
-            return 1.50;
+    // NEW: Generates a narrative riddle for the recipe (e.g., "A 5-ingredient Saison brewed with Citra")
+    getDynamicContractHint: function (recipe) {
+        const count = recipe.ingredients.length;
+
+        let style = "Ale";
+        const nameLower = recipe.name.toLowerCase();
+        if (nameLower.includes('ipa')) style = 'IPA';
+        else if (nameLower.includes('stout')) style = 'Stout';
+        else if (nameLower.includes('porter')) style = 'Porter';
+        else if (nameLower.includes('saison')) style = 'Saison';
+        else if (nameLower.includes('lager') || nameLower.includes('pilsner')) style = 'Lager';
+        else if (nameLower.includes('sour')) style = 'Sour';
+        else if (recipe.type === 'cocktail') style = 'Cocktail';
+
+        // Prioritize name-dropping Hops, Yeast, or Specialty adjuncts
+        let highlights = recipe.ingredients.filter(ing => {
+            const cat = this.getCategory(ing);
+            return cat === 'Hops' || cat === 'Specialty' || cat === 'Yeast';
+        });
+
+        // Shuffle and pick up to 2 distinct hints
+        highlights = highlights.sort(() => 0.5 - Math.random());
+        let hintFlavor = "standard malt";
+        if (highlights.length === 1) {
+            hintFlavor = highlights[0];
+        } else if (highlights.length >= 2) {
+            hintFlavor = `${highlights[0]} and ${highlights[1]}`;
+        } else if (recipe.ingredients.length > 0) {
+            hintFlavor = recipe.ingredients[0];
         }
 
-        return 0.25;
+        return `A ${count}-ingredient ${style} made with ${hintFlavor}.`;
+    },
+
+    getDailyOrders: function (count) {
+        const validRecipes = this.recipeList.filter(r => r.type !== 'soda' && r.type !== 'crowd_control');
+        const shuffled = [...validRecipes].sort(() => 0.5 - Math.random());
+        const picked = shuffled.slice(0, count);
+
+        return picked.map(r => {
+            return {
+                name: r.name,
+                hint: this.getDynamicContractHint(r),
+                bounty: 25.00
+            };
+        });
     },
 
     // Drops actual ingredients from this.chains & this.specialties with Broke Brewer protection
