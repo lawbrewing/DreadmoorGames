@@ -66,7 +66,7 @@ class GameRenderer {
         const patrons = state.patrons || state.entities || state.customers || [];
         const someoneCheering = patrons.some(c => c.currentState === 'CHEER');
         const someoneAngry = patrons.some(c => c.currentState === 'ANGRY');
-        const lowPatience = patrons.some(c => (c.currentState === 'IDLE' || c.currentState === 'ENTER') && c.maxPatience && (c.currentPatience / c.maxPatience) < 0.28);
+        const lowPatience = patrons.some(c => (c.currentState === 'IDLE' || c.currentState === 'ENTER') && c.maxWaitTime && (c.timeWaiting / c.maxWaitTime) > 0.70);
         const judgePresent = patrons.some(c => c.type === 'judge' || c.rosterKey === 'judge' || (typeof PATRON_ROSTER !== 'undefined' && PATRON_ROSTER[c.rosterKey] && PATRON_ROSTER[c.rosterKey].isBoss));
         const timeLeft = state.timeRemaining !== undefined ? state.timeRemaining : 60;
 
@@ -1075,7 +1075,6 @@ class GameRenderer {
         // 3. PERFECTLY ALIGNED U-COUNTERS & CALIBRATED ISOMETRIC DEPTH SORTING (renderY)
         let roomProps = [
             // --- ZONE A: STAGE & JUKEBOX ---
-            // renderY: stageY - 58 ensures dancers on the stage deck (y: 275..305) always render ON TOP of the stage!
             { type: 'stage_small_lights', x: stageX, y: stageY, renderY: stageY - 58, scale: 0.88, rx: 95, ry: 48, hitOffsetY: -35, allowStage: true },
             { type: 'jukebox', x: stageX + 130, y: stageY - 30, renderY: stageY - 44, scale: 0.78, rx: 45, ry: 30, hitOffsetY: -22 },
 
@@ -1095,7 +1094,6 @@ class GameRenderer {
             { type: 'bar_counter_corner', x: beerBaseX, y: beerBaseY, renderY: beerBaseY - 22, scale: 0.90, flipX: false, rx: 82, ry: 44, hitOffsetY: -32 },
             { type: 'beer_tap_tower', x: beerBaseX + 72, y: beerBaseY - 96, renderY: beerBaseY - 20, scale: 0.74 },
             { type: 'beer_mugs_group', x: beerBaseX - 5, y: beerBaseY - 90, renderY: beerBaseY - 19, scale: 0.30 },
-            // 3 Barstools in front of the Beer U-Counter (renderY calibrated to stool base)
             { type: 'stool_bar_metal_row', x: beerBaseX + 120, y: beerBaseY + 30, renderY: beerBaseY + 2, scale: 0.82 },
 
             // --- ZONE F: RIGHT COFFEE BAR (Flushed U-Shape — Exact Coordinates Preserved) ---
@@ -1255,8 +1253,11 @@ class GameRenderer {
                     ctx.restore();
                 }
 
+                // 8. NEW: DRAW THE PULSING PATIENCE BUBBLE 
                 if (!item.isLeaving && (item.currentState === 'ENTER' || item.currentState === 'IDLE')) {
                     const bubbleY = drawY - (14 * scale);
+                    const isImpatient = item.maxWaitTime && (item.timeWaiting / item.maxWaitTime) > 0.70;
+
                     let styleLookup = 'premium';
                     if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
                     else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
@@ -1276,8 +1277,19 @@ class GameRenderer {
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                     ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(px - 5, bubbleY - 2); ctx.lineTo(px + 5, bubbleY - 2); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.fill();
-                    ctx.strokeStyle = bubbleColor; ctx.lineWidth = 2.5;
+
+                    // --- The Patience Pulse Outline ---
+                    ctx.lineWidth = 3.5;
+                    if (isImpatient) {
+                        const pulse = 0.5 + Math.abs(Math.sin(time * 12)) * 0.5; // Rapid heartbeat pulse
+                        ctx.strokeStyle = `rgba(239, 68, 68, ${pulse})`; // Red
+                    } else {
+                        ctx.strokeStyle = '#4ade80'; // Solid Green
+                    }
+
                     ctx.beginPath(); ctx.arc(px, bubbleY - (bubbleSize / 2), bubbleSize / 2, Math.PI * 0.75, Math.PI * 0.25, false); ctx.lineTo(px, bubbleY + 7); ctx.closePath(); ctx.stroke();
+
+                    // --- Inner Style Icon ---
                     ctx.font = `${Math.floor(bubbleSize * 0.55)}px Arial`;
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText(hintIcon, px, bubbleY - (bubbleSize / 2) + 1);
@@ -1287,7 +1299,7 @@ class GameRenderer {
             }
         });
 
-        // 8. COMPACT SHIFT & SEASON TIMER HUD
+        // 9. COMPACT SHIFT & SEASON TIMER HUD
         const timeLeft = Math.max(0, Math.ceil(state.timeRemaining || state.timeLeft || 0));
         const seasonIcons = { spring: '🌸', summer: '🎆', fall: '🎃', winter: '🎄' };
         const sIcon = seasonIcons[season] || '🍻';
@@ -1298,7 +1310,7 @@ class GameRenderer {
         ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
         ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
 
-        // 9. PROJECTILES
+        // 10. PROJECTILES
         (state.projectiles || []).forEach(p => {
             const px = p.x || 0; const py = p.y || 0; const pz = p.z || 0;
             const r = p.radius || 15; const renderY = py - pz;
@@ -1321,7 +1333,7 @@ class GameRenderer {
             });
         });
 
-        // 10. AIMING LINE, FLOATING TEXT, PARTICLES & DARTS
+        // 11. AIMING LINE, FLOATING TEXT, PARTICLES & DARTS
         if (state.isAiming && state.aimStart && state.aimCurrent) {
             ctx.strokeStyle = 'rgba(16, 185, 129, 0.75)'; ctx.lineWidth = 4; ctx.setLineDash([10, 10]);
             ctx.beginPath(); ctx.moveTo(state.aimStart.x, state.aimStart.y); ctx.lineTo(state.aimCurrent.x, state.aimCurrent.y); ctx.stroke();
@@ -1890,7 +1902,7 @@ class GameRenderer {
                 this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 20);
                 this.ctx.font = 'bold 11px Inter';
                 this.ctx.fillStyle = '#dcfce7';
-                this.ctx.fillText(`$${brewCost}`, kettle.btnX + (kettle.btnW / 2), kettle.btnY + 36);
+                this.ctx.fillText(`$${brewCost.toFixed(2)}`, kettle.btnX + (kettle.btnW / 2), kettle.btnY + 36);
             } else {
                 this.ctx.font = 'bold 15px Oswald';
                 this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 28);
@@ -2220,7 +2232,7 @@ class GameRenderer {
 
         ctx.fillStyle = color;
         ctx.font = 'bold 11px Inter';
-        ctx.fillText(`$${cost || 1}`, cx, y + h - 6);
+        ctx.fillText(`$${cost.toFixed(2)}`, cx, y + h - 6);
 
         ctx.restore();
     }

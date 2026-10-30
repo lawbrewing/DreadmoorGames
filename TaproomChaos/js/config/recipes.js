@@ -29,7 +29,7 @@ const gameRecipes = {
         { name: 'Stolem\'s Nightcap', type: 'premium', count: 5, ingredients: ['Hard', 'Brewers Malt', 'Chocolate Malt', 'Brandy', 'Oak Chips', 'Tettnang', 'American Ale'] },
         { name: 'Tangier Management', type: 'premium', count: 5, ingredients: ['Soft', 'Pale Malt', 'White Wheat', 'Mandarina Bavaria', 'American Ale'] },
         { name: 'Ninjas?! Why\'d they have to be ninjas?!', type: 'premium', count: 5, ingredients: ['Filtered', 'Pilsen Malt', 'Flaked Rice', 'Lemondrop', 'Citra', 'Hornindal Kveik'] },
-        { name: 'Pumpkin Porter', type: 'premium', count: 5, ingredients: ['Filtered', 'Maris Otter', 'Chocolate Malt', 'Caramel 90L', 'Bitters', 'Hallertau', 'American Ale'] }, // Bitters used as spice substitute
+        { name: 'Pumpkin Porter', type: 'premium', count: 5, ingredients: ['Filtered', 'Maris Otter', 'Chocolate Malt', 'Caramel 90L', 'Bitters', 'Hallertau', 'American Ale'] },
 
         // --- GENERIC STYLE FALLBACKS ---
         { name: 'Arctic Blast (Cold IPA)', type: 'premium', count: 5, ingredients: ['Maris Otter', 'Flaked Rice', 'Lemondrop', 'Hornindal Kveik', 'Filtered'] },
@@ -49,7 +49,7 @@ const gameRecipes = {
         { name: 'Margarita', type: 'cocktail', count: 5, ingredients: ['Lime', 'Tequila'] }
     ],
 
-    getForecastHint: function (recipeName, type) {
+    getForecastHint: function(recipeName, type) {
         const nameLower = recipeName.toLowerCase();
         if (nameLower.includes('ipa') || nameLower.includes('hopped') || nameLower.includes('ninjas') || nameLower.includes('niply')) {
             return '⚡ High synergy with Tech Conventions and heavy afternoon IPA demand surges.';
@@ -69,12 +69,7 @@ const gameRecipes = {
         return '📈 Reliable baseline craft beer for steady, dependable daily tip flow.';
     },
 
-    getForecastHint: function (recipeName, type) {
-        // ... existing forecast code ...
-    },
-
-    // --- ADD THIS NEW FUNCTION ---
-    getStyleIcon: function (recipeName, type) {
+    getStyleIcon: function(recipeName, type) {
         const styleLookup = (recipeName + ' ' + (type || 'premium')).toLowerCase();
 
         if (styleLookup.includes('ipa')) return '🌿';
@@ -86,14 +81,13 @@ const gameRecipes = {
         if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) return '🥤';
         if (styleLookup.includes('cocktail')) return '🍸';
 
-        return '⭐'; // Generic Premium Fallback
+        return '⭐';
     },
 
-    getMergeResult: function (itemName) {
+    getMergeResult: function(itemName) {
         for (const category in this.chains) {
             const chain = this.chains[category];
             const index = chain.indexOf(itemName);
-            // FIXED: Added the missing minus sign!
             if (index !== -1 && index < chain.length - 1) {
                 return chain[index + 1];
             }
@@ -101,7 +95,7 @@ const gameRecipes = {
         return null;
     },
 
-    getCategory: function (itemName) {
+    getCategory: function(itemName) {
         for (const category in this.chains) {
             if (this.chains[category].includes(itemName)) return category;
         }
@@ -109,25 +103,55 @@ const gameRecipes = {
         return null;
     },
 
-    getIngredientCost: function (itemName) {
-        const category = this.getCategory(itemName);
-        const costs = { 'Water': 1, 'Grain': 1, 'Adjunct': 2, 'Yeast': 2, 'Hops': 3, 'Specialty': 6 };
-        return costs[category] || 1;
-    },
+    getIngredientCost(itemName) {
+        const tier1 = ['Tap Water', 'Base Malt', 'Standard Yeast', 'Cascade Hops'];
+        if (tier1.includes(itemName)) return 0.25;
 
-    getRandomDrop: function (category) {
-        if (category === 'Specialty') return this.specialties[Math.floor(Math.random() * this.specialties.length)];
-        const chain = this.chains[category];
-        const rand = Math.random();
-        let level = 0;
-        if (rand > 0.50) level = 1;
-        if (rand > 0.75) level = 2;
-        if (rand > 0.90) level = 3;
-        if (rand > 0.97) level = 4;
-        return chain[level];
-    },
+        const tier2 = ['Spring Water', 'Roasted Malt', 'Belgian Yeast', 'Citra Hops'];
+        if (tier2.includes(itemName)) return 0.50;
 
-    evaluateBrew: function (ingredientsList) {
+        const tier3 = ['Glacial Water', 'Caramel Malt', 'Champagne Yeast', 'Galaxy Hops'];
+        if (tier3.includes(itemName)) return 1.00;
+
+        if (itemName === 'Coffee Beans' || itemName === 'Cacao Nibs') return 1.50;
+
+        return 0.50;
+    }, // <-- Added comma here
+
+    getRandomDrop(category) {
+        const currentTips = (typeof playerState !== 'undefined') ? playerState.tips : 10.00;
+        const isBroke = currentTips < 3.00;
+
+        const roll = Math.random();
+
+        if (category === 'Water') {
+            if (isBroke || roll < 0.50) return 'Tap Water';
+            if (roll < 0.85) return 'Spring Water';
+            return 'Glacial Water';
+        }
+        if (category === 'Grain') {
+            if (isBroke || roll < 0.50) return 'Base Malt';
+            if (roll < 0.85) return 'Roasted Malt';
+            return 'Caramel Malt';
+        }
+        if (category === 'Yeast') {
+            if (isBroke || roll < 0.50) return 'Standard Yeast';
+            if (roll < 0.85) return 'Belgian Yeast';
+            return 'Champagne Yeast';
+        }
+        if (category === 'Hops') {
+            if (isBroke || roll < 0.50) return 'Cascade Hops';
+            if (roll < 0.85) return 'Citra Hops';
+            return 'Galaxy Hops';
+        }
+        if (category === 'Adjunct') {
+            return roll < 0.5 ? 'Coffee Beans' : 'Cacao Nibs';
+        }
+
+        return 'Tap Water';
+    }, // <-- Added comma here
+
+    evaluateBrew: function(ingredientsList) {
         if (!ingredientsList || ingredientsList.length < 2) return null;
 
         const sortedInput = [...ingredientsList].sort();
@@ -145,7 +169,7 @@ const gameRecipes = {
 
                     const isCocktail = recipe.type === 'cocktail';
                     if (!isCocktail && (!hasWater || !hasGrain || !hasHop || !hasYeast)) {
-                        return null; // Invalid beer (missing a core component)
+                        return null;
                     }
 
                     return { name: recipe.name, type: recipe.type, count: recipe.count };
@@ -153,14 +177,14 @@ const gameRecipes = {
             }
         }
 
-        // 2. DYNAMIC SODA/MOCKTAIL LOGIC (Specific flavor mapping)
+        // 2. DYNAMIC SODA/MOCKTAIL LOGIC
         const sodaFlavors = ['Mojito', 'Raspberry Puree', 'Lime', 'Cherry Juice'];
         const hasTap = ingredientsList.includes('Tap') || ingredientsList.some(i => this.getCategory(i) === 'Water');
         const hasFlavor = ingredientsList.some(i => sodaFlavors.includes(i));
         const onlyAllowed = ingredientsList.every(i => this.getCategory(i) === 'Water' || sodaFlavors.includes(i));
 
         if (hasTap && hasFlavor && onlyAllowed) {
-            let sodaName = 'Craft Soda'; // Fallback
+            let sodaName = 'Craft Soda';
             if (ingredientsList.includes('Lime')) sodaName = 'subLime (Mocktail)';
             else if (ingredientsList.includes('Cherry Juice')) sodaName = 'Cherry Bomb (Soda)';
             else if (ingredientsList.includes('Raspberry Puree')) sodaName = 'Razzle Dazzle (Soda)';
@@ -179,6 +203,6 @@ const gameRecipes = {
             return { name: 'Swill', type: 'crowd_control', count: 5 };
         }
 
-        return null; // Trash batch
+        return null;
     }
 };

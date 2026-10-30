@@ -31,6 +31,10 @@ class GameHUD {
         this.recipeBookOverlay = document.getElementById('recipeBookOverlay');
         this.recipeListContainer = document.getElementById('recipeListContainer');
 
+        // Jukebox Controls
+        this.btnMuteMusic = document.getElementById('btn-mute-music');
+        this.btnSkipTrack = document.getElementById('btn-skip-track');
+
         this.activePhase = 'BREWING';
         this.lastTips = -1;
         this.lastTime = -1;
@@ -73,6 +77,37 @@ class GameHUD {
             });
         }
 
+        // --- NEW: Jukebox Control Listeners ---
+        if (this.btnMuteMusic) {
+            this.btnMuteMusic.addEventListener('click', () => {
+                if (window.audioManager) {
+                    window.audioManager.isMuted = !window.audioManager.isMuted;
+                    window.audioManager.musicPlayer.muted = window.audioManager.isMuted;
+                    window.audioManager.scratchPlayer.muted = window.audioManager.isMuted;
+                    this.btnMuteMusic.innerText = window.audioManager.isMuted ? "Unmute" : "Mute";
+                    this.btnMuteMusic.style.backgroundColor = window.audioManager.isMuted ? "#ef4444" : "";
+                }
+            });
+        }
+
+        if (this.btnSkipTrack) {
+            this.btnSkipTrack.addEventListener('click', () => {
+                const skipCost = 1.00;
+                if (typeof playerState !== 'undefined' && playerState.canAfford(skipCost)) {
+                    gameEvents.emit('SPEND_TIPS', skipCost);
+                    if (window.audioManager) {
+                        window.audioManager.transitionWithScratch();
+                    }
+                } else {
+                    // Flash red if they can't afford the skip
+                    const origColor = this.btnSkipTrack.style.backgroundColor;
+                    this.btnSkipTrack.style.backgroundColor = "#ef4444";
+                    setTimeout(() => this.btnSkipTrack.style.backgroundColor = origColor, 300);
+                }
+            });
+        }
+
+        // --- Telemetry Player Sync ---
         if (this.playerNameInput) {
             const savedName = localStorage.getItem('law_player_name') || 'Michael Law';
             this.playerNameInput.value = savedName;
@@ -118,8 +153,6 @@ class GameHUD {
                 this.brewingHUD.classList.remove('open');
             }
             if (this.taproomHUD) {
-                // Start closed in Taproom so the player has an unobstructed view of the bar,
-                // or click ☰ MENU anytime to slide the ON TAP drawer in!
                 this.taproomHUD.classList.remove('open');
             }
             if (this.btnToggleHUD) {
@@ -203,8 +236,9 @@ class GameHUD {
         if (typeof playerState !== 'undefined') {
             if (this.lastTips !== playerState.tips) {
                 this.lastTips = playerState.tips;
-                if (this.hudTips) this.hudTips.innerText = `Tips: $${this.lastTips}`;
-                if (this.hudTaproomTips) this.hudTaproomTips.innerText = `Tips: $${this.lastTips}`;
+                // Force strict 2-decimal formatting so $1.25 renders cleanly
+                if (this.hudTips) this.hudTips.innerText = `Tips: $${this.lastTips.toFixed(2)}`;
+                if (this.hudTaproomTips) this.hudTaproomTips.innerText = `Tips: $${this.lastTips.toFixed(2)}`;
             }
         }
 
@@ -220,6 +254,7 @@ class GameHUD {
                     if (ammo.type === 'premium') badgeColor = '#facc15';
                     if (ammo.type === 'cocktail') badgeColor = '#f43f5e';
                     if (ammo.type === 'soda') badgeColor = '#38bdf8';
+                    if (ammo.type === 'Swill') badgeColor = '#94a3b8'; // Style Swill drops
 
                     li.style.cssText = `
                         background: #18181b; border-left: 4px solid ${badgeColor};

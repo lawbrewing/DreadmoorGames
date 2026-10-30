@@ -477,6 +477,7 @@ class TaproomPhase {
                 }
 
                 gameEvents.emit('SPEND_TIPS', penalty);
+                gameEvents.emit('PATRON_ANGRY'); // <-- Triggers angry.mp3
                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `-$${penalty} (Left Angry!)`, "#ef4444"));
             }
             return true;
@@ -556,29 +557,41 @@ class TaproomPhase {
                         }
                     };
 
-                    if (isExactMatch) {
-                        // Track flawless delivery for /api/scores/taproom_chaos
+                    // 1. SWILL SAFETY NET INTERCEPT
+                    if (p.name === 'Swill' || p.type === 'Swill') {
+                        gameEvents.emit('EARN_TIPS', 1.00);
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, "+$1.00 (Swill)", "#94a3b8"));
+                        patron.setState('CHEER');
+                        assignActivity(patron);
+                    }
+                    // 2. EXACT RECIPE MATCH (3x Payout)
+                    else if (isExactMatch) {
                         if (window.taproomTelemetry) {
                             window.taproomTelemetry.stats.perfectServes++;
                         }
-
                         gameEvents.emit('EARN_TIPS', baseTip * 3);
-                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip * 3} (Favorite!)`, "#f59e0b"));
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${(baseTip * 3).toFixed(2)} (Favorite!)`, "#f59e0b"));
                         patron.receivedPreferredDrink = true;
                         patron.setState('CHEER');
                         assignActivity(patron);
                         this.spawnCoinBurst(patron.x, patron.y - 80);
-                    } else if (isStyleMatch) {
+                    }
+                    // 3. STYLE MATCH (2x Payout)
+                    else if (isStyleMatch) {
                         gameEvents.emit('EARN_TIPS', baseTip * 2);
-                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip * 2} (Great Style!)`, "#38bdf8"));
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${(baseTip * 2).toFixed(2)} (Great Style!)`, "#38bdf8"));
                         patron.setState('CHEER');
                         assignActivity(patron);
-                    } else if (isCraved) {
+                    }
+                    // 4. CRAVING MATCH (1x Payout)
+                    else if (isCraved) {
                         gameEvents.emit('EARN_TIPS', baseTip);
-                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip}`, "#10b981"));
+                        this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip.toFixed(2)}`, "#10b981"));
                         patron.setState('CHEER');
                         assignActivity(patron);
-                    } else {
+                    }
+                    // 5. TRASH BATCH / WRONG DRINK (Angry Penalty)
+                    else {
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, "Gross!", "#ef4444"));
                         patron.setState('ANGRY');
                         if (patron.rosterKey === 'kid' && p.type !== 'soda') {

@@ -78,7 +78,7 @@ class BrewingPhase {
             for (let sack of this.sacks) {
                 if (pos.x >= sack.x && pos.x <= sack.x + sack.w &&
                     pos.y >= sack.y && pos.y <= sack.y + sack.h) {
-                    this.spawnItem(sack.category, sack.cost);
+                    this.spawnItem(sack.category); // No cost passed! Pulling is free.
                     return;
                 }
             }
@@ -180,15 +180,11 @@ class BrewingPhase {
         });
     }
 
-    spawnItem(category, cost) {
-        if (!playerState.canAfford(cost)) {
-            console.log(`Need $${cost} to pull from ${category}!`);
-            return;
-        }
-
+    // --- FREE PUZZLE SPAWN LOGIC ---
+    spawnItem(category) {
         const emptyCell = this.findEmptyCell();
         if (emptyCell) {
-            gameEvents.emit('SPEND_TIPS', cost);
+            // getRandomDrop now handles the "Broke Brewer" skew automatically
             const itemName = gameRecipes.getRandomDrop(category);
 
             this.grid[emptyCell.row][emptyCell.col] = {
@@ -196,6 +192,8 @@ class BrewingPhase {
                 name: itemName,
                 category: category
             };
+        } else {
+            this.floatingTexts.push(new FloatingTitle(this.gridOffset.x + 150, this.gridOffset.y - 20, "Grid is Full!", "#ef4444"));
         }
     }
 
@@ -226,51 +224,54 @@ class BrewingPhase {
         this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Kettle #${playerState.unlockedKettles} Online!`, "#4ade80"));
     }
 
+    // --- COGS ENGINE & KETTLE BREWING ---
     brewKettle(kettleIndex) {
         const k = this.kettles[kettleIndex];
         if (!k || k.items.length === 0) return;
 
-        if (k.items.length < 2) {
-            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, "Need at least 2 ingredients!", "#ef4444"));
+        // 1. STRICT REALISM: Must have all 4 core elements
+        const hasWater = k.items.some(i => i.category === 'Water');
+        const hasGrain = k.items.some(i => i.category === 'Grain');
+        const hasYeast = k.items.some(i => i.category === 'Yeast');
+        const hasHops = k.items.some(i => i.category === 'Hops');
+
+        if (!hasWater || !hasGrain || !hasYeast || !hasHops) {
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y - 20, "Needs Water, Grain, Yeast & Hops!", "#ef4444"));
             return;
         }
 
+        // 2. Calculate true Cost of Goods Sold (COGS)
         let totalBrewCost = 0;
         k.items.forEach(item => {
             totalBrewCost += gameRecipes.getIngredientCost(item.name);
         });
 
+        // 3. Prevent brewing if they can't afford the production cost
         if (!playerState.canAfford(totalBrewCost)) {
-            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Need $${totalBrewCost} to Brew!`, "#ef4444"));
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Need $${totalBrewCost.toFixed(2)} to Brew!`, "#ef4444"));
             return;
         }
 
+        // 4. Charge the player and clear the current merge combo
         gameEvents.emit('SPEND_TIPS', totalBrewCost);
-
-        // Reset the active merge chain once a kettle batch is brewed
         this.currentMergeCombo = 0;
 
         const ingredients = k.items.map(item => item.name);
-        const brewResult = gameRecipes.evaluateBrew(ingredients);
+        let brewResult = gameRecipes.evaluateBrew(ingredients);
 
-        if (brewResult) {
-            gameEvents.emit('ADD_AMMO', brewResult);
-            let popupColor = '#4ade80';
-            if (brewResult.type === 'crowd_control') popupColor = '#a1a1aa';
-            if (brewResult.type === 'soda') popupColor = '#38bdf8';
-
-            if (brewResult.type !== 'crowd_control' && brewResult.type !== 'soda') {
-                const isNew = !playerState.unlockedRecipes.includes(brewResult.name);
-                gameEvents.emit('RECIPE_DISCOVERED', brewResult.name);
-                const prefix = isNew ? '📖 NEW: ' : '+5 ';
-                this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `${prefix}${brewResult.name}!`, '#facc15'));
-            } else {
-                this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `+${brewResult.count} ${brewResult.name}`, popupColor));
-            }
+        // 5. If it has the core 4 but isn't a valid recipe, it becomes Swill
+        if (!brewResult) {
+            brewResult = { name: 'Swill', type: 'Swill', count: 3 };
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `Brewed Swill (Cost: $${totalBrewCost.toFixed(2)})`, '#94a3b8'));
         } else {
-            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `-$${totalBrewCost} (Ruined Batch — Wasted!)`, '#ef4444'));
+            const isNew = !playerState.unlockedRecipes.includes(brewResult.name);
+            if (isNew) gameEvents.emit('RECIPE_DISCOVERED', brewResult.name);
+            const prefix = isNew ? '📖 NEW: ' : '+5 ';
+            this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y, `${prefix}${brewResult.name}!`, '#facc15'));
         }
 
+        gameEvents.emit('ADD_AMMO', brewResult);
+        gameEvents.emit('BREW_FINISH'); // <-- Triggers brew.mp3
         k.items = [];
     }
 

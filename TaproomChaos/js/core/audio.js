@@ -37,7 +37,12 @@ class GameAudioManager {
         this.sfxFiles = {
             shoot: 'shoot.mp3',
             glass: 'glass.mp3',
-            upgrade: 'upgrade.mp3'
+            upgrade: 'upgrade.mp3',
+            angry: 'angry.mp3',
+            cheer: 'cheer.mp3',
+            brew: 'brew.mp3',
+            bankrupt: 'bankrupt.mp3',
+            discover: 'discover.mp3'
         };
 
         // Non-duplicate shuffle bag state
@@ -295,6 +300,15 @@ class GameAudioManager {
                     this.transitionWithScratch();
                 }
             }, 50);
+        });
+        // 6. New Gameplay Audio Hooks
+        gameEvents.on('PATRON_ANGRY', () => this.playSFX('angry'));
+        gameEvents.on('EARN_TIPS', () => this.playSFX('cheer'));
+        gameEvents.on('BREW_FINISH', () => this.playSFX('brew'));
+        gameEvents.on('RECIPE_DISCOVERED', () => this.playSFX('discover'));
+        gameEvents.on('BANKRUPT', () => {
+            this.musicPlayer.pause(); // Kill the music
+            this.playSFX('bankrupt');
         });
     }
 }

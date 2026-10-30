@@ -214,9 +214,17 @@
             <button id="btnOpenRecipeBook" style="width: 100%; margin-top: 12px; font-family: 'Oswald'; background: #6366f1; color: white; border: none; cursor: pointer; border-radius: 6px;">
                 📖 RECIPE BOOK
             </button>
-            <button id="btnStartShift" style="width: 100%; margin-top: 12px; margin-bottom: 16px; font-family: 'Oswald'; background: #10b981; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 6px;">
+            <button id="btnStartShift" style="width: 100%; margin-top: 12px; font-family: 'Oswald'; background: #10b981; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 6px;">
                 OPEN TAPROOM
             </button>
+
+            <!-- PREMIUM JUKEBOX CONTROLS -->
+            <div class="jukebox-controls" style="margin-top: 20px; margin-bottom: 16px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 8px; text-align: center;">
+                <h4 style="margin: 0 0 10px 0; color: #facc15; font-family: 'Oswald', sans-serif;">🎵 Jukebox</h4>
+                <button id="btn-mute-music" style="padding: 8px 12px; margin-right: 5px; cursor: pointer; font-family: 'Oswald', sans-serif;">Mute</button>
+                <button id="btn-skip-track" style="padding: 8px 12px; cursor: pointer; background: #3b82f6; color: white; border: none; font-family: 'Oswald', sans-serif;">Skip Track ($1.00)</button>
+            </div>
+
             <a href="../index.html" class="hud-library-link">❮ BACK TO LIBRARY</a>
         </div>
 
@@ -247,32 +255,26 @@
             </div>
         </div>
 
-        <!-- UI Overlay -->
-        <div id="ui-layer">
-            <button id="test-toggle-phase" style="position: absolute; top: 2%; right: 2%; padding: 1% 2%; background: #dc2626; color: white; border: none; font-family: 'Oswald', sans-serif; cursor: pointer; pointer-events: auto; z-index: 100; font-size: clamp(10px, 1.2vw, 16px);">
-                TEST: TOGGLE PHASE
-            </button>
-        </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="js/core/events.js"></script>
-    <script src="js/core/audio.js"></script>
-    <script src="js/core/input.js"></script>
-    <script src="js/core/renderer.js"></script>
-    <script src="js/config/economy.js"></script>
-    <script src="js/config/population.js"></script>
-    <script src="js/config/recipes.js"></script>
-    <script src="js/config/patrons.js"></script>
-    <script src="js/data/megaPack.js"></script>
-    <script src="js/engine/SpriteManager.js"></script>
-    <script src="js/state/player.js"></script>
-    <script src="js/state/progression.js"></script>
-    <script src="js/entities/patron.js"></script>
-    <script src="js/entities/title.js"></script>
-    <script src="js/ui/hud.js"></script>
-    <script src="js/phases/brewing.js"></script>
-    <script src="js/phases/taproom.js"></script>
-    <script src="js/main.js"></script>
+    <!-- Scripts (Cache-busted for mobile PWA) -->
+    <script src="js/core/events.js?v=2"></script>
+    <script src="js/core/audio.js?v=2"></script>
+    <script src="js/core/input.js?v=2"></script>
+    <script src="js/core/renderer.js?v=2"></script>
+    <script src="js/config/economy.js?v=2"></script>
+    <script src="js/config/population.js?v=2"></script>
+    <script src="js/config/recipes.js?v=2"></script>
+    <script src="js/config/patrons.js?v=2"></script>
+    <script src="js/data/megaPack.js?v=2"></script>
+    <script src="js/engine/SpriteManager.js?v=2"></script>
+    <script src="js/state/player.js?v=2"></script>
+    <script src="js/state/progression.js?v=2"></script>
+    <script src="js/entities/patron.js?v=2"></script>
+    <script src="js/entities/title.js?v=2"></script>
+    <script src="js/ui/hud.js?v=2"></script>
+    <script src="js/phases/brewing.js?v=2"></script>
+    <script src="js/phases/taproom.js?v=2"></script>
+    <script src="js/main.js?v=2"></script>
 </body>
 </html>

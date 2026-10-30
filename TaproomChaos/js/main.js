@@ -50,21 +50,30 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
 
     // --- BANKRUPTCY CHECK ---
-    if (playerState.tips < 0 && currentState !== GAME_STATES.GAME_OVER) {
+    let totalAmmo = 0;
+    if (typeof playerState !== 'undefined' && playerState.ammo) {
+        playerState.ammo.forEach(a => {
+            totalAmmo += (a.count === 'Infinite' ? 999 : a.count);
+        });
+    }
+
+    // Trigger if tips drop below zero OR (less than $1.00 to brew AND out of ammo)
+    const isBroke = playerState.tips < 0 || (playerState.tips < 1.00 && totalAmmo <= 0);
+
+    if (isBroke && currentState !== GAME_STATES.GAME_OVER) {
         console.log("BANKRUPT!");
         currentState = GAME_STATES.GAME_OVER;
 
         if (typeof taproomPhase !== 'undefined') taproomPhase.shutdown();
         if (typeof brewingPhase !== 'undefined') brewingPhase.shutdown();
 
-        hud.showGameOver();
+        gameEvents.emit('BANKRUPT');
+        if (typeof hud !== 'undefined') hud.showGameOver();
         return;
     }
 
     update(deltaTime);
-
     if (typeof hud !== 'undefined') hud.update();
-
     draw();
 
     requestAnimationFrame(gameLoop);
@@ -94,14 +103,6 @@ gameEvents.on('CHANGE_STATE', (data) => {
     }
 });
 
-// --- TEMPORARY BUTTON TEST (Using the Event Bus) ---
-const toggleBtn = document.getElementById('test-toggle-phase');
-if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-        const nextState = currentState === GAME_STATES.TAPROOM ? GAME_STATES.BREWING : GAME_STATES.TAPROOM;
-        gameEvents.emit('CHANGE_STATE', { newState: nextState });
-    });
-}
 
 // 6. Boot it up! (Wait for sprites to load first!)
 spriteManager.preloadAll(PATRON_ROSTER).then(() => {
