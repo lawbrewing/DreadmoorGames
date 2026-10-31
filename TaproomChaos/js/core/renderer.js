@@ -1319,6 +1319,65 @@ class GameRenderer {
             ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(16, -4); ctx.lineTo(16, 6); ctx.closePath(); ctx.fill();
             ctx.restore();
         });
+
+        // ==========================================
+        // 9. DRAW AMMO QUICK-SWAP BUTTON (HUD)
+        // ==========================================
+        if (typeof playerState !== 'undefined' && typeof taproomPhase !== 'undefined' && playerState.ammo) {
+            const activeIdx = taproomPhase.selectedAmmoIndex || 0;
+            const currentAmmo = playerState.ammo[activeIdx];
+
+            if (currentAmmo) {
+                const btnX = 20;
+                const btnY = h - 80;
+                const btnW = 80;
+                const btnH = 70; // Keeps it perfectly inside our 20-100 x 80 click box
+
+                ctx.save();
+
+                // Pulsing glow to indicate it is a tappable button
+                const pulse = 0.6 + 0.4 * Math.sin(time * 4);
+                ctx.shadowColor = `rgba(16, 185, 129, ${pulse})`;
+                ctx.shadowBlur = 12 * pulse;
+
+                // Box Background
+                ctx.fillStyle = 'rgba(24, 24, 27, 0.92)';
+                ctx.strokeStyle = '#10b981'; // Active Green Border
+                ctx.lineWidth = 2.5;
+
+                ctx.beginPath();
+                ctx.roundRect(btnX, btnY, btnW, btnH, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.shadowColor = 'transparent'; // Turn off shadow for the text
+
+                // Dynamic Icon based on ammo type
+                let ammoIcon = '🛢️';
+                if (currentAmmo.type === 'premium') ammoIcon = '⭐';
+                if (currentAmmo.type === 'cocktail') ammoIcon = '🍸';
+                if (currentAmmo.type === 'soda') ammoIcon = '🥤';
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '18px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(ammoIcon, btnX + btnW / 2, btnY + 20);
+
+                // Ammo Name (Truncated to fit)
+                ctx.fillStyle = '#4ade80';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText(currentAmmo.name.substring(0, 11), btnX + btnW / 2, btnY + 40);
+
+                // Ammo Count
+                const countText = currentAmmo.count === 'Infinite' || currentAmmo.count === Infinity ? '∞' : `x${currentAmmo.count}`;
+                ctx.fillStyle = '#facc15';
+                ctx.font = 'bold 16px Oswald';
+                ctx.fillText(countText, btnX + btnW / 2, btnY + 58);
+
+                ctx.restore();
+            }
+        }
     }
 
     // --- BREWING RENDERING (DEEP VISUAL & MERGE OVERHAUL) ---
