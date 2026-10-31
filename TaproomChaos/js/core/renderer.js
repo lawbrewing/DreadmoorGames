@@ -1323,7 +1323,8 @@ class GameRenderer {
         // ==========================================
         // 9. DRAW AMMO QUICK-SWAP BUTTON (HUD)
         // ==========================================
-        if (typeof playerState !== 'undefined' && typeof taproomPhase !== 'undefined' && playerState.ammo) {
+        // Only draw the ammo box if the shift is actively running (not game over)
+        if (typeof playerState !== 'undefined' && typeof taproomPhase !== 'undefined' && playerState.ammo && !state.isGameOver) {
             const activeIdx = taproomPhase.selectedAmmoIndex || 0;
             const currentAmmo = playerState.ammo[activeIdx];
 
@@ -1331,7 +1332,7 @@ class GameRenderer {
                 const btnX = 20;
                 const btnY = h - 80;
                 const btnW = 80;
-                const btnH = 70; // Keeps it perfectly inside our 20-100 x 80 click box
+                const btnH = 70;
 
                 ctx.save();
 
@@ -1378,7 +1379,7 @@ class GameRenderer {
                 ctx.restore();
             }
         }
-    }
+    } // <-- This is the existing end of drawTaproom(state)
 
     // --- BREWING RENDERING (DEEP VISUAL & MERGE OVERHAUL) ---
     drawBrewing(state) {
