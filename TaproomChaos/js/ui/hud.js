@@ -11,6 +11,7 @@ class GameHUD {
         this.hudTips = document.getElementById('hudTips');
         this.hudTaproomTips = document.getElementById('hudTaproomTips');
         this.inventoryList = document.getElementById('inventoryList');
+        this.btnBuyHint = document.getElementById('btnBuyHint');
 
         // Taproom Elements
         this.ammoList = document.getElementById('ammoList');
@@ -69,6 +70,16 @@ class GameHUD {
         if (this.btnStartShift) {
             this.btnStartShift.addEventListener('click', () => {
                 gameEvents.emit('CHANGE_STATE', { newState: 'TAPROOM' });
+            });
+        }
+
+        if (this.btnBuyHint) {
+            this.btnBuyHint.addEventListener('click', () => {
+                const hintCost = 1.00;
+                if (typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
+                    gameEvents.emit('SPEND_TIPS', hintCost);
+                    // Logic for purchasing hint would go here
+                }
             });
         }
 
@@ -279,6 +290,29 @@ class GameHUD {
                     this.hudTaproomTips.innerHTML = `Bank: <span style="color: #4ade80;">${tipDisplay}</span> / <span style="color: ${goalColor};">$${shiftGoal}</span>`;
                 }
             }
+        }
+
+        if (this.btnBuyHint && typeof brewingPhase !== 'undefined' && brewingPhase.activeContract) {
+            const contract = brewingPhase.activeContract;
+            const unknown = contract.targetRecipe.ingredients.filter(ing => !contract.revealedIngredients.includes(ing));
+
+            if (unknown.length === 0) {
+                this.btnBuyHint.innerText = "💡 FULLY SOLVED";
+                this.btnBuyHint.style.background = "#3f3f46"; // Dark gray
+                this.btnBuyHint.style.cursor = "not-allowed";
+            } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
+                this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                this.btnBuyHint.style.background = "#22c55e"; // Green
+                this.btnBuyHint.style.cursor = "pointer";
+            } else {
+                this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                this.btnBuyHint.style.background = "#ef4444"; // Red (Too broke)
+                this.btnBuyHint.style.cursor = "not-allowed";
+            }
+        } else if (this.btnBuyHint) {
+            this.btnBuyHint.style.background = "#52525b";
+            this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+            this.btnBuyHint.style.cursor = "not-allowed";
         }
 
         if (this.inventoryList && typeof playerState !== 'undefined') {

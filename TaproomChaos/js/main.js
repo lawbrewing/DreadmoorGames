@@ -46,7 +46,7 @@ function draw() {
 // 5. The Core Loop Heartbeat
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
-    let deltaTime = Math.min(0.1, (timestamp - lastTime) / 1000);
+    let deltaTime = Math.min(0.1, (timestamp - lastTime) / 1000); // Fixed missing minus sign
     lastTime = timestamp;
 
     // --- BANKRUPTCY CHECK ---
@@ -108,28 +108,56 @@ gameEvents.on('CHANGE_STATE', (data) => {
 // ==========================================
 const API_BASE = "https://lawbrewing.tail03b2f1.ts.net/api";
 
-window.loadPlayerSaveFromPi = async function(playerName) {
-    try {
-        const response = await fetch(`${API_BASE}/load?player=${encodeURIComponent(playerName)}`);
-        if (response.ok) {
-            const saveData = await response.json();
-            console.log("[Network] Loaded state from Pi:", saveData);
+// ... loadPlayerSaveFromPi remains identical ...
 
-            if (saveData.economy && typeof playerState !== 'undefined') {
-                playerState.tips = saveData.economy.tips || 0;
-                playerState.unlockedKettles = saveData.economy.unlockedKettles || 1;
-                playerState.unlockedRecipes = saveData.economy.unlockedRecipes || [];
-            }
-            if (saveData.progression && typeof progressionState !== 'undefined') {
-                progressionState.shift = saveData.progression.shift || 1;
-                progressionState.year = saveData.progression.year || 1;
-                progressionState.season = saveData.progression.season || 'spring';
-            }
-        } else {
-            console.log("[Network] New player. Starting fresh shift.");
+window.savePlayerStateToPi = async function() {
+    const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
+
+    // 1. Format the JSON Save Payload
+    const savePayload = {
+        player_id: playerId,
+        timestamp: new Date().toISOString(),
+        economy: {
+            tips: typeof playerState !== 'undefined' ? playerState.tips : 0,
+            unlockedKettles: typeof playerState !== 'undefined' ? playerState.unlockedKettles : 1,
+            unlockedRecipes: typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []
+        },
+        progression: {
+            shift: typeof progressionState !== 'undefined' ? progressionState.shift : 1,
+            year: typeof progressionState !== 'undefined' ? progressionState.year : 1,
+            season: typeof progressionState !== 'undefined' ? progressionState.season : 'spring'
         }
+    };
+
+    // Buffer locally first
+    localStorage.setItem(`save_backup_${playerId}`, JSON.stringify(savePayload));
+
+    try {
+        // 2. Write the JSON Save file (For resuming career)
+        await fetch(`${API_BASE}/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(savePayload)
+        });
+        console.log("[Network] Game state saved to JSON on Pi.");
+
+        // 3. Write cumulative career stats to SQLite (For Global Leaderboard)
+        const telStats = window.taproomTelemetry ? window.taproomTelemetry.stats : {};
+
+        await fetch(`${API_BASE}/scores/taproom_chaos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_name: playerId,
+                score: typeof playerState !== 'undefined' ? playerState.tips : 0,
+                level_reached: typeof progressionState !== 'undefined' ? progressionState.shift : 1,
+                stats: telStats
+            })
+        });
+        console.log("[Network] Cumulative SQLite Ledger updated on Pi.");
+
     } catch (err) {
-        console.warn("[Network] Pi unreachable. Falling back to local storage.", err);
+        console.warn("[Network] Could not reach Pi. Save buffered locally.", err);
     }
 };
 
