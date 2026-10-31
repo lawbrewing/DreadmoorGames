@@ -74,32 +74,29 @@ class GameHUD {
         }
 
         if (this.btnBuyHint) {
-            // Look for the contract in either brewingPhase or playerState
-            const contract = (typeof brewingPhase !== 'undefined' ? brewingPhase.activeContract : null) ||
-                (typeof playerState !== 'undefined' ? playerState.activeContract : null);
+            this.btnBuyHint.addEventListener('click', (e) => {
+                e.stopPropagation();
 
-            if (contract && contract.targetRecipe && contract.targetRecipe.ingredients) {
-                const revealed = contract.revealedIngredients || [];
-                const unknown = contract.targetRecipe.ingredients.filter(ing => !revealed.includes(ing));
+                const activeOrders = typeof brewingPhase !== 'undefined' ? brewingPhase.activeOrders : [];
+                const currentOrder = activeOrders && activeOrders.length > 0 ? activeOrders[0] : null;
 
-                if (unknown.length === 0) {
-                    this.btnBuyHint.innerText = "💡 FULLY SOLVED";
-                    this.btnBuyHint.style.background = "#3f3f46"; // Dark gray
-                    this.btnBuyHint.style.cursor = "not-allowed";
-                } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
-                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                    this.btnBuyHint.style.background = "#22c55e"; // Green
-                    this.btnBuyHint.style.cursor = "pointer";
-                } else {
-                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                    this.btnBuyHint.style.background = "#ef4444"; // Red (Broke)
-                    this.btnBuyHint.style.cursor = "not-allowed";
+                if (!currentOrder || !currentOrder.targetRecipe) return;
+
+                if (!currentOrder.revealedIngredients) currentOrder.revealedIngredients = [];
+                const unknown = currentOrder.targetRecipe.ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
+                const hintCost = 1.00;
+
+                if (unknown.length > 0 && typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
+                    gameEvents.emit('SPEND_TIPS', hintCost);
+
+                    const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
+                    currentOrder.revealedIngredients.push(randomIng);
+                    console.log(`[HUD] Hint purchased! Revealed: ${randomIng}`);
+
+                    if (window.audioManager) window.audioManager.playSFX('hint');
+                    this.update();
                 }
-            } else {
-                this.btnBuyHint.style.background = "#52525b";
-                this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                this.btnBuyHint.style.cursor = "not-allowed";
-            }
+            });
         }
 
         if (this.btnOpenRecipeBook) {
@@ -311,27 +308,32 @@ class GameHUD {
             }
         }
 
-        if (this.btnBuyHint && typeof brewingPhase !== 'undefined' && brewingPhase.activeContract) {
-            const contract = brewingPhase.activeContract;
-            const unknown = contract.targetRecipe.ingredients.filter(ing => !contract.revealedIngredients.includes(ing));
+        if (this.btnBuyHint) {
+            const activeOrders = typeof brewingPhase !== 'undefined' ? brewingPhase.activeOrders : [];
+            const currentOrder = activeOrders && activeOrders.length > 0 ? activeOrders[0] : null;
 
-            if (unknown.length === 0) {
-                this.btnBuyHint.innerText = "💡 FULLY SOLVED";
-                this.btnBuyHint.style.background = "#3f3f46"; // Dark gray
-                this.btnBuyHint.style.cursor = "not-allowed";
-            } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
-                this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                this.btnBuyHint.style.background = "#22c55e"; // Green
-                this.btnBuyHint.style.cursor = "pointer";
+            if (currentOrder && currentOrder.targetRecipe && currentOrder.targetRecipe.ingredients) {
+                const revealed = currentOrder.revealedIngredients || [];
+                const unknown = currentOrder.targetRecipe.ingredients.filter(ing => !revealed.includes(ing));
+
+                if (unknown.length === 0) {
+                    this.btnBuyHint.innerText = "💡 FULLY SOLVED";
+                    this.btnBuyHint.style.background = "#3f3f46";
+                    this.btnBuyHint.style.cursor = "not-allowed";
+                } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
+                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                    this.btnBuyHint.style.background = "#22c55e";
+                    this.btnBuyHint.style.cursor = "pointer";
+                } else {
+                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                    this.btnBuyHint.style.background = "#ef4444";
+                    this.btnBuyHint.style.cursor = "not-allowed";
+                }
             } else {
+                this.btnBuyHint.style.background = "#52525b";
                 this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                this.btnBuyHint.style.background = "#ef4444"; // Red (Too broke)
                 this.btnBuyHint.style.cursor = "not-allowed";
             }
-        } else if (this.btnBuyHint) {
-            this.btnBuyHint.style.background = "#52525b";
-            this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-            this.btnBuyHint.style.cursor = "not-allowed";
         }
 
         if (this.inventoryList && typeof playerState !== 'undefined') {
