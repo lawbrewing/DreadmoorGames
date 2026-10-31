@@ -1848,6 +1848,7 @@ class GameRenderer {
             }
         });
 
+        // 5B. DRAW THE INDUSTRIAL FLOOR DRAIN (1-Tile Version)
         if (state.drain) {
             const dx = state.drain.x;
             const dy = state.drain.y;
@@ -1885,14 +1886,15 @@ class GameRenderer {
             }
 
             this.ctx.fillStyle = isHoveringDrain ? '#fca5a5' : '#a1a1aa';
-            this.ctx.font = 'bold 11px Oswald';
+            this.ctx.font = 'bold 12px Oswald';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(isHoveringDrain ? 'RELEASE TO DUMP' : 'FLOOR DRAIN', gcx, dy + dh - 20);
+            this.ctx.fillText(isHoveringDrain ? 'RELEASE' : 'DRAIN', gcx, dy + dh - 22);
             this.ctx.font = '10px Inter';
             this.ctx.fillStyle = isHoveringDrain ? '#f87171' : '#71717a';
-            this.ctx.fillText('(Drag here to dump)', gcx, dy + dh - 7);
+            this.ctx.fillText('(Drop to dump)', gcx, dy + dh - 8);
         }
 
+        // 6. DRAW THE ITEM CURRENTLY BEING DRAGGED + LIVE MERGE PREVIEW TOOLTIP
         if (dragItem) {
             ctx.save();
             ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
@@ -1936,6 +1938,7 @@ class GameRenderer {
             }
         }
 
+        // 7. DRAW BREWING FLOATING FEEDBACK POPUPS
         if (state.floatingTexts) {
             state.floatingTexts.forEach(ft => {
                 this.ctx.save();
@@ -1951,10 +1954,10 @@ class GameRenderer {
             });
         }
 
-        // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE
-        const boardX = 1020;
+        // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE (MASSIVE TEXT & WORD WRAP)
+        const boardX = 1010;
         const boardY = 60;
-        const boardW = 240;
+        const boardW = 250;
         const boardMid = boardX + (boardW / 2);
 
         ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
@@ -1963,35 +1966,55 @@ class GameRenderer {
         ctx.beginPath(); ctx.roundRect(boardX, boardY, boardW, 400, 8); ctx.fill(); ctx.stroke();
 
         ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 18px Oswald';
+        ctx.font = 'bold 22px Oswald';
         ctx.textAlign = 'center';
-        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 30);
+        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 36);
         ctx.fillStyle = '#a1a1aa';
-        ctx.fillRect(boardX + 15, boardY + 40, boardW - 30, 2);
+        ctx.fillRect(boardX + 15, boardY + 50, boardW - 30, 2);
 
         if (state.activeOrders && state.activeOrders.length > 0) {
             state.activeOrders.forEach((order, i) => {
-                const oy = boardY + 70 + (i * 90);
+                const oy = boardY + 95 + (i * 155);
 
+                // Bold Bounty
                 ctx.fillStyle = '#4ade80';
-                ctx.font = 'bold 16px Inter';
+                ctx.font = 'bold 20px Inter';
                 ctx.fillText(`+ $${order.bounty.toFixed(2)} BOUNTY`, boardMid, oy);
 
+                // Bold Name
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 14px Inter';
-                ctx.fillText(order.name, boardMid, oy + 22, boardW - 20);
+                ctx.font = 'bold 18px Inter';
+                ctx.fillText(order.name, boardMid, oy + 28, boardW - 20);
 
+                // Bright Wrapped Hint
                 ctx.fillStyle = '#38bdf8';
-                ctx.font = '11.5px Inter';
-                ctx.fillText(order.hint, boardMid, oy + 42, boardW - 20);
+                ctx.font = '14.5px Inter';
 
-                ctx.fillStyle = '#3f3f46';
-                ctx.fillRect(boardX + 25, oy + 60, boardW - 50, 1);
+                const words = order.hint.split(' ');
+                let line = '';
+                let hintY = oy + 56;
+
+                for (let n = 0; n < words.length; n++) {
+                    let testLine = line + words[n] + ' ';
+                    if (ctx.measureText(testLine).width > boardW - 24 && n > 0) {
+                        ctx.fillText(line.trim(), boardMid, hintY);
+                        line = words[n] + ' ';
+                        hintY += 20;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line.trim(), boardMid, hintY);
+
+                if (i === 0) {
+                    ctx.fillStyle = '#3f3f46';
+                    ctx.fillRect(boardX + 25, hintY + 25, boardW - 50, 1.5);
+                }
             });
         } else {
             ctx.fillStyle = '#71717a';
-            ctx.font = 'italic 14px Inter';
-            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 120);
+            ctx.font = 'italic 18px Inter';
+            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 220);
         }
     }
 

@@ -65,14 +65,16 @@ class GameHUD {
         }
 
         if (this.btnOpenRecipeBook) {
-            this.btnOpenRecipeBook.addEventListener('click', () => {
+            this.btnOpenRecipeBook.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
                 this.renderRecipeBook();
                 if (this.recipeBookOverlay) this.recipeBookOverlay.style.display = 'block';
             });
         }
 
         if (this.btnCloseRecipeBook) {
-            this.btnCloseRecipeBook.addEventListener('click', () => {
+            this.btnCloseRecipeBook.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
                 if (this.recipeBookOverlay) this.recipeBookOverlay.style.display = 'none';
             });
         }

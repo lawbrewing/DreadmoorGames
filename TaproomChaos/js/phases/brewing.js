@@ -6,8 +6,6 @@ class BrewingPhase {
         this.cols = 6;
         this.rows = 4;
         this.tileSize = 125;
-
-        // SACKS ON THE LEFT, GRID IN THE MIDDLE
         this.gridOffset = { x: 290, y: 55 };
 
         this.grid = [];
@@ -15,19 +13,20 @@ class BrewingPhase {
         this.dragState = null;
         this.floatingTexts = [];
         this.currentMergeCombo = 0;
-        this.activeOrders = []; // NEW: Store active shift goals
+        this.activeOrders = [];
 
-        // Sacks returned to the left side!
+        // DODGE THE MENU BUTTON: Leave x:30, y:55 completely empty
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 30, y: 55, w: 105, h: 110, color: '#3b82f6' },
             { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 155, y: 55, w: 105, h: 110, color: '#eab308' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 30, y: 185, w: 105, h: 110, color: '#d9f99d' },
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: 30, y: 185, w: 105, h: 110, color: '#3b82f6' },
             { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 155, y: 185, w: 105, h: 110, color: '#22c55e' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 30, y: 315, w: 105, h: 110, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 155, y: 315, w: 105, h: 110, color: '#a855f7' }
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 30, y: 315, w: 105, h: 110, color: '#d9f99d' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 155, y: 315, w: 105, h: 110, color: '#a855f7' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 30, y: 445, w: 105, h: 110, color: '#f97316' }
         ];
 
-        this.drain = { x: 30, y: 445, w: 230, h: 100 };
+        // 1-Tile Floor Drain in the bottom right slot
+        this.drain = { x: 155, y: 445, w: 105, h: 110 };
 
         this.kettles = [
             { x: 30, y: 568, w: 320, h: 110, btnX: 250, btnY: 598, btnW: 86, btnH: 52, items: [] },
