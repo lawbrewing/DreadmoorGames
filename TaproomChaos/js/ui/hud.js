@@ -46,30 +46,11 @@ class GameHUD {
 
     // --- REUSABLE SAVE DATA DISPATCHER ---
     saveProgress() {
-        const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
-
-        const savePayload = {
-            player_id: playerId,
-            timestamp: new Date().toISOString(),
-            economy: {
-                tips: typeof playerState !== 'undefined' ? playerState.tips : 0,
-                unlockedKettles: typeof playerState !== 'undefined' ? playerState.unlockedKettles : 1,
-                unlockedRecipes: typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []
-            },
-            progression: {
-                shift: typeof progressionState !== 'undefined' ? progressionState.shift : 1,
-                year: typeof progressionState !== 'undefined' ? progressionState.year : 1,
-                season: typeof progressionState !== 'undefined' ? progressionState.season : 'spring'
-            }
-        };
-
-        // 1. Buffer to LocalStorage (Safety Net)
-        localStorage.setItem(`save_backup_${playerId}`, JSON.stringify(savePayload));
-
-        // 2. Future API Hook: POST /api/save 
-        console.log('[Network] Dispatching save payload to Raspberry Pi API:', savePayload);
-
-        return savePayload;
+        if (typeof window.savePlayerStateToPi === 'function') {
+            window.savePlayerStateToPi();
+        } else {
+            console.warn("[HUD] Pi save function not found.");
+        }
     }
 
     setupListeners() {
