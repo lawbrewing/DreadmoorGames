@@ -138,13 +138,13 @@ class GameHUD {
 
         // --- Telemetry Player Sync ---
         if (this.playerNameInput) {
-            const savedName = localStorage.getItem('law_player_name') || 'Michael Law';
+            const savedName = localStorage.getItem('law_player_name') || '';
             this.playerNameInput.value = savedName;
         }
 
         if (this.btnSubmitScore) {
             this.btnSubmitScore.addEventListener('click', async () => {
-                const chosenName = (this.playerNameInput && this.playerNameInput.value.trim()) || 'Michael Law';
+                const chosenName = (this.playerNameInput && this.playerNameInput.value.trim()) || '';
                 localStorage.setItem('law_player_name', chosenName);
                 if (window.taproomTelemetry) {
                     window.taproomTelemetry.hasSubmittedRun = false;
@@ -382,7 +382,7 @@ class GameHUD {
 
             const chosenName = (this.playerNameInput && this.playerNameInput.value.trim())
                 || localStorage.getItem('law_player_name')
-                || 'Michael Law';
+                || '';
             window.taproomTelemetry.submitScore(chosenName);
         }
 
