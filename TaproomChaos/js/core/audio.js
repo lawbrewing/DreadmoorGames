@@ -3,7 +3,7 @@
 class GameAudioManager {
     constructor() {
         // Base folder path (automatically falls back to 'assets/audio/' if needed)
-        this.basePath = 'audio/';
+        this.basePath = 'assets/audio/';
         this.fallbackPath = 'assets/audio/';
 
         // 1. Anytime Tracks (Eligible in all seasons)
@@ -42,7 +42,9 @@ class GameAudioManager {
             cheer: 'cheer.mp3',
             brew: 'brew.mp3',
             bankrupt: 'bankrupt.mp3',
-            discover: 'discover.mp3'
+            discover: 'discover.mp3',
+            hint: 'hint.mp3',
+            swap: 'swap.mp3'
         };
 
         // Non-duplicate shuffle bag state

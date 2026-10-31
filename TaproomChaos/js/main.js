@@ -108,12 +108,34 @@ gameEvents.on('CHANGE_STATE', (data) => {
 // ==========================================
 const API_BASE = "https://lawbrewing.tail03b2f1.ts.net/api";
 
-// ... loadPlayerSaveFromPi remains identical ...
+window.loadPlayerSaveFromPi = async function(playerName) {
+    try {
+        const response = await fetch(`${API_BASE}/load?player=${encodeURIComponent(playerName)}`);
+        if (response.ok) {
+            const saveData = await response.json();
+            console.log("[Network] Loaded state from Pi:", saveData);
+
+            if (saveData.economy && typeof playerState !== 'undefined') {
+                playerState.tips = saveData.economy.tips || 0;
+                playerState.unlockedKettles = saveData.economy.unlockedKettles || 1;
+                playerState.unlockedRecipes = saveData.economy.unlockedRecipes || [];
+            }
+            if (saveData.progression && typeof progressionState !== 'undefined') {
+                progressionState.shift = saveData.progression.shift || 1;
+                progressionState.year = saveData.progression.year || 1;
+                progressionState.season = saveData.progression.season || 'spring';
+            }
+        } else {
+            console.log("[Network] New player. Starting fresh shift.");
+        }
+    } catch (err) {
+        console.warn("[Network] Pi unreachable. Falling back to local storage.", err);
+    }
+};
 
 window.savePlayerStateToPi = async function() {
     const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
 
-    // 1. Format the JSON Save Payload
     const savePayload = {
         player_id: playerId,
         timestamp: new Date().toISOString(),
@@ -129,11 +151,9 @@ window.savePlayerStateToPi = async function() {
         }
     };
 
-    // Buffer locally first
     localStorage.setItem(`save_backup_${playerId}`, JSON.stringify(savePayload));
 
     try {
-        // 2. Write the JSON Save file (For resuming career)
         await fetch(`${API_BASE}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -141,7 +161,6 @@ window.savePlayerStateToPi = async function() {
         });
         console.log("[Network] Game state saved to JSON on Pi.");
 
-        // 3. Write cumulative career stats to SQLite (For Global Leaderboard)
         const telStats = window.taproomTelemetry ? window.taproomTelemetry.stats : {};
 
         await fetch(`${API_BASE}/scores/taproom_chaos`, {

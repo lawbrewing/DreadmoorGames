@@ -74,11 +74,29 @@ class GameHUD {
         }
 
         if (this.btnBuyHint) {
-            this.btnBuyHint.addEventListener('click', () => {
+            this.btnBuyHint.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent clicks from bleeding through the menu
+
+                if (typeof playerState === 'undefined' || typeof brewingPhase === 'undefined' || !brewingPhase.activeContract) return;
+
+                const contract = brewingPhase.activeContract;
+                const unknown = contract.targetRecipe.ingredients.filter(ing => !contract.revealedIngredients.includes(ing));
                 const hintCost = 1.00;
-                if (typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
+
+                if (unknown.length > 0 && playerState.canAfford(hintCost)) {
+                    // 1. Deduct the cost
                     gameEvents.emit('SPEND_TIPS', hintCost);
-                    // Logic for purchasing hint would go here
+
+                    // 2. Reveal a random unknown ingredient
+                    const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
+                    contract.revealedIngredients.push(randomIng);
+                    console.log(`[HUD] Hint purchased! Revealed: ${randomIng}`);
+
+                    // 3. Play your new sound effect
+                    if (window.audioManager) window.audioManager.playSFX('hint');
+
+                    // 4. Instantly refresh the button to gray it out if it was the last ingredient
+                    this.update();
                 }
             });
         }
