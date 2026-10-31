@@ -44,8 +44,35 @@ class GameHUD {
         this.setupListeners();
     }
 
+    // --- REUSABLE SAVE DATA DISPATCHER ---
+    saveProgress() {
+        const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
+
+        const savePayload = {
+            player_id: playerId,
+            timestamp: new Date().toISOString(),
+            economy: {
+                tips: typeof playerState !== 'undefined' ? playerState.tips : 0,
+                unlockedKettles: typeof playerState !== 'undefined' ? playerState.unlockedKettles : 1,
+                unlockedRecipes: typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []
+            },
+            progression: {
+                shift: typeof progressionState !== 'undefined' ? progressionState.shift : 1,
+                year: typeof progressionState !== 'undefined' ? progressionState.year : 1,
+                season: typeof progressionState !== 'undefined' ? progressionState.season : 'spring'
+            }
+        };
+
+        // 1. Buffer to LocalStorage (Safety Net)
+        localStorage.setItem(`save_backup_${playerId}`, JSON.stringify(savePayload));
+
+        // 2. Future API Hook: POST /api/save 
+        console.log('[Network] Dispatching save payload to Raspberry Pi API:', savePayload);
+
+        return savePayload;
+    }
+
     setupListeners() {
-        // Remove inline onclick so GameHUD controls the active drawer cleanly across both phases
         if (this.btnToggleHUD) {
             this.btnToggleHUD.removeAttribute('onclick');
             this.btnToggleHUD.addEventListener('click', (e) => {
@@ -79,7 +106,27 @@ class GameHUD {
             });
         }
 
-        // --- NEW: Jukebox Control Listeners ---
+        // --- MANUAL CLOUD SAVE BUTTON ---
+        const btnSaveGame = document.getElementById('btnSaveGame');
+        if (btnSaveGame) {
+            btnSaveGame.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+
+                this.saveProgress();
+
+                // UI Feedback
+                const originalText = btnSaveGame.innerText;
+                btnSaveGame.innerText = "✅ SAVED!";
+                btnSaveGame.style.background = "#22c55e"; // Green flash
+
+                setTimeout(() => {
+                    btnSaveGame.innerText = originalText;
+                    btnSaveGame.style.background = "#8b5cf6"; // Return to purple
+                }, 2000);
+            });
+        }
+
+        // --- Jukebox Control Listeners ---
         if (this.btnMuteMusic) {
             this.btnMuteMusic.addEventListener('click', () => {
                 if (window.audioManager) {
@@ -101,7 +148,6 @@ class GameHUD {
                         window.audioManager.transitionWithScratch();
                     }
                 } else {
-                    // Flash red if they can't afford the skip
                     const origColor = this.btnSkipTrack.style.backgroundColor;
                     this.btnSkipTrack.style.backgroundColor = "#ef4444";
                     setTimeout(() => this.btnSkipTrack.style.backgroundColor = origColor, 300);
@@ -120,7 +166,7 @@ class GameHUD {
                 const chosenName = (this.playerNameInput && this.playerNameInput.value.trim()) || 'Michael Law';
                 localStorage.setItem('law_player_name', chosenName);
                 if (window.taproomTelemetry) {
-                    window.taproomTelemetry.hasSubmittedRun = false; // Allow explicit re-sync with updated name
+                    window.taproomTelemetry.hasSubmittedRun = false;
                     this.btnSubmitScore.innerText = 'SYNCING...';
                     await window.taproomTelemetry.submitScore(chosenName);
                     this.btnSubmitScore.innerText = '✓ SYNCED';
@@ -143,7 +189,6 @@ class GameHUD {
     switchPhase(phaseName) {
         this.activePhase = phaseName;
 
-        // Always keep the unified MENU button visible in both phases!
         if (this.btnToggleHUD) {
             this.btnToggleHUD.style.display = 'block';
         }
@@ -210,7 +255,6 @@ class GameHUD {
             const card = document.createElement('div');
 
             if (isUnlocked) {
-                // UNLOCKED RECIPE
                 const ingredientsString = recipeData.ingredients.join(', ');
                 const tacticalHint = gameRecipes.getForecastHint(recipeData.name, recipeData.type);
 
@@ -221,7 +265,6 @@ class GameHUD {
                     <div style="color: #a1a1aa; font-size: 11px; margin-top: 6px; line-height: 1.4;">📈 <b>Forecast Synergy:</b> ${tacticalHint}</div>
                 `;
             } else {
-                // LOCKED RECIPE (DYNAMIC HINT)
                 const hintString = gameRecipes.getDynamicContractHint(recipeData);
 
                 card.style.cssText = `background: #09090b; border: 1px dashed #52525b; padding: 12px; margin-bottom: 10px; border-radius: 6px; opacity: 0.8;`;
@@ -236,11 +279,9 @@ class GameHUD {
 
     update() {
         if (typeof playerState !== 'undefined') {
-
-            // DYNAMIC SHIFT GOAL LOGIC
             const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
             const currentShift = prog.shift || prog.currentShift || 1;
-            const shiftGoal = currentShift * 40; // $40 per shift level (approx 3-4 patrons)
+            const shiftGoal = currentShift * 40;
 
             if (this.lastTips !== playerState.tips || this.lastGoal !== shiftGoal) {
                 this.lastTips = playerState.tips;
@@ -248,7 +289,7 @@ class GameHUD {
 
                 const tipDisplay = `$${this.lastTips.toFixed(2)}`;
                 const isFailing = this.lastTips < shiftGoal;
-                const goalColor = isFailing ? '#ef4444' : '#4ade80'; // Red if failing, Green if passing
+                const goalColor = isFailing ? '#ef4444' : '#4ade80';
 
                 if (this.hudTips) {
                     this.hudTips.innerHTML = `Bank: <span style="color: #4ade80;">${tipDisplay}</span> <br> <span style="font-size: 12px; color: ${goalColor};">Shift Goal: $${shiftGoal} (~${Math.ceil(shiftGoal / 12)} patrons)</span>`;
@@ -271,7 +312,7 @@ class GameHUD {
                     if (ammo.type === 'premium') badgeColor = '#facc15';
                     if (ammo.type === 'cocktail') badgeColor = '#f43f5e';
                     if (ammo.type === 'soda') badgeColor = '#38bdf8';
-                    if (ammo.type === 'Swill') badgeColor = '#94a3b8'; // Style Swill drops
+                    if (ammo.type === 'Swill') badgeColor = '#94a3b8';
 
                     li.style.cssText = `
                         background: #18181b; border-left: 4px solid ${badgeColor};
@@ -335,7 +376,9 @@ class GameHUD {
     }
 
     showGameOver() {
-        // Render run telemetry summary and auto-post to /api/scores/taproom_chaos
+        // --- NEW: AUTO-SAVE ON GAME OVER / SHIFT COMPLETION ---
+        this.saveProgress();
+
         if (window.taproomTelemetry) {
             const st = window.taproomTelemetry.stats;
             const prog = (typeof progressionState !== 'undefined') ? progressionState : {};

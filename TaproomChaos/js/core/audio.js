@@ -175,6 +175,25 @@ class GameAudioManager {
         return nextTrack;
     }
 
+    // --- SHUFFLE BAG HELPER WITH BOUNDARY DUPLICATE PREVENTION ---
+    shuffleArray(array, lastPlayedTrack = null) {
+        const shuffled = [...array];
+        // Fisher-Yates Shuffle
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        // Anti-Duplicate Boundary Check: If the very first song in the newly shuffled bag 
+        // is the exact same song that just finished playing, swap it with the last song in the bag.
+        if (shuffled.length > 1 && shuffled[0] === lastPlayedTrack) {
+            const lastIndex = shuffled.length - 1;
+            [shuffled[0], shuffled[lastIndex]] = [shuffled[lastIndex], shuffled[0]];
+        }
+
+        return shuffled;
+    }
+
     // --- JUKEBOX PLAYBACK & SCRATCH TRANSITIONS ---
     startJukebox() {
         if (this.isMuted) return;
@@ -235,12 +254,21 @@ class GameAudioManager {
     }
 
     setupTrackLifecycle() {
-        // When a music track finishes, play a non-duplicate scratch before the next song
-        this.musicPlayer.addEventListener('ended', () => {
-            this.transitionWithScratch();
+        // Trigger the scratch 0.8 seconds before the track actually ends to swallow trailing silence
+        this.musicPlayer.addEventListener('timeupdate', () => {
+            if (this.musicPlayer.duration && !this.isTransitioningTrack) {
+                const timeRemaining = this.musicPlayer.duration - this.musicPlayer.currentTime;
+                if (timeRemaining <= 0.8) {
+                    this.transitionWithScratch();
+                }
+            }
         });
 
-        // When the scratch finishes, drop immediately into the next randomized song
+        // Fallback just in case timeupdate misses the exact window
+        this.musicPlayer.addEventListener('ended', () => {
+            if (!this.isTransitioningTrack) this.transitionWithScratch();
+        });
+
         this.scratchPlayer.addEventListener('ended', () => {
             this.playNextTrackDirect();
         });
