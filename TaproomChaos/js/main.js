@@ -103,12 +103,31 @@ gameEvents.on('CHANGE_STATE', (data) => {
     }
 });
 
+gameEvents.on('PATRON_ANGRY', (pos) => {
+    if (typeof playerState !== 'undefined') {
+        const penalty = 5.00;
+        playerState.tips -= penalty;
+        console.log(`[Economy] Neglect Penalty! Lost $${penalty.toFixed(2)}`);
+
+        // If your game supports floating text, pop a red -$5.00 over their head
+        if (typeof taproomPhase !== 'undefined' && taproomPhase.floatingTexts && pos) {
+            taproomPhase.floatingTexts.push({
+                text: `-$${penalty.toFixed(2)} (Walkout)`,
+                x: pos.x,
+                y: pos.y - 40,
+                life: 1.0,
+                color: '#ef4444' // Red
+            });
+        }
+    }
+});
+
 // ==========================================
 // 6. NETWORK LOGIC & TAILSCALE INTEGRATION
 // ==========================================
 const API_BASE = "https://lawbrewing.tail03b2f1.ts.net/api";
 
-window.loadPlayerSaveFromPi = async function(playerName) {
+window.loadPlayerSaveFromPi = async function (playerName) {
     try {
         const response = await fetch(`${API_BASE}/load?player=${encodeURIComponent(playerName)}`);
         if (response.ok) {
@@ -133,7 +152,7 @@ window.loadPlayerSaveFromPi = async function(playerName) {
     }
 };
 
-window.savePlayerStateToPi = async function() {
+window.savePlayerStateToPi = async function () {
     const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
 
     const savePayload = {
@@ -175,38 +194,6 @@ window.savePlayerStateToPi = async function() {
         });
         console.log("[Network] Cumulative SQLite Ledger updated on Pi.");
 
-    } catch (err) {
-        console.warn("[Network] Could not reach Pi. Save buffered locally.", err);
-    }
-};
-
-window.savePlayerStateToPi = async function() {
-    const playerId = localStorage.getItem('dreadmoor_player_id') || 'GUEST';
-
-    const savePayload = {
-        player_id: playerId,
-        timestamp: new Date().toISOString(),
-        economy: {
-            tips: typeof playerState !== 'undefined' ? playerState.tips : 0,
-            unlockedKettles: typeof playerState !== 'undefined' ? playerState.unlockedKettles : 1,
-            unlockedRecipes: typeof playerState !== 'undefined' ? playerState.unlockedRecipes : []
-        },
-        progression: {
-            shift: typeof progressionState !== 'undefined' ? progressionState.shift : 1,
-            year: typeof progressionState !== 'undefined' ? progressionState.year : 1,
-            season: typeof progressionState !== 'undefined' ? progressionState.season : 'spring'
-        }
-    };
-
-    localStorage.setItem(`save_backup_${playerId}`, JSON.stringify(savePayload));
-
-    try {
-        await fetch(`${API_BASE}/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(savePayload)
-        });
-        console.log("[Network] Save synced to Pi successfully.");
     } catch (err) {
         console.warn("[Network] Could not reach Pi. Save buffered locally.", err);
     }

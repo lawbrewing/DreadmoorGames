@@ -1257,6 +1257,45 @@ class GameRenderer {
         ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
         ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
 
+        // --- DYNAMIC SHIFT NOTIFICATIONS ---
+        const served = state.patronsServed || 0;
+        const quota = state.shiftQuota || 10;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+
+        if (timeLeft === 0) {
+            // 1. Shift Complete Banner
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.shadowColor = '#3b82f6';
+            ctx.shadowBlur = 15;
+            ctx.font = 'bold 22px Oswald';
+            ctx.fillText("⏳ SHIFT ENDED! CLOSING TABS...", w / 2, 60);
+
+        } else if (served >= quota) {
+            // 2. Quota Met (Bonus Time)
+            const pulse = 0.5 + 0.5 * Math.sin(time * 6);
+            ctx.fillStyle = `rgba(34, 197, 94, ${0.85 + pulse * 0.15})`;
+            ctx.shadowColor = '#4ade80';
+            ctx.shadowBlur = 10 * pulse;
+            ctx.font = 'bold 16px Oswald';
+            ctx.fillText(`🔥 QUOTA MET! (${served}/${quota}) - BONUS TIME! 🔥`, w / 2, 60);
+
+        } else if (timeLeft <= 10) {
+            // 3. 10 Second Panic (Quota NOT met)
+            const pulse = 0.5 + 0.5 * Math.sin(time * 15); // Faster pulse
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + pulse * 0.15})`;
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 12 * pulse;
+            ctx.font = 'bold 18px Oswald';
+
+            // Adds a violent screen-shake effect just to the text
+            const shakeX = (Math.random() - 0.5) * 4;
+            const shakeY = (Math.random() - 0.5) * 4;
+            ctx.fillText(`⚠️ HURRY! ${quota - served} MORE TO MEET QUOTA! ⚠️`, (w / 2) + shakeX, 60 + shakeY);
+        }
+        ctx.restore();
+
         (state.projectiles || []).forEach(p => {
             const px = p.x || 0; const py = p.y || 0; const pz = p.z || 0;
             const r = p.radius || 15; const renderY = py - pz;

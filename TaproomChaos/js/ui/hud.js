@@ -74,31 +74,32 @@ class GameHUD {
         }
 
         if (this.btnBuyHint) {
-            this.btnBuyHint.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent clicks from bleeding through the menu
+            // Look for the contract in either brewingPhase or playerState
+            const contract = (typeof brewingPhase !== 'undefined' ? brewingPhase.activeContract : null) ||
+                (typeof playerState !== 'undefined' ? playerState.activeContract : null);
 
-                if (typeof playerState === 'undefined' || typeof brewingPhase === 'undefined' || !brewingPhase.activeContract) return;
+            if (contract && contract.targetRecipe && contract.targetRecipe.ingredients) {
+                const revealed = contract.revealedIngredients || [];
+                const unknown = contract.targetRecipe.ingredients.filter(ing => !revealed.includes(ing));
 
-                const contract = brewingPhase.activeContract;
-                const unknown = contract.targetRecipe.ingredients.filter(ing => !contract.revealedIngredients.includes(ing));
-                const hintCost = 1.00;
-
-                if (unknown.length > 0 && playerState.canAfford(hintCost)) {
-                    // 1. Deduct the cost
-                    gameEvents.emit('SPEND_TIPS', hintCost);
-
-                    // 2. Reveal a random unknown ingredient
-                    const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
-                    contract.revealedIngredients.push(randomIng);
-                    console.log(`[HUD] Hint purchased! Revealed: ${randomIng}`);
-
-                    // 3. Play your new sound effect
-                    if (window.audioManager) window.audioManager.playSFX('hint');
-
-                    // 4. Instantly refresh the button to gray it out if it was the last ingredient
-                    this.update();
+                if (unknown.length === 0) {
+                    this.btnBuyHint.innerText = "💡 FULLY SOLVED";
+                    this.btnBuyHint.style.background = "#3f3f46"; // Dark gray
+                    this.btnBuyHint.style.cursor = "not-allowed";
+                } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
+                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                    this.btnBuyHint.style.background = "#22c55e"; // Green
+                    this.btnBuyHint.style.cursor = "pointer";
+                } else {
+                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                    this.btnBuyHint.style.background = "#ef4444"; // Red (Broke)
+                    this.btnBuyHint.style.cursor = "not-allowed";
                 }
-            });
+            } else {
+                this.btnBuyHint.style.background = "#52525b";
+                this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                this.btnBuyHint.style.cursor = "not-allowed";
+            }
         }
 
         if (this.btnOpenRecipeBook) {
