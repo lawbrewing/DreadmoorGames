@@ -80,10 +80,17 @@ class GameHUD {
                 const activeOrders = typeof brewingPhase !== 'undefined' ? brewingPhase.activeOrders : [];
                 const currentOrder = activeOrders && activeOrders.length > 0 ? activeOrders[0] : null;
 
-                if (!currentOrder || !currentOrder.targetRecipe) return;
+                if (!currentOrder || !currentOrder.name) return;
+
+                // Extract ingredients directly from the gameRecipes configuration
+                const masterList = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList : [];
+                const recipeDef = masterList.find(r => r.name === currentOrder.name);
+                const ingredients = recipeDef ? recipeDef.ingredients : null;
+
+                if (!ingredients || !Array.isArray(ingredients)) return;
 
                 if (!currentOrder.revealedIngredients) currentOrder.revealedIngredients = [];
-                const unknown = currentOrder.targetRecipe.ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
+                const unknown = ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
                 const hintCost = 1.00;
 
                 if (unknown.length > 0 && typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
@@ -91,7 +98,7 @@ class GameHUD {
 
                     const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
                     currentOrder.revealedIngredients.push(randomIng);
-                    console.log(`[HUD] Hint purchased! Revealed: ${randomIng}`);
+                    console.log(`[HUD] Hint purchased for ${currentOrder.name}! Revealed: ${randomIng}`);
 
                     if (window.audioManager) window.audioManager.playSFX('hint');
                     this.update();
@@ -312,21 +319,32 @@ class GameHUD {
             const activeOrders = typeof brewingPhase !== 'undefined' ? brewingPhase.activeOrders : [];
             const currentOrder = activeOrders && activeOrders.length > 0 ? activeOrders[0] : null;
 
-            if (currentOrder && currentOrder.targetRecipe && currentOrder.targetRecipe.ingredients) {
-                const revealed = currentOrder.revealedIngredients || [];
-                const unknown = currentOrder.targetRecipe.ingredients.filter(ing => !revealed.includes(ing));
+            if (currentOrder && currentOrder.name) {
+                // Look up the exact recipe in the configuration file
+                const masterList = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList : [];
+                const recipeDef = masterList.find(r => r.name === currentOrder.name);
+                const ingredients = recipeDef ? recipeDef.ingredients : null;
 
-                if (unknown.length === 0) {
-                    this.btnBuyHint.innerText = "💡 FULLY SOLVED";
-                    this.btnBuyHint.style.background = "#3f3f46";
-                    this.btnBuyHint.style.cursor = "not-allowed";
-                } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
-                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                    this.btnBuyHint.style.background = "#22c55e";
-                    this.btnBuyHint.style.cursor = "pointer";
+                if (ingredients && Array.isArray(ingredients)) {
+                    const revealed = currentOrder.revealedIngredients || [];
+                    const unknown = ingredients.filter(ing => !revealed.includes(ing));
+
+                    if (unknown.length === 0) {
+                        this.btnBuyHint.innerText = "💡 FULLY SOLVED";
+                        this.btnBuyHint.style.background = "#3f3f46";
+                        this.btnBuyHint.style.cursor = "not-allowed";
+                    } else if (typeof playerState !== 'undefined' && playerState.tips >= 1.00) {
+                        this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                        this.btnBuyHint.style.background = "#22c55e";
+                        this.btnBuyHint.style.cursor = "pointer";
+                    } else {
+                        this.btnBuyHint.innerText = "💡 HINT ($1.00)";
+                        this.btnBuyHint.style.background = "#ef4444";
+                        this.btnBuyHint.style.cursor = "not-allowed";
+                    }
                 } else {
+                    this.btnBuyHint.style.background = "#52525b";
                     this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                    this.btnBuyHint.style.background = "#ef4444";
                     this.btnBuyHint.style.cursor = "not-allowed";
                 }
             } else {
