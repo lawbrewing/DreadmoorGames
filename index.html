@@ -43,6 +43,16 @@
     </script>
 
     <style>
+        /* --- NEW: Force Touch Scrolling & Prevent Click Traps --- */
+        .custom-scrollbar {
+            touch-action: pan-y !important;
+            overscroll-behavior: contain;
+        }
+
+        #dashboard-modal.opacity-0, #profile-modal.opacity-0 {
+            pointer-events: none !important;
+        }
+
         /* Base Dark Theme & Gritty Overlay */
         body {
             background-color: #09090b;
@@ -530,7 +540,7 @@
 
         <!-- PLAYER PROFILE MODAL -->
         <div id="profile-modal" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-lg opacity-0 transition-opacity duration-300">
-            <div class="bg-[#09090b] border border-red-900 rounded-lg w-full max-w-3xl overflow-hidden shadow-[0_0_50px_rgba(220,38,38,0.2)] transform scale-95 transition-transform duration-300" id="profile-panel">
+            <div class="bg-[#09090b] border border-red-900 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(220,38,38,0.2)] transform scale-95 transition-transform duration-300" id="profile-panel">
 
                 <div class="p-6 md:p-8 border-b border-red-900/40 flex justify-between items-center bg-[#18181b]">
                     <div>
@@ -705,7 +715,11 @@
                             const closeDashboard = () => {
                                 dashboardModal.classList.add('opacity-0');
                                 dashboardPanel.classList.add('scale-95');
-                                setTimeout(() => dashboardModal.classList.add('hidden'), 300);
+                                dashboardModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
+                                setTimeout(() => {
+                                    dashboardModal.classList.add('hidden');
+                                    dashboardModal.style.pointerEvents = 'auto'; // Reset for next time
+                                }, 300);
                             };
 
                             closeDashboardBtn.addEventListener('click', closeDashboard);
@@ -882,7 +896,11 @@
                             const closeProfile = () => {
                                 profileModal.classList.add('opacity-0');
                                 profilePanel.classList.add('scale-95');
-                                setTimeout(() => profileModal.classList.add('hidden'), 300);
+                                profileModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
+                                setTimeout(() => {
+                                    profileModal.classList.add('hidden');
+                                    profileModal.style.pointerEvents = 'auto'; // Reset for next time
+                                }, 300);
                             };
 
                             closeProfileBtn.addEventListener('click', closeProfile);
