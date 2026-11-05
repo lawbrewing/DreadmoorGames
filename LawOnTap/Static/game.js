@@ -193,11 +193,11 @@ const REAL_AWARDS = [
 class NotificationSystem {
     constructor() { this.queue = []; this.active = null; this.timer = 0; }
     trigger(text, color = "#fff", duration = 120) { this.queue.push({ text, color, duration }); }
-    update() {
+   update(dtMult = 1) {
         if (!this.active && this.queue.length > 0) { this.active = this.queue.shift(); this.timer = this.active.duration; }
-        if (this.active) { this.timer--; if (this.timer <= 0) this.active = null; }
+        if (this.active) { this.timer -= dtMult; if (this.timer <= 0) this.active = null; }
     }
-    draw() {
+    draw(dtMult = 1) {
         if (this.active) {
             ctx.save(); ctx.fillStyle = this.active.color; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
             ctx.font = "bold 60px 'Bebas Neue', monospace"; ctx.textAlign = "center";
@@ -290,6 +290,52 @@ class Customer {
         this.currentStepIndex = 0;
         this.poseIndex = 0;
         this.finishTimes = [];
+    }
+
+    update(isPouring = false, isTarget = false, dtMult = 1) {
+        const walkSpeed = this.walkSpeed * dtMult;
+
+        if (this.state === 'walking_in') {
+            if (this.x < this.targetX) {
+                this.x += walkSpeed;
+                if (this.x >= this.targetX) {
+                    this.x = this.targetX;
+                    this.state = 'waiting';
+                    this.orderStartTime = Date.now();
+                    return 'arrived';
+                }
+            } else {
+                this.x -= walkSpeed;
+                if (this.x <= this.targetX) {
+                    this.x = this.targetX;
+                    this.state = 'waiting';
+                    this.orderStartTime = Date.now();
+                    return 'arrived';
+                }
+            }
+        } else if (this.state === 'finished_pause') {
+            this.pauseTimer -= dtMult;
+            if (this.pauseTimer <= 0) this.state = 'walking_out';
+            return null;
+        } else if (this.state === 'walking_out') {
+            if (this.x < this.exitX) {
+                this.x += walkSpeed;
+                if (this.x >= this.exitX) return 'gone';
+            } else {
+                this.x -= walkSpeed;
+                if (this.x <= this.exitX) return 'gone';
+            }
+        }
+
+        if (this.state === 'waiting') {
+            const drain = (isPouring && !isTarget) ? 28 : 16;
+            this.patience -= (drain * dtMult);
+            if (this.patience <= 0) {
+                this.poseIndex = 2;
+                return 'timeout';
+            }
+        }
+        return null;
     }
 
     generateOrder(typeKey, level) {
@@ -425,6 +471,76 @@ class Game {
         this.resize();
         this.tipPopups = [];
         window.addEventListener('resize', () => this.resize());
+    }
+
+    updatePouring(dtMult = 1) {
+        if (!this.activePour.active || !this.activeCustomer) return;
+        const c = this.activeCustomer;
+
+        if (c.type === 'karen') {
+            c.currentDrinkProgress += 0.008 * dtMult;
+            if (c.currentDrinkProgress > 1.1) {
+                this.activePour.active = false;
+                this.completeOrder(false, "mechanical");
+            }
+            return;
+        }
+
+        const recipe = c.order[c.currentOrderIndex];
+        const step = recipe.steps[c.currentStepIndex];
+
+        if (this.activePour.tapIndex !== step.tap) {
+            this.activePour.active = false;
+            this.completeOrder(false);
+            return;
+        }
+
+        if (this.activePour.tapIndex === step.tap) {
+            c.currentDrinkProgress += 0.008 * dtMult;
+            if (c.currentDrinkProgress > step.limit + 0.1) {
+                this.activePour.active = false;
+                this.completeOrder(false);
+                return;
+            }
+        }
+    }
+
+    async fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (e) {
+            clearTimeout(id);
+            throw e;
+        }
+    }
+
+    queueOfflineScore(payload) {
+        let queue = JSON.parse(localStorage.getItem('law_tap_offline_scores') || '[]');
+        queue.push(payload);
+        localStorage.setItem('law_tap_offline_scores', JSON.stringify(queue));
+    }
+
+    async syncOfflineScores() {
+        let queue = JSON.parse(localStorage.getItem('law_tap_offline_scores') || '[]');
+        if (queue.length === 0) return;
+
+        let failed = [];
+        for (let payload of queue) {
+            try {
+                await this.fetchWithTimeout(`https://lawbrewing.tail03b2f1.ts.net/api/scores/law_on_tap`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) {
+                failed.push(payload); // Keep it in the queue if it fails again
+            }
+        }
+        localStorage.setItem('law_tap_offline_scores', JSON.stringify(failed));
     }
 
     drawNeonSign() {
@@ -563,28 +679,31 @@ class Game {
                 const cleanName = name.trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
 
                 this.showLeaderboard = true;
-                this.leaderboard.topScores = null; // Set to null to show "Loading..." state
+                this.leaderboard.topScores = null;
+
+                const payload = {
+                    player_name: cleanName,
+                    score: this.score,
+                    level_reached: this.level,
+                    stats: this.sessionStats
+                };
 
                 try {
-                    // 1. Submit the score to the Pi
-                    await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/scores/law_on_tap`, {
+                    // Attempt to upload current score
+                    await this.fetchWithTimeout(`https://lawbrewing.tail03b2f1.ts.net/api/scores/law_on_tap`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            player_name: cleanName,
-                            score: this.score,
-                            level_reached: this.level,
-                            stats: this.sessionStats
-                        })
+                        body: JSON.stringify(payload)
                     });
-
                     console.log("Telemetry pushed to Pi.");
 
-                    // 2. Fetch the updated Leaderboard from the Pi
-                    const res = await fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`, { cache: "no-store" });
+                    // If successful, try to upload any cached scores
+                    this.syncOfflineScores();
+
+                    // Fetch Leaderboard
+                    const res = await this.fetchWithTimeout(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`);
                     if (res.ok) {
                         const rawData = await res.json();
-                        // 3. Map the Pi data into the format the canvas expects
                         this.leaderboard.topScores = rawData.map((row, index) => ({
                             rank: index + 1,
                             player: { name: row.player_name },
@@ -594,7 +713,8 @@ class Game {
                         this.leaderboard.topScores = [];
                     }
                 } catch (e) {
-                    console.error("Failed to communicate with Pi:", e);
+                    console.warn("Network timeout: Queuing score locally and skipping leaderboard fetch.", e);
+                    this.queueOfflineScore(payload);
                     this.leaderboard.topScores = [];
                 }
             }, 500);
@@ -640,39 +760,7 @@ class Game {
     spawnTipPopup(text, x, y, color = "#0f0") {
         this.tipPopups.push({ text: text, x: x, y: y, color: color, life: 60, maxLife: 60 });
     }
-
-    updatePouring() {
-        if (!this.activePour.active || !this.activeCustomer) return;
-        const c = this.activeCustomer;
-
-        if (c.type === 'karen') {
-            c.currentDrinkProgress += 0.008;
-            if (c.currentDrinkProgress > 1.1) {
-                this.activePour.active = false;
-                this.completeOrder(false, "mechanical");
-            }
-            return;
-        }
-
-        const recipe = c.order[c.currentOrderIndex];
-        const step = recipe.steps[c.currentStepIndex];
-
-        if (this.activePour.tapIndex !== step.tap) {
-            this.activePour.active = false;
-            this.completeOrder(false);
-            return;
-        }
-
-        if (this.activePour.tapIndex === step.tap) {
-            c.currentDrinkProgress += 0.008;
-            if (c.currentDrinkProgress > step.limit + 0.1) {
-                this.activePour.active = false;
-                this.completeOrder(false);
-                return;
-            }
-        }
-    }
-
+        
     evaluatePour() {
         const c = this.activeCustomer;
         if (!c) return;
@@ -1238,7 +1326,7 @@ class Game {
                             this.showLeaderboard = true;
                             this.leaderboard.topScores = null;
 
-                            fetch(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`, { cache: "no-store" })
+                            this.fetchWithTimeout(`https://lawbrewing.tail03b2f1.ts.net/api/leaderboard/law_on_tap?t=${Date.now()}`, { cache: "no-store" })
                                 .then(res => res.ok ? res.json() : [])
                                 .then(rawData => {
                                     this.leaderboard.topScores = rawData.map((row, index) => ({
@@ -1278,7 +1366,7 @@ class Game {
         canvas.addEventListener('touchmove', (e) => { if (this.debugPos) this.debugPos = getPos(e); }, { passive: true });
     }
 
-    draw() {
+    draw(dtMult = 1) {
         if (!this.started) {
             ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(screenOffset.x, screenOffset.y); ctx.scale(screenScale, screenScale);
@@ -1294,7 +1382,7 @@ class Game {
             return;
         }
 
-        this.audio.update(); this.updatePouring(); this.notifications.update();
+        this.audio.update(); this.updatePouring(dtMult); this.notifications.update(dtMult);
 
         if (!this.customers.some(c => c.type === 'judge')) {
             if (this.customersServedThisLevel >= this.levelQuota && this.customers.length === 0) this.spawnTimer = 0;
@@ -1304,7 +1392,7 @@ class Game {
 
         for (let i = this.customers.length - 1; i >= 0; i--) {
             const c = this.customers[i];
-            const status = c.update(this.activePour.active, (this.activeCustomer === c));
+            const status = c.update(this.activePour.active, (this.activeCustomer === c), dtMult);
             if (status === 'timeout') {
                 this.lives--; this.audio.play('trash', 0); this.notifications.trigger("WALKED OUT!", "#f00");
                 c.poseIndex = 2; c.state = 'walking_out';
@@ -1371,7 +1459,7 @@ class Game {
         this.drawTower();
 
         for (let i = this.tipPopups.length - 1; i >= 0; i--) {
-            let p = this.tipPopups[i]; p.y -= 2.5; p.life--;
+            let p = this.tipPopups[i]; p.y -= 2.5 * dtMult; p.life -= dtMult;
             ctx.save(); ctx.globalAlpha = Math.max(0, p.life / p.maxLife); ctx.textAlign = "center";
             ctx.font = "bold 55px 'Bebas Neue', monospace"; ctx.fillStyle = p.color;
             ctx.strokeStyle = "#000"; ctx.lineWidth = 6;
@@ -1489,15 +1577,30 @@ function loadImages() {
         if (loaded + failed === keys.length) {
             console.log(`Loading complete. ${loaded} loaded, ${failed} failed.`);
             window.game = new Game();
-            function loop() { window.game.draw(); requestAnimationFrame(loop); }
-            loop();
+
+            let lastTime = performance.now();
+            function loop(timestamp) {
+                // Calculate time since last frame
+                let dt = timestamp - lastTime;
+                lastTime = timestamp;
+
+                // Normalize to 60fps (16.66ms per frame)
+                let dtMult = dt / 16.666;
+
+                // Cap multiplier to prevent clipping if the user switches tabs
+                if (dtMult > 3) dtMult = 3;
+
+                window.game.draw(dtMult);
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
         }
     };
 
     keys.forEach(k => {
         const img = new Image();
         img.onload = () => { assets[k] = img; loaded++; checkComplete(); };
-        img.onerror = () => { console.error(`❌ ERROR: Could not find image for '${k}' at path: ${ASSETS_PATHS[k]}`); failed++; checkComplete(); };
+        img.onerror = () => { console.error(`❌ ERROR: Could not find image for '${k}'`); failed++; checkComplete(); };
         img.src = ASSETS_PATHS[k];
     });
 }
