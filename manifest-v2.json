@@ -1,7 +1,8 @@
 {
+  "id": "/dreadmoor-final",
   "name": "Dreadmoor Games",
   "short_name": "Dreadmoor",
-  "start_url": ".",
+  "start_url": "./?app=true",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",

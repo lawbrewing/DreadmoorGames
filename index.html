@@ -10,7 +10,7 @@
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#09090b">
-    <link rel="manifest" href="./manifest.json?v=2">
+    <link rel="manifest" href="./manifest-v2.json">
     <link rel="apple-touch-icon" href="./icon-192-v2.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -923,7 +923,7 @@
     <!-- Service Worker & PWA Install Logic -->
     <script>
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
+                navigator.serviceWorker.register('./sw-v2.js').then(reg => {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
