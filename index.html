@@ -11,6 +11,7 @@
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#09090b">
     <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192-v2.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -22,24 +23,24 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-                tailwind.config = {
-                    theme: {
-                        extend: {
-                            fontFamily: {
-                                sans: ['Inter', 'sans-serif'],
-                                display: ['Oswald', 'sans-serif'],
-                            },
-                            colors: {
-                                dread: {
-                                    red: '#dc2626',
-                                    glow: 'rgba(220, 38, 38, 0.6)',
-                                    dark: '#09090b',
-                                    panel: '#18181b',
+                        tailwind.config = {
+                            theme: {
+                                extend: {
+                                    fontFamily: {
+                                        sans: ['Inter', 'sans-serif'],
+                                        display: ['Oswald', 'sans-serif'],
+                                    },
+                                    colors: {
+                                        dread: {
+                                            red: '#dc2626',
+                                            glow: 'rgba(220, 38, 38, 0.6)',
+                                            dark: '#09090b',
+                                            panel: '#18181b',
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
     </script>
 
     <style>
@@ -784,23 +785,23 @@
                                     <div class="flex flex-col gap-6 w-full">
 
                                         <!-- 1. GLOBAL OVERVIEW -->
-                                        <div class="bg-[#18181b] border border-yellow-600/50 p-4 rounded-lg shadow-[0_0_15px_rgba(202,138,4,0.1)]">
-                                            <h4 class="font-display text-lg text-yellow-500 uppercase tracking-widest border-b border-yellow-900/50 pb-2 mb-3 text-center">Career Overview</h4>
-                                            <div class="grid grid-cols-3 gap-2 text-center">
-                                                <div class="bg-[#121214] p-3 rounded border border-zinc-800">
-                                                    <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Lifetime Tips</div>
-                                                    <div class="text-green-400 font-mono text-xl md:text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
-                                                </div>
-                                                <div class="bg-[#121214] p-3 rounded border border-zinc-800">
-                                                    <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Total Shifts</div>
-                                                    <div class="text-white font-mono text-xl md:text-2xl">${(data.shifts_worked || 0).toLocaleString()}</div>
-                                                </div>
-                                                <div class="bg-[#121214] p-3 rounded border border-zinc-800 overflow-hidden">
-                                                    <div class="text-gray-500 font-display text-[10px] md:text-xs tracking-widest uppercase mb-1">Most Played</div>
-                                                    <div class="text-yellow-500 font-display text-xs md:text-sm tracking-wider uppercase mt-1 truncate px-1">${data.favorite_game || "None"}</div>
-                                                </div>
-                                            </div>
-                                        </div>
+<div class="bg-[#18181b] border border-yellow-600/50 p-4 rounded-lg shadow-[0_0_15px_rgba(202,138,4,0.1)]">
+    <h4 class="font-display text-lg text-yellow-500 uppercase tracking-widest border-b border-yellow-900/50 pb-2 mb-3 text-center">Career Overview</h4>
+    <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Lifetime Tips</div>
+            <div class="text-green-400 font-mono text-base md:text-xl xl:text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
+        </div>
+        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Total Shifts</div>
+            <div class="text-white font-mono text-base md:text-xl xl:text-2xl">${(data.shifts_worked || 0).toLocaleString()}</div>
+        </div>
+        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Most Played</div>
+            <div class="text-yellow-500 font-display text-[10px] sm:text-xs md:text-sm tracking-wider uppercase mt-1 leading-tight break-words">${data.favorite_game || "None"}</div>
+        </div>
+    </div>
+</div>
 
                                         <!-- 2. ARCADE HIGH SCORES -->
                                         <div class="bg-[#18181b] border border-zinc-700 p-4 rounded-lg">

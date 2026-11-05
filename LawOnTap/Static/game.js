@@ -278,7 +278,7 @@ class Customer {
         this.exitX = (this.targetX > WORLD.w / 2) ? WORLD.w + 300 : -300;
 
         this.walkSpeed = 8 + (currentLevel * 0.5);
-        this.patienceMax = Math.max(6000, type.patience - (currentLevel * 1000));
+        this.patienceMax = Math.max(type.patience * 0.5, type.patience - (currentLevel * 600));
 
         this.state = 'walking_in';
         this.patience = this.patienceMax;
@@ -328,7 +328,7 @@ class Customer {
         }
 
         if (this.state === 'waiting') {
-            const drain = (isPouring && !isTarget) ? 28 : 16;
+            const drain = (isPouring && !isTarget) ? 20 : 12;
             this.patience -= (drain * dtMult);
             if (this.patience <= 0) {
                 this.poseIndex = 2;
@@ -478,7 +478,7 @@ class Game {
         const c = this.activeCustomer;
 
         if (c.type === 'karen') {
-            c.currentDrinkProgress += 0.008 * dtMult;
+            c.currentDrinkProgress += 0.011 * dtMult;
             if (c.currentDrinkProgress > 1.1) {
                 this.activePour.active = false;
                 this.completeOrder(false, "mechanical");
@@ -1386,7 +1386,8 @@ class Game {
 
         if (!this.customers.some(c => c.type === 'judge')) {
             if (this.customersServedThisLevel >= this.levelQuota && this.customers.length === 0) this.spawnTimer = 0;
-            if (this.spawnTimer > 0) this.spawnTimer--;
+            if (this.spawnTimer > 0) this.spawnTimer -= dtMult;
+
             if (this.spawnTimer <= 0) this.spawnCustomer();
         }
 
