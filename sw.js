@@ -1,7 +1,5 @@
-// Bumped to v36 to force devices to clear the old v35 cache
-const CACHE_NAME = 'dreadmoor-v38';
+const CACHE_NAME = 'dreadmoor-v39';
 
-// Replaced the SVG with the new PNGs required by the manifest
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
