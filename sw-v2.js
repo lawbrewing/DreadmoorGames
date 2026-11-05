@@ -1,8 +1,7 @@
-const CACHE_NAME = 'dreadmoor-v40';
+const CACHE_NAME = 'dreadmoor-v42'; // Bump this again
 
 const ASSETS_TO_CACHE = [
     './',
-    './?app=true',
     './index.html',
     './manifest-v2.json',
     './icon-192-v2.png',

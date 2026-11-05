@@ -923,7 +923,7 @@
     <!-- Service Worker & PWA Install Logic -->
     <script>
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw-v2.js').then(reg => {
+                navigator.serviceWorker.register('./sw-v2.js', { scope: './' }).then(reg => {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
