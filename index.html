@@ -23,24 +23,24 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-                        tailwind.config = {
-                            theme: {
-                                extend: {
-                                    fontFamily: {
-                                        sans: ['Inter', 'sans-serif'],
-                                        display: ['Oswald', 'sans-serif'],
-                                    },
-                                    colors: {
-                                        dread: {
-                                            red: '#dc2626',
-                                            glow: 'rgba(220, 38, 38, 0.6)',
-                                            dark: '#09090b',
-                                            panel: '#18181b',
-                                        }
-                                    }
-                                }
-                            }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    },
+                    colors: {
+                        dread: {
+                            red: '#dc2626',
+                            glow: 'rgba(220, 38, 38, 0.6)',
+                            dark: '#09090b',
+                            panel: '#18181b',
                         }
+                    }
+                }
+            }
+        }
     </script>
 
     <style>
@@ -585,427 +585,428 @@
 
     <!-- Video Sequence Logic -->
     <script>
-                                        document.addEventListener('DOMContentLoaded', () => {
-                                            const startScreen = document.getElementById('start-screen');
-                                            const enterBtn = document.getElementById('enter-btn');
+        document.addEventListener('DOMContentLoaded', () => {
+            const startScreen = document.getElementById('start-screen');
+            const enterBtn = document.getElementById('enter-btn');
 
-                                            const introWrapper = document.getElementById('intro-wrapper');
-                                            const introVideo = document.getElementById('intro-video');
-                                            const skipBtn = document.getElementById('skip-btn');
+            const introWrapper = document.getElementById('intro-wrapper');
+            const introVideo = document.getElementById('intro-video');
+            const skipBtn = document.getElementById('skip-btn');
 
-                                            const mainContent = document.getElementById('main-content');
+            const mainContent = document.getElementById('main-content');
 
-                                            const videoSequence = ['lawbrew.mp4', 'dreadmoor.mp4'];
-                                            let currentVideoIndex = 0;
+            const videoSequence = ['lawbrew.mp4', 'dreadmoor.mp4'];
+            let currentVideoIndex = 0;
 
-                                            const showMainContent = () => {
-                                                sessionStorage.setItem('introPlayed', 'true');
-                                                introVideo.pause();
-                                                introVideo.removeAttribute('src');
-                                                introVideo.load();
-                                                introWrapper.style.opacity = '0';
+            const showMainContent = () => {
+                sessionStorage.setItem('introPlayed', 'true');
+                introVideo.pause();
+                introVideo.removeAttribute('src');
+                introVideo.load();
+                introWrapper.style.opacity = '0';
 
-                                                setTimeout(() => {
-                                                    introWrapper.classList.add('hidden');
-                                                    mainContent.classList.remove('hidden');
-                                                    setTimeout(() => {
-                                                        mainContent.style.opacity = '1';
-                                                        window.scrollTo(0, 0);
-                                                    }, 50);
-                                                }, 1000);
-                                            };
+                setTimeout(() => {
+                    introWrapper.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    setTimeout(() => {
+                        mainContent.style.opacity = '1';
+                        window.scrollTo(0, 0);
+                    }, 50);
+                }, 1000);
+            };
 
-                                            const playVideo = (index) => {
-                                                if (index >= videoSequence.length) {
-                                                    showMainContent();
-                                                    return;
-                                                }
+            const playVideo = (index) => {
+                if (index >= videoSequence.length) {
+                    showMainContent();
+                    return;
+                }
 
-                                                introVideo.src = videoSequence[index];
-                                                introVideo.play().catch(error => {
-                                                    console.warn(`Video ${videoSequence[index]} play blocked or not found. Skipping...`, error);
-                                                    playNext();
-                                                });
-                                            };
+                introVideo.src = videoSequence[index];
+                introVideo.play().catch(error => {
+                    console.warn(`Video ${videoSequence[index]} play blocked or not found. Skipping...`, error);
+                    playNext();
+                });
+            };
 
-                                            const playNext = () => {
-                                                currentVideoIndex++;
-                                                playVideo(currentVideoIndex);
-                                            };
+            const playNext = () => {
+                currentVideoIndex++;
+                playVideo(currentVideoIndex);
+            };
 
-                                            enterBtn.addEventListener('click', () => {
-                                                startScreen.classList.add('hidden');
-                                                introWrapper.classList.remove('hidden');
-                                                setTimeout(() => {
-                                                    introWrapper.style.opacity = '1';
-                                                    playVideo(0);
-                                                }, 50);
-                                            });
+            enterBtn.addEventListener('click', () => {
+                startScreen.classList.add('hidden');
+                introWrapper.classList.remove('hidden');
+                setTimeout(() => {
+                    introWrapper.style.opacity = '1';
+                    playVideo(0);
+                }, 50);
+            });
 
-                                            introVideo.addEventListener('ended', playNext);
-                                            introVideo.addEventListener('error', playNext);
-                                            skipBtn.addEventListener('click', showMainContent);
+            introVideo.addEventListener('ended', playNext);
+            introVideo.addEventListener('error', playNext);
+            skipBtn.addEventListener('click', showMainContent);
 
-                                            if (sessionStorage.getItem('introPlayed') === 'true') {
-                                                startScreen.classList.add('hidden');
-                                                introWrapper.classList.add('hidden');
-                                                mainContent.classList.remove('hidden');
-                                                mainContent.style.opacity = '1';
-                                            }
+            if (sessionStorage.getItem('introPlayed') === 'true') {
+                startScreen.classList.add('hidden');
+                introWrapper.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                mainContent.style.opacity = '1';
+            }
 
-                                            // --- MASTER DASHBOARD LOGIC ---
-                                            const API_BASE = "https://lawbrewing.tail03b2f1.ts.net/api";
+            // --- MASTER DASHBOARD LOGIC ---
+            const API_BASE = "https://lawbrewing.tail03b2f1.ts.net/api";
 
-                                            const openDashboardBtn = document.getElementById('open-dashboard-btn');
-                                            const dashboardModal = document.getElementById('dashboard-modal');
-                                            const dashboardPanel = document.getElementById('dashboard-panel');
-                                            const closeDashboardBtn = document.getElementById('close-dashboard');
-                                            const dashboardContentEl = document.getElementById('dashboard-content');
+            const openDashboardBtn = document.getElementById('open-dashboard-btn');
+            const dashboardModal = document.getElementById('dashboard-modal');
+            const dashboardPanel = document.getElementById('dashboard-panel');
+            const closeDashboardBtn = document.getElementById('close-dashboard');
+            const dashboardContentEl = document.getElementById('dashboard-content');
 
-                                            // ADDED TAPROOM CHAOS TO THE GAMES LIST
-                                            const gamesList = [
-                                                { id: 'taproom_defender', title: 'Defender' },
-                                                { id: 'law_on_tap', title: 'Law On Tap' },
-                                                { id: 'taproom_chaos', title: 'Taproom Chaos' },
-                                                { id: 'bar_dice', title: 'Bar Dice' },
-                                                { id: 'taproom_card', title: 'The Taproom' }
-                                            ];
+            // ADDED TAPROOM CHAOS TO THE GAMES LIST
+            const gamesList = [
+                { id: 'taproom_defender', title: 'Defender' },
+                { id: 'law_on_tap', title: 'Law On Tap' },
+                { id: 'taproom_chaos', title: 'Taproom Chaos' },
+                { id: 'bar_dice', title: 'Bar Dice' },
+                { id: 'taproom_card', title: 'The Taproom' }
+            ];
 
-                                            openDashboardBtn.addEventListener('click', async () => {
-                                                dashboardModal.classList.remove('hidden');
-                                                setTimeout(() => {
-                                                    dashboardModal.classList.remove('opacity-0');
-                                                    dashboardPanel.classList.remove('scale-95');
-                                                }, 10);
+            openDashboardBtn.addEventListener('click', async () => {
+                dashboardModal.classList.remove('hidden');
+                setTimeout(() => {
+                    dashboardModal.classList.remove('opacity-0');
+                    dashboardPanel.classList.remove('scale-95');
+                }, 10);
 
-                                                dashboardContentEl.innerHTML = '<div class="col-span-full flex justify-center py-20"><p class="text-red-600 font-display text-2xl animate-pulse uppercase tracking-widest">Compiling Network Data...</p></div>';
+                dashboardContentEl.innerHTML = '<div class="col-span-full flex justify-center py-20"><p class="text-red-600 font-display text-2xl animate-pulse uppercase tracking-widest">Compiling Network Data...</p></div>';
 
-                                                try {
-                                                    const fetches = gamesList.map(game =>
-                                                        fetch(`${API_BASE}/leaderboard/${game.id}?t=${Date.now()}`, { cache: "no-store" })
-                                                            .then(res => res.ok ? res.json() : [])
-                                                            .catch(() => [])
-                                                    );
+                try {
+                    const fetches = gamesList.map(game =>
+                        fetch(`${API_BASE}/leaderboard/${game.id}?t=${Date.now()}`, { cache: "no-store" })
+                            .then(res => res.ok ? res.json() : [])
+                            .catch(() => [])
+                    );
 
-                                                    const results = await Promise.all(fetches);
+                    const results = await Promise.all(fetches);
 
-                                                    dashboardContentEl.innerHTML = '';
-                                                    gamesList.forEach((game, index) => {
-                                                        const scores = results[index];
-                                                        let html = `
-                                                            <div class="bg-[#121214] border border-zinc-800 rounded-lg p-5 flex flex-col">
-                                                                <h4 class="font-display text-xl font-bold uppercase tracking-wide text-white mb-4 border-b border-red-900/50 pb-2">${game.title}</h4>
-                                                        `;
+                    dashboardContentEl.innerHTML = '';
+                    gamesList.forEach((game, index) => {
+                        const scores = results[index];
+                        let html = `
+                                                                <div class="bg-[#121214] border border-zinc-800 rounded-lg p-5 flex flex-col">
+                                                                    <h4 class="font-display text-xl font-bold uppercase tracking-wide text-white mb-4 border-b border-red-900/50 pb-2">${game.title}</h4>
+                                                            `;
 
-                                                        if (!scores || scores.length === 0) {
-                                                            html += `<p class="text-gray-600 font-mono text-sm py-4">No data found in network.</p></div>`;
-                                                        } else {
-                                                            html += `<table class="score-table text-sm w-full"><tbody>`;
-                                                            scores.slice(0, 5).forEach((row, idx) => {
-                                                                const rank = idx + 1;
-                                                                let rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
-                                                                html += `
-                                                                    <tr>
-                                                                        <td class="${rankClass} w-8">#${rank}</td>
-                                                                        <td class="font-bold text-gray-300 uppercase truncate max-w-[100px]">${row.player_name}</td>
-                                                                        <td class="text-right score-value text-red-400">${row.score.toLocaleString()}</td>
-                                                                    </tr>
-                                                                `;
-                                                            });
-                                                            html += `</tbody></table></div>`;
-                                                        }
-                                                        dashboardContentEl.insertAdjacentHTML('beforeend', html);
-                                                    });
+                        if (!scores || scores.length === 0) {
+                            html += `<p class="text-gray-600 font-mono text-sm py-4">No data found in network.</p></div>`;
+                        } else {
+                            html += `<table class="score-table text-sm w-full"><tbody>`;
+                            scores.slice(0, 5).forEach((row, idx) => {
+                                const rank = idx + 1;
+                                let rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+                                html += `
+                                                                        <tr>
+                                                                            <td class="${rankClass} w-8">#${rank}</td>
+                                                                            <td class="font-bold text-gray-300 uppercase truncate max-w-[100px]">${row.player_name}</td>
+                                                                            <td class="text-right score-value text-red-400">${row.score.toLocaleString()}</td>
+                                                                        </tr>
+                                                                    `;
+                            });
+                            html += `</tbody></table></div>`;
+                        }
+                        dashboardContentEl.insertAdjacentHTML('beforeend', html);
+                    });
 
-                                                } catch (error) {
-                                                    console.error("Dashboard Error:", error);
-                                                    dashboardContentEl.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-red-600 font-display text-xl uppercase tracking-widest">Network Failure.</p></div>';
-                                                }
-                                            });
+                } catch (error) {
+                    console.error("Dashboard Error:", error);
+                    dashboardContentEl.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-red-600 font-display text-xl uppercase tracking-widest">Network Failure.</p></div>';
+                }
+            });
 
-                                            const closeDashboard = () => {
-                                                dashboardModal.classList.add('opacity-0');
-                                                dashboardPanel.classList.add('scale-95');
-                                                dashboardModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
-                                                setTimeout(() => {
-                                                    dashboardModal.classList.add('hidden');
-                                                    dashboardModal.style.pointerEvents = 'auto'; // Reset for next time
-                                                }, 300);
-                                            };
+            const closeDashboard = () => {
+                dashboardModal.classList.add('opacity-0');
+                dashboardPanel.classList.add('scale-95');
+                dashboardModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
+                setTimeout(() => {
+                    dashboardModal.classList.add('hidden');
+                    dashboardModal.style.pointerEvents = 'auto'; // Reset for next time
+                }, 300);
+            };
 
-                                            closeDashboardBtn.addEventListener('click', closeDashboard);
-                                            dashboardModal.addEventListener('click', (e) => { if (e.target === dashboardModal) closeDashboard(); });
+            closeDashboardBtn.addEventListener('click', closeDashboard);
+            dashboardModal.addEventListener('click', (e) => { if (e.target === dashboardModal) closeDashboard(); });
 
 
-                                            // --- PLAYER PROFILE LOGIC ---
-                                            const searchInput = document.getElementById('player-search-input');
-                                            const searchBtn = document.getElementById('search-profile-btn');
-                                            const profileModal = document.getElementById('profile-modal');
-                                            const profilePanel = document.getElementById('profile-panel');
-                                            const closeProfileBtn = document.getElementById('close-profile');
-                                            const profileNameEl = document.getElementById('profile-name');
-                                            const profileContent = document.getElementById('profile-content');
-                                            const profileLoading = document.getElementById('profile-loading');
-                                            const profileError = document.getElementById('profile-error');
+            // --- PLAYER PROFILE LOGIC ---
+            const searchInput = document.getElementById('player-search-input');
+            const searchBtn = document.getElementById('search-profile-btn');
+            const profileModal = document.getElementById('profile-modal');
+            const profilePanel = document.getElementById('profile-panel');
+            const closeProfileBtn = document.getElementById('close-profile');
+            const profileNameEl = document.getElementById('profile-name');
+            const profileContent = document.getElementById('profile-content');
+            const profileLoading = document.getElementById('profile-loading');
+            const profileError = document.getElementById('profile-error');
 
-                                            const executeSearch = async () => {
-                                                const rawName = searchInput.value.trim();
-                                                if (!rawName) return;
+            const executeSearch = async () => {
+                const rawName = searchInput.value.trim();
+                if (!rawName) return;
 
-                                                const cleanName = rawName.substring(0, 15).replace(/[^a-zA-Z0-9 ]/g, "").toUpperCase();
-                                                if (!cleanName) return;
+                const cleanName = rawName.substring(0, 15).replace(/[^a-zA-Z0-9 ]/g, "").toUpperCase();
+                if (!cleanName) return;
 
-                                                searchInput.value = '';
-                                                profileNameEl.innerText = cleanName;
-                                                profileContent.classList.add('hidden');
-                                                profileError.classList.add('hidden');
-                                                profileLoading.classList.remove('hidden');
+                searchInput.value = '';
+                profileNameEl.innerText = cleanName;
+                profileContent.classList.add('hidden');
+                profileError.classList.add('hidden');
+                profileLoading.classList.remove('hidden');
 
-                                                profileModal.classList.remove('hidden');
-                                                setTimeout(() => {
-                                                    profileModal.classList.remove('opacity-0');
-                                                    profilePanel.classList.remove('scale-95');
-                                                }, 10);
+                profileModal.classList.remove('hidden');
+                setTimeout(() => {
+                    profileModal.classList.remove('opacity-0');
+                    profilePanel.classList.remove('scale-95');
+                }, 10);
 
-                                                try {
-                                                    const response = await fetch(`${API_BASE}/player/${cleanName}?t=${Date.now()}`, { cache: "no-store" });
-                                                    if (!response.ok) throw new Error("Network error");
+                try {
+                    const response = await fetch(`${API_BASE}/player/${cleanName}?t=${Date.now()}`, { cache: "no-store" });
+                    if (!response.ok) throw new Error("Network error");
 
-                                                    const data = await response.json();
-                                                    profileLoading.classList.add('hidden');
+                    const data = await response.json();
+                    profileLoading.classList.add('hidden');
 
-                                                    if (!data || data.shifts_worked === 0) {
-                                                        profileError.classList.remove('hidden');
-                                                        return;
-                                                    }
+                    if (!data || data.shifts_worked === 0) {
+                        profileError.classList.remove('hidden');
+                        return;
+                    }
 
-                                                    const bossSecs = (data.lifetime_boss_time_ms / 1000).toFixed(1);
+                    const bossSecs = (data.lifetime_boss_time_ms / 1000).toFixed(1);
 
-                                                    // Bar Dice Hand Mapping
-                                                    const handNames = ['N/A', 'Spilled Drink', 'Solo Cup', 'Double Fisted', 'Six Pack', 'Flight', 'Full Tab', 'Case of Beer', 'Keg Stand'];
-                                                    const bestHandStr = handNames[data.record_highest_hand || 0] || 'N/A';
+                    // Bar Dice Hand Mapping
+                    const handNames = ['N/A', 'Spilled Drink', 'Solo Cup', 'Double Fisted', 'Six Pack', 'Flight', 'Full Tab', 'Case of Beer', 'Keg Stand'];
+                    const bestHandStr = handNames[data.record_highest_hand || 0] || 'N/A';
 
-                                                    // Format Pour Time
-                                                    const pourSecs = data.record_fastest_pour ? (data.record_fastest_pour / 1000).toFixed(2) + 's' : '--';
+                    // Format Pour Time
+                    const pourSecs = data.record_fastest_pour ? (data.record_fastest_pour / 1000).toFixed(2) + 's' : '--';
 
-                                                    // Switch container from a generic grid to a full-width wrapper
-                                                    profileContent.className = 'w-full hidden pb-8';
+                    // Switch container from a generic grid to a full-width wrapper
+                    profileContent.className = 'w-full hidden pb-8';
 
-                                                    profileContent.innerHTML = `
-                                                    <div class="flex flex-col gap-6 w-full">
+                    profileContent.innerHTML = `
+                                                        <div class="flex flex-col gap-6 w-full">
 
-                                                        <!-- 1. GLOBAL OVERVIEW -->
+                                                            <!-- 1. GLOBAL OVERVIEW -->
 <div class="bg-[#18181b] border border-yellow-600/50 p-4 rounded-lg shadow-[0_0_15px_rgba(202,138,4,0.1)]">
-                    <h4 class="font-display text-lg text-yellow-500 uppercase tracking-widest border-b border-yellow-900/50 pb-2 mb-3 text-center">Career Overview</h4>
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
-                            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Lifetime Tips</div>
-                            <div class="text-green-400 font-mono text-base md:text-xl xl:text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
+                        <h4 class="font-display text-lg text-yellow-500 uppercase tracking-widest border-b border-yellow-900/50 pb-2 mb-3 text-center">Career Overview</h4>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+                                <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Lifetime Tips</div>
+                                <div class="text-green-400 font-mono text-base md:text-xl xl:text-2xl">${(data.lifetime_score || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+                                <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Total Shifts</div>
+                                <div class="text-white font-mono text-base md:text-xl xl:text-2xl">${(data.shifts_worked || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
+                                <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Most Played</div>
+                                <div class="text-yellow-500 font-display text-[10px] sm:text-xs md:text-sm tracking-wider uppercase mt-1 leading-tight break-words">${data.favorite_game || "None"}</div>
+                            </div>
                         </div>
-                        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
-                            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Total Shifts</div>
-                            <div class="text-white font-mono text-base md:text-xl xl:text-2xl">${(data.shifts_worked || 0).toLocaleString()}</div>
-                        </div>
-                        <div class="bg-[#121214] p-2 md:p-3 rounded border border-zinc-800 flex flex-col justify-center">
-                            <div class="text-gray-500 font-display text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase mb-1">Most Played</div>
-                            <div class="text-yellow-500 font-display text-[10px] sm:text-xs md:text-sm tracking-wider uppercase mt-1 leading-tight break-words">${data.favorite_game || "None"}</div>
-                        </div>
-                    </div>
 </div>
 
-                                                        <!-- 2. ARCADE HIGH SCORES -->
-                                                        <div class="bg-[#18181b] border border-zinc-700 p-4 rounded-lg">
-                                                            <h4 class="font-display text-lg text-white uppercase tracking-widest border-b border-zinc-700 pb-2 mb-3 text-center">Arcade High Scores</h4>
-                                                            <div class="grid grid-cols-3 gap-2 text-center">
-                                                                <div>
-                                                                    <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Defender</div>
-                                                                    <div class="text-red-400 font-mono text-lg">${(data.defender_high_score || 0).toLocaleString()}</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Law On Tap</div>
-                                                                    <div class="text-red-400 font-mono text-lg">${(data.law_on_tap_high_score || 0).toLocaleString()}</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Chaos</div>
-                                                                    <div class="text-red-400 font-mono text-lg">${(data.taproom_chaos_high_score || 0).toLocaleString()}</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <!-- 3. GAME ANALYTICS GRID -->
-                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                                                            <!-- Defender -->
-                                                            <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
-                                                                <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Defender</h5>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Swills Shot:</span> <span class="text-white font-mono">${(data.lifetime_swills || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Boss Time:</span> <span class="text-white font-mono">${bossSecs}s</span></div>
-                                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Flights Completed:</span> <span class="text-white font-mono">${(data.lifetime_flights || 0).toLocaleString()}</span></div>
-                                                            </div>
-
-                                                            <!-- Law On Tap -->
-                                                            <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
-                                                                <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Law On Tap</h5>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Record Streak:</span> <span class="text-white font-mono">${data.record_longest_streak || 0}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Fastest Pour:</span> <span class="text-white font-mono">${pourSecs}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Mixed Pours:</span> <span class="text-white font-mono">${(data.lifetime_mixed_pours || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Judge Flights:</span> <span class="text-white font-mono">${(data.lifetime_judge_flights || 0).toLocaleString()}</span></div>
-                                                            </div>
-
-                                                            <!-- Taproom Chaos -->
-                                                            <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
-                                                                <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Taproom Chaos</h5>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Shifts Cleared:</span> <span class="text-white font-mono">${(data.lifetime_shifts_cleared || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Max Merges:</span> <span class="text-white font-mono">${data.record_combo_merges || 0}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Perfect Serves:</span> <span class="text-white font-mono">${(data.lifetime_perfect_serves || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm"><span class="text-gray-400">Glasses Smashed:</span> <span class="text-red-500 font-mono">${(data.lifetime_glasses_smashed || 0).toLocaleString()}</span></div>
-                                                            </div>
-
-                                                            <!-- Bar Dice -->
-                                                            <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
-                                                                <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Bar Dice</h5>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Rounds Survived:</span> <span class="text-white font-mono">${(data.lifetime_rounds_survived || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Pots Won:</span> <span class="text-white font-mono">${(data.lifetime_pots_won || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Earnings:</span> <span class="text-green-400 font-mono">$${(data.lifetime_dice_earnings || 0).toLocaleString()}</span></div>
-                                                                <div class="flex justify-between text-sm items-center"><span class="text-gray-400">Best Hand:</span> <span class="text-yellow-500 font-display tracking-wider text-[10px] mt-1 uppercase">${bestHandStr}</span></div>
-                                                            </div>
-
-                                                            <!-- The Taproom (Cards) -->
-                                                            <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg md:col-span-2">
-                                                                <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">The Taproom (Cards)</h5>
-                                                                <div class="grid grid-cols-2 gap-4">
+                                                            <!-- 2. ARCADE HIGH SCORES -->
+                                                            <div class="bg-[#18181b] border border-zinc-700 p-4 rounded-lg">
+                                                                <h4 class="font-display text-lg text-white uppercase tracking-widest border-b border-zinc-700 pb-2 mb-3 text-center">Arcade High Scores</h4>
+                                                                <div class="grid grid-cols-3 gap-2 text-center">
                                                                     <div>
-                                                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Matches Won:</span> <span class="text-white font-mono">${(data.lifetime_matches_won || 0).toLocaleString()}</span></div>
-                                                                        <div class="flex justify-between text-sm"><span class="text-gray-400">Shifts Won:</span> <span class="text-white font-mono">${(data.lifetime_shifts_won || 0).toLocaleString()}</span></div>
+                                                                        <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Defender</div>
+                                                                        <div class="text-red-400 font-mono text-lg">${(data.defender_high_score || 0).toLocaleString()}</div>
                                                                     </div>
                                                                     <div>
-                                                                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Bonus Hands:</span> <span class="text-white font-mono">${(data.lifetime_winning_bonuses || 0).toLocaleString()}</span></div>
-                                                                        <div class="flex justify-between text-sm"><span class="text-gray-400">Best Score:</span> <span class="text-white font-mono">${(data.record_flight_score || 0).toLocaleString()}</span></div>
+                                                                        <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Law On Tap</div>
+                                                                        <div class="text-red-400 font-mono text-lg">${(data.law_on_tap_high_score || 0).toLocaleString()}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div class="text-gray-500 font-display text-[10px] tracking-widest uppercase">Chaos</div>
+                                                                        <div class="text-red-400 font-mono text-lg">${(data.taproom_chaos_high_score || 0).toLocaleString()}</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
+                                                            <!-- 3. GAME ANALYTICS GRID -->
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                                                <!-- Defender -->
+                                                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                                                    <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Defender</h5>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Swills Shot:</span> <span class="text-white font-mono">${(data.lifetime_swills || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Boss Time:</span> <span class="text-white font-mono">${bossSecs}s</span></div>
+                                                                    <div class="flex justify-between text-sm"><span class="text-gray-400">Flights Completed:</span> <span class="text-white font-mono">${(data.lifetime_flights || 0).toLocaleString()}</span></div>
+                                                                </div>
+
+                                                                <!-- Law On Tap -->
+                                                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                                                    <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Law On Tap</h5>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Record Streak:</span> <span class="text-white font-mono">${data.record_longest_streak || 0}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Fastest Pour:</span> <span class="text-white font-mono">${pourSecs}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Mixed Pours:</span> <span class="text-white font-mono">${(data.lifetime_mixed_pours || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm"><span class="text-gray-400">Judge Flights:</span> <span class="text-white font-mono">${(data.lifetime_judge_flights || 0).toLocaleString()}</span></div>
+                                                                </div>
+
+                                                                <!-- Taproom Chaos -->
+                                                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                                                    <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Taproom Chaos</h5>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Shifts Cleared:</span> <span class="text-white font-mono">${(data.lifetime_shifts_cleared || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Max Merges:</span> <span class="text-white font-mono">${data.record_combo_merges || 0}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Perfect Serves:</span> <span class="text-white font-mono">${(data.lifetime_perfect_serves || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm"><span class="text-gray-400">Glasses Smashed:</span> <span class="text-red-500 font-mono">${(data.lifetime_glasses_smashed || 0).toLocaleString()}</span></div>
+                                                                </div>
+
+                                                                <!-- Bar Dice -->
+                                                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg">
+                                                                    <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">Bar Dice</h5>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Rounds Survived:</span> <span class="text-white font-mono">${(data.lifetime_rounds_survived || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Pots Won:</span> <span class="text-white font-mono">${(data.lifetime_pots_won || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Total Earnings:</span> <span class="text-green-400 font-mono">$${(data.lifetime_dice_earnings || 0).toLocaleString()}</span></div>
+                                                                    <div class="flex justify-between text-sm items-center"><span class="text-gray-400">Best Hand:</span> <span class="text-yellow-500 font-display tracking-wider text-[10px] mt-1 uppercase">${bestHandStr}</span></div>
+                                                                </div>
+
+                                                                <!-- The Taproom (Cards) -->
+                                                                <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg md:col-span-2">
+                                                                    <h5 class="text-yellow-600 font-display tracking-widest uppercase mb-2 border-b border-zinc-800 pb-1">The Taproom (Cards)</h5>
+                                                                    <div class="grid grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Matches Won:</span> <span class="text-white font-mono">${(data.lifetime_matches_won || 0).toLocaleString()}</span></div>
+                                                                            <div class="flex justify-between text-sm"><span class="text-gray-400">Shifts Won:</span> <span class="text-white font-mono">${(data.lifetime_shifts_won || 0).toLocaleString()}</span></div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">Bonus Hands:</span> <span class="text-white font-mono">${(data.lifetime_winning_bonuses || 0).toLocaleString()}</span></div>
+                                                                            <div class="flex justify-between text-sm"><span class="text-gray-400">Best Score:</span> <span class="text-white font-mono">${(data.record_flight_score || 0).toLocaleString()}</span></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                `;
+                                                    `;
 
-                                                    profileContent.classList.remove('hidden');
+                    profileContent.classList.remove('hidden');
 
-                                                } catch (error) {
-                                                    console.error("Profile Fetch Error:", error);
-                                                    profileLoading.classList.add('hidden');
-                                                    profileError.innerHTML = '<p class="text-red-600 font-mono text-lg">Mainframe offline.</p>';
-                                                    profileError.classList.remove('hidden');
-                                                }
-                                            };
+                } catch (error) {
+                    console.error("Profile Fetch Error:", error);
+                    profileLoading.classList.add('hidden');
+                    profileError.innerHTML = '<p class="text-red-600 font-mono text-lg">Mainframe offline.</p>';
+                    profileError.classList.remove('hidden');
+                }
+            };
 
-                                            searchBtn.addEventListener('click', executeSearch);
-                                            searchInput.addEventListener('keydown', (e) => {
-                                                if (e.key === 'Enter') executeSearch();
-                                            });
+            searchBtn.addEventListener('click', executeSearch);
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') executeSearch();
+            });
 
-                                            const closeProfile = () => {
-                                                profileModal.classList.add('opacity-0');
-                                                profilePanel.classList.add('scale-95');
-                                                profileModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
-                                                setTimeout(() => {
-                                                    profileModal.classList.add('hidden');
-                                                    profileModal.style.pointerEvents = 'auto'; // Reset for next time
-                                                }, 300);
-                                            };
+            const closeProfile = () => {
+                profileModal.classList.add('opacity-0');
+                profilePanel.classList.add('scale-95');
+                profileModal.style.pointerEvents = 'none'; // Instantly unlock the search bar
+                setTimeout(() => {
+                    profileModal.classList.add('hidden');
+                    profileModal.style.pointerEvents = 'auto'; // Reset for next time
+                }, 300);
+            };
 
-                                            closeProfileBtn.addEventListener('click', closeProfile);
-                                            profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeProfile(); });
+            closeProfileBtn.addEventListener('click', closeProfile);
+            profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeProfile(); });
 
-                                        });
+        });
     </script>
+    <!-- Service Worker & PWA Install Logic -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            // Explicitly scope the service worker to the repo subdirectory
+            navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            window.location.reload();
+                        }
+                    });
+                });
+            });
+        }
 
-    if ('serviceWorker' in navigator) {
-    // Explicitly scope the service worker to the repo subdirectory
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
-    reg.addEventListener('updatefound', () => {
-    const newWorker = reg.installing;
-    newWorker.addEventListener('statechange', () => {
-    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-    window.location.reload();
-    }
-    });
-    });
-    });
-    }
+        const installBtn = document.getElementById('installAppBtn');
+        const manualInstallModal = document.getElementById('manual-install-modal');
+        const installInstructions = document.getElementById('install-instructions');
+        const closeInstallModal = document.getElementById('close-install-modal');
+        let deferredPrompt = null;
 
-    const installBtn = document.getElementById('installAppBtn');
-    const manualInstallModal = document.getElementById('manual-install-modal');
-    const installInstructions = document.getElementById('install-instructions');
-    const closeInstallModal = document.getElementById('close-install-modal');
-    let deferredPrompt = null;
+        // Check if already installed
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    // Check if already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        // Always show the button initially if not installed
+        if (!isStandalone) {
+            installBtn.style.display = 'block';
+        }
 
-    // Always show the button initially if not installed
-    if (!isStandalone) {
-    installBtn.style.display = 'block';
-    }
+        // Catch the native prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
 
-    // Catch the native prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    });
+        // Handle the button click
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Android allowed the native prompt
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                // Native prompt missing - show manual UI
+                showManualInstallUI();
+            }
+        });
 
-    // Handle the button click
-    installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-    // Android allowed the native prompt
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-    installBtn.style.display = 'none';
-    }
-    deferredPrompt = null;
-    } else {
-    // Native prompt missing - show manual UI
-    showManualInstallUI();
-    }
-    });
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+            manualInstallModal.classList.add('hidden');
+        });
 
-    window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-    manualInstallModal.classList.add('hidden');
-    });
+        // Manual UI Logic
+        function showManualInstallUI() {
+            const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-    // Manual UI Logic
-    function showManualInstallUI() {
-    const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            if (isIOS) {
+                installInstructions.innerHTML = `
+                    <div class="flex items-center gap-4 text-left">
+                        <div class="text-blue-500 font-bold text-3xl pb-2">1</div>
+                        <p class="text-gray-300 text-sm">Tap the <strong>Share</strong> button at the bottom of Safari.</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-left">
+                        <div class="text-white font-bold text-3xl pb-2">2</div>
+                        <p class="text-gray-300 text-sm">Scroll down and tap <strong>Add to Home Screen</strong>.</p>
+                    </div>`;
+            } else {
+                installInstructions.innerHTML = `
+                    <div class="flex items-center gap-4 text-left">
+                        <div class="text-gray-400 font-bold text-4xl leading-none pb-2">⋮</div>
+                        <p class="text-gray-300 text-sm">Tap the <strong>Browser Menu</strong> in the top right corner of Chrome.</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-left">
+                        <div class="text-white font-bold text-3xl pb-2">↓</div>
+                        <p class="text-gray-300 text-sm">Tap <strong>Install App</strong> or <strong>Add to Home screen</strong>.</p>
+                    </div>`;
+            }
+            manualInstallModal.classList.remove('hidden');
+        }
 
-    if (isIOS) {
-    installInstructions.innerHTML = `
-    <div class="flex items-center gap-4 text-left">
-        <div class="text-blue-500 font-bold text-3xl pb-2">1</div>
-        <p class="text-gray-300 text-sm">Tap the <strong>Share</strong> button at the bottom of Safari.</p>
-    </div>
-    <div class="flex items-center gap-4 text-left">
-        <div class="text-white font-bold text-3xl pb-2">2</div>
-        <p class="text-gray-300 text-sm">Scroll down and tap <strong>Add to Home Screen</strong>.</p>
-    </div>`;
-    } else {
-    installInstructions.innerHTML = `
-    <div class="flex items-center gap-4 text-left">
-        <div class="text-gray-400 font-bold text-4xl leading-none pb-2">⋮</div>
-        <p class="text-gray-300 text-sm">Tap the <strong>Browser Menu</strong> in the top right corner of Chrome.</p>
-    </div>
-    <div class="flex items-center gap-4 text-left">
-        <div class="text-white font-bold text-3xl pb-2">↓</div>
-        <p class="text-gray-300 text-sm">Tap <strong>Install App</strong> or <strong>Add to Home screen</strong>.</p>
-    </div>`;
-    }
-    manualInstallModal.classList.remove('hidden');
-    }
-
-    closeInstallModal.addEventListener('click', () => {
-    manualInstallModal.classList.add('hidden');
-    });
+        closeInstallModal.addEventListener('click', () => {
+            manualInstallModal.classList.add('hidden');
+        });
     </script>
 </body>
 </html>
