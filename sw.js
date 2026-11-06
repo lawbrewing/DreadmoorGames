@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dreadmoor-v45'; // Bump this again
+const CACHE_NAME = 'dreadmoor-v46';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -8,51 +8,49 @@ const ASSETS_TO_CACHE = [
     './icon-512-v2.png'
 ];
 
-// 1. Install & Cache
+/* 1. Install & Cache */
 self.addEventListener('install', (event) => {
-    self.skipWaiting(); // Force the waiting worker to become active immediately
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[Service Worker] Caching core assets');
             return cache.addAll(ASSETS_TO_CACHE);
         })
     );
 });
 
-// 2. Clean Up Old Caches
+/* 2. Clean Up Old Caches */
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[Service Worker] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
         })
     );
-    self.clients.claim(); // Take control of the page immediately
+    self.clients.claim();
 });
 
-// 3. Intercept Network Requests (Network First, Fallback to Cache)
+/* 3. Intercept Same-Origin GET Requests Only */
 self.addEventListener('fetch', (event) => {
-    // Ignore API calls to the Tailscale ledger so they are never cached accidentally
-    if (event.request.url.includes('/api/')) {
+    if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
         return;
     }
 
     event.respondWith(
         fetch(event.request).then((networkResponse) => {
-            // If online and the fetch succeeds, update the cache with the newest version
-            return caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse.clone());
-                return networkResponse;
-            });
+            if (networkResponse && networkResponse.status === 200) {
+                const responseClone = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseClone);
+                });
+            }
+            return networkResponse;
         }).catch(() => {
-            // If offline or the network fails, serve the cached fallback
-            return caches.match(event.request);
+            return caches.match(event.request, { ignoreSearch: true });
         })
     );
 });

@@ -1,8 +1,8 @@
 {
-  "id": "/dreadmoor-clean-slate",
+  "id": "dreadmoor-library-pwa",
   "name": "Dreadmoor Games",
   "short_name": "Dreadmoor",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#09090b",
@@ -13,6 +13,12 @@
       "src": "./icon-192-v2.png",
       "type": "image/png",
       "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512-v2.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any"
     },
     {
