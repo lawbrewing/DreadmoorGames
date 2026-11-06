@@ -39,22 +39,20 @@
         #gameContainer {
             position: fixed;
             inset: 0;
-            width: 100vw;
-            height: 100vh;
             width: 100dvw;
             height: 100dvh;
-            background: #000;
+            background: #09090b;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         canvas {
-            position: absolute;
-            inset: 0;
-            max-width: 100% !important;
-            max-height: 100% !important;
-            aspect-ratio: 16 / 9 !important; /* Locks the box to exactly 1280x720 proportions */
+            /* Automatically fills the max 16:9 area without stretching the hitboxes! */
+            width: min(100dvw, calc(100dvh * 16 / 9)) !important;
+            height: min(100dvh, calc(100dvw * 9 / 16)) !important;
             display: block;
-            margin: auto;
         }
 
         /* --- PORTRAIT MODE WARNING --- */
@@ -192,7 +190,7 @@
 
     <!-- Responsive Game Viewport -->
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="1280" height="720" style="position: absolute; top: 0; left: 0;"></canvas>
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
 
         <!-- FORECAST TICKER -->
         <div id="forecastTicker" style="position: absolute; top: 2%; left: 20%; width: 60%; text-align: center; color: #38bdf8; font-family: 'Inter'; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; pointer-events: none; z-index: 95; display: none; font-size: clamp(12px, 1.5vw, 18px);">
@@ -285,23 +283,23 @@
     </div>
 
     <!-- Scripts (Cache-busted to v3 to guarantee mobile updates) -->
-    <script src="js/core/events.js?v=3"></script>
-    <script src="js/core/audio.js?v=3"></script>
-    <script src="js/core/input.js?v=3"></script>
-    <script src="js/core/renderer.js?v=3"></script>
-    <script src="js/config/economy.js?v=3"></script>
-    <script src="js/config/population.js?v=3"></script>
-    <script src="js/config/recipes.js?v=3"></script>
-    <script src="js/config/patrons.js?v=3"></script>
-    <script src="js/data/megaPack.js?v=3"></script>
-    <script src="js/engine/SpriteManager.js?v=3"></script>
-    <script src="js/state/player.js?v=3"></script>
-    <script src="js/state/progression.js?v=3"></script>
-    <script src="js/entities/patron.js?v=3"></script>
-    <script src="js/entities/title.js?v=3"></script>
-    <script src="js/ui/hud.js?v=3"></script>
-    <script src="js/phases/brewing.js?v=3"></script>
-    <script src="js/phases/taproom.js?v=3"></script>
-    <script src="js/main.js?v=3"></script>
+    <script src="js/core/events.js?v=4"></script>
+    <script src="js/core/audio.js?v=4"></script>
+    <script src="js/core/input.js?v=4"></script>
+    <script src="js/core/renderer.js?v=4"></script>
+    <script src="js/config/economy.js?v=4"></script>
+    <script src="js/config/population.js?v=4"></script>
+    <script src="js/config/recipes.js?v=4"></script>
+    <script src="js/config/patrons.js?v=4"></script>
+    <script src="js/data/megaPack.js?v=4"></script>
+    <script src="js/engine/SpriteManager.js?v=4"></script>
+    <script src="js/state/player.js?v=4"></script>
+    <script src="js/state/progression.js?v=4"></script>
+    <script src="js/entities/patron.js?v=4"></script>
+    <script src="js/entities/title.js?v=4"></script>
+    <script src="js/ui/hud.js?v=4"></script>
+    <script src="js/phases/brewing.js?v=4"></script>
+    <script src="js/phases/taproom.js?v=4"></script>
+    <script src="js/main.js?v=4"></script>
 </body>
 </html>

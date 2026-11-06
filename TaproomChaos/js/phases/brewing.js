@@ -2,13 +2,13 @@
 
 class BrewingPhase {
     constructor() {
-        // RESTORE LARGE 125px TILES & CENTER THE GRID
+        // 6 COLUMNS x 4 ROWS (115px tiles = 690px wide grid)
         this.cols = 6;
         this.rows = 4;
-        this.tileSize = 125;
+        this.tileSize = 115;
 
-        // Exactly centered: 750px wide grid, leaving 265px of space on both the left and right sides
-        this.gridOffset = { x: 265, y: 70 };
+        // Positioned cleanly in the center-left space (x: 300 to 990)
+        this.gridOffset = { x: 300, y: 70 };
 
         this.grid = [];
         this.isActive = false;
@@ -17,30 +17,30 @@ class BrewingPhase {
         this.currentMergeCombo = 0;
         this.activeOrders = [];
 
-        // BIG, SQUARE SACKS - Moved down to y:100 to completely clear the HTML Menu button
+        // 6 GENERATOR SACKS (Stacked neatly on the left side: x: 25 & x: 145)
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 30, y: 100, w: 105, h: 110, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 145, y: 100, w: 105, h: 110, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 30, y: 230, w: 105, h: 110, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 145, y: 230, w: 105, h: 110, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 30, y: 360, w: 105, h: 110, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 145, y: 360, w: 105, h: 110, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: 25, y: 80, w: 110, h: 100, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 150, y: 80, w: 110, h: 100, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 25, y: 195, w: 110, h: 100, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 150, y: 195, w: 110, h: 100, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 25, y: 310, w: 110, h: 100, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 150, y: 310, w: 110, h: 100, color: '#a855f7' }
         ];
 
-        // Drain positioned wide and directly below the sacks
-        this.drain = { x: 30, y: 490, w: 220, h: 60 };
+        // FLOOR DRAIN (Positioned under the sacks on the left)
+        this.drain = { x: 25, y: 430, w: 235, h: 75 };
 
-        // WIDER KETTLES - Spread evenly across the bottom, below the grid
+        // 3 BREW KETTLES (Distributed evenly across the bottom)
         this.kettles = [
-            { x: 50, y: 585, w: 360, h: 125, btnX: 300, btnY: 620, btnW: 90, btnH: 55, items: [] },
-            { x: 460, y: 585, w: 360, h: 125, btnX: 710, btnY: 620, btnW: 90, btnH: 55, items: [] },
-            { x: 870, y: 585, w: 360, h: 125, btnX: 1120, btnY: 620, btnW: 90, btnH: 55, items: [] }
+            { x: 35, y: 560, w: 375, h: 135, btnX: 295, btnY: 595, btnW: 95, btnH: 60, items: [] },
+            { x: 452, y: 560, w: 375, h: 135, btnX: 712, btnY: 595, btnW: 95, btnH: 60, items: [] },
+            { x: 870, y: 560, w: 375, h: 135, btnX: 1130, btnY: 595, btnW: 95, btnH: 60, items: [] }
         ];
 
         this.resetGrid();
         this.setupEventListeners();
     }
-
+ 
     resetGrid() {
         this.grid = [];
         for (let r = 0; r < this.rows; r++) {
