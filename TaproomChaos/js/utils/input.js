@@ -5,7 +5,7 @@ class InputManager {
         this.bindEvents();
     }
 
-    // Normalizes mouse and touch coordinates to match the CSS physical boundaries
+    // Normalizes mouse and touch coordinates to match the 1280x720 logical game grid
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
 
@@ -16,11 +16,13 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // Because main.js now scales the context by the devicePixelRatio, 
-        // the logical drawing coordinates map 1:1 with the CSS client rect.
+        // Map the physical CSS click directly back to the 1280x720 logical game grid
+        const scaleX = 1280 / rect.width;
+        const scaleY = 720 / rect.height;
+
         return {
-            x: clientX - rect.left,
-            y: clientY - rect.top
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
@@ -29,16 +31,12 @@ class InputManager {
         const handleStart = (e) => {
             const pos = this.getPointerPos(e);
 
-            // Map the height to the logical CSS height, not the raw DPI height
-            const dpr = window.devicePixelRatio || 1;
-            const logicalHeight = this.canvas.height / dpr;
-
             // ==========================================
             // TAPROOM AMMO QUICK-CYCLE INTERCEPT
             // ==========================================
             if (typeof currentState !== 'undefined' && currentState === 'TAPROOM') {
-                // Check if click hits the ammo box (Bottom Left: x: 20-100, y: height - 80 to height)
-                if (pos.x >= 20 && pos.x <= 100 && pos.y >= logicalHeight - 80 && pos.y <= logicalHeight) {
+                // Check if click hits the ammo box (Bottom Left: x: 20-100, y: 640-720)
+                if (pos.x >= 20 && pos.x <= 100 && pos.y >= 640 && pos.y <= 720) {
                     if (typeof taproomPhase !== 'undefined' && typeof playerState !== 'undefined' && playerState.ammo) {
                         let currentIdx = taproomPhase.selectedAmmoIndex || 0;
                         let nextIdx = (currentIdx + 1) % playerState.ammo.length;

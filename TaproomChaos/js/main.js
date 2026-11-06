@@ -5,17 +5,13 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 function setupCanvas() {
-    // Determine the physical size the CSS assigns the canvas
-    const rect = canvas.getBoundingClientRect();
-
-    // Check monitor pixel density (falls back to 1 for standard screens)
     const dpr = window.devicePixelRatio || 1;
 
-    // Scale the internal canvas resolution to match the display density
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    // Lock internal resolution to the game's exact 1280x720 grid, multiplied by Retina DPI
+    canvas.width = 1280 * dpr;
+    canvas.height = 720 * dpr;
 
-    // Normalize the coordinate system so X/Y logic isn't broken by the scale
+    // Scale the drawing context so the 1280x720 logic remains razor-sharp
     ctx.scale(dpr, dpr);
 }
 

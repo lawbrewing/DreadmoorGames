@@ -50,11 +50,11 @@
         canvas {
             position: absolute;
             inset: 0;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain !important; /* FIXED: Keeps the 1280x720 aspect ratio perfect */
+            max-width: 100% !important;
+            max-height: 100% !important;
+            aspect-ratio: 16 / 9 !important; /* Locks the box to exactly 1280x720 proportions */
             display: block;
-            margin: auto; /* Ensures it stays perfectly centered */
+            margin: auto;
         }
 
         /* --- PORTRAIT MODE WARNING --- */
