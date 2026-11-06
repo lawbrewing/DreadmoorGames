@@ -82,7 +82,6 @@ class GameHUD {
 
                 if (!currentOrder || !currentOrder.name) return;
 
-                // Extract ingredients directly from the gameRecipes configuration
                 const masterList = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList : [];
                 const recipeDef = masterList.find(r => r.name === currentOrder.name);
                 const ingredients = recipeDef ? recipeDef.ingredients : null;
@@ -98,7 +97,22 @@ class GameHUD {
 
                     const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
                     currentOrder.revealedIngredients.push(randomIng);
-                    console.log(`[HUD] Hint purchased for ${currentOrder.name}! Revealed: ${randomIng}`);
+
+                    // --- VISUAL FEEDBACK FIX ---
+                    // 1. Append the discovered ingredients to the order's text on the canvas
+                    if (!currentOrder.originalHint) currentOrder.originalHint = currentOrder.hint;
+                    currentOrder.hint = currentOrder.originalHint + " | Revealed: " + currentOrder.revealedIngredients.join(", ");
+
+                    // 2. Spawn a green floating text popup in the middle of the brewing grid
+                    if (typeof brewingPhase !== 'undefined' && brewingPhase.floatingTexts) {
+                        brewingPhase.floatingTexts.push({
+                            text: `💡 Discovered: ${randomIng.toUpperCase()}!`,
+                            x: window.innerWidth ? window.innerWidth / 2 : 640,
+                            y: 300,
+                            life: 2.5,
+                            color: '#4ade80'
+                        });
+                    }
 
                     if (window.audioManager) window.audioManager.playSFX('hint');
                     this.update();

@@ -1,8 +1,28 @@
 // js/main.js
 
-// 1. Setup the Canvas Context
+// 1. Setup the Canvas Context & Retina DPI Scaler
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+function setupCanvas() {
+    // Determine the physical size the CSS assigns the canvas
+    const rect = canvas.getBoundingClientRect();
+
+    // Check monitor pixel density (falls back to 1 for standard screens)
+    const dpr = window.devicePixelRatio || 1;
+
+    // Scale the internal canvas resolution to match the display density
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    // Normalize the coordinate system so X/Y logic isn't broken by the scale
+    ctx.scale(dpr, dpr);
+}
+
+// Run immediately and re-run if the user resizes the browser window
+setupCanvas();
+window.addEventListener('resize', setupCanvas);
+
 
 // Initialize Systems
 const renderer = new GameRenderer(canvas, ctx);
@@ -107,17 +127,23 @@ gameEvents.on('PATRON_ANGRY', (pos) => {
     if (typeof playerState !== 'undefined') {
         const penalty = 5.00;
         playerState.tips -= penalty;
-        console.log(`[Economy] Neglect Penalty! Lost $${penalty.toFixed(2)}`);
 
-        // If your game supports floating text, pop a red -$5.00 over their head
-        if (typeof taproomPhase !== 'undefined' && taproomPhase.floatingTexts && pos) {
+        // 1. Spawns red floating text directly over the patron on the canvas
+        if (typeof taproomPhase !== 'undefined' && taproomPhase.floatingTexts) {
             taproomPhase.floatingTexts.push({
-                text: `-$${penalty.toFixed(2)} (Walkout)`,
-                x: pos.x,
-                y: pos.y - 40,
-                life: 1.0,
-                color: '#ef4444' // Red
+                text: `-$${penalty.toFixed(2)}`,
+                x: pos && pos.x ? pos.x : 640, // Defaults to center if pos is missing
+                y: pos && pos.y ? pos.y - 40 : 360,
+                life: 2.0,
+                color: '#ef4444'
             });
+        }
+
+        // 2. Instantly refreshes the UI so the player visually sees their money drop
+        if (typeof window.hud !== 'undefined' && typeof window.hud.update === 'function') {
+            window.hud.update();
+        } else if (typeof gameEvents !== 'undefined') {
+            gameEvents.emit('UI_UPDATE'); // Fallback if your engine relies on events to update the HUD
         }
     }
 });

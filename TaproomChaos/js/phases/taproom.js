@@ -277,8 +277,19 @@ class TaproomPhase {
         this.isBossRound = (typeof prog.isBossRound === 'function') ? prog.isBossRound() : Boolean(prog.isBossRound);
 
         const mod = prog.forecast ? prog.forecast.modifier : 'none';
-        this.spawnInterval = (mod === 'crowd_spike') ? 2.0 : 3.5;
-        this.maxPatrons = 7 + Math.min(5, Math.floor(this.shift / 2));
+
+        // 1. DYNAMIC CROWD SIZE
+        // Starts at 7, grows by 1 every 2 shifts, caps at 25 for massive chaos
+        this.maxPatrons = Math.min(25, 7 + Math.floor(this.shift / 2));
+
+        // 2. DYNAMIC SPAWN RATE
+        // Starts at 3.5s, gets 0.15s faster every shift, caps at a brutal 1.5s
+        let baseSpawn = Math.max(1.5, 3.5 - (this.shift * 0.15));
+        this.spawnInterval = (mod === 'crowd_spike') ? Math.max(1.0, baseSpawn * 0.6) : baseSpawn;
+
+        // 3. DYNAMIC PATIENCE
+        // Starts at 45s, loses 1 second per shift, caps at a frantic 15s
+        this.basePatience = Math.max(15, 45 - this.shift);
     }
 
     // Checks if a candidate (x, y) landing spot is safely outside all furniture hitboxes
@@ -415,7 +426,17 @@ class TaproomPhase {
         const dest = this.pickRandomSceneDestination();
         const path = this.buildEntryPath(dest.x, dest.y);
 
-        const patron = new Patron(startX, startY, rosterKey, { ...config, speed: config.speed ? config.speed * 1.5 : 42 });
+        // Inject the dynamically shrinking wait time into the config
+        const finalWaitTime = config.maxWaitTime
+            ? Math.min(config.maxWaitTime, this.basePatience)
+            : this.basePatience;
+
+        const patron = new Patron(startX, startY, rosterKey, {
+            ...config,
+            maxWaitTime: finalWaitTime,
+            speed: config.speed ? config.speed * 1.5 : 42
+        });
+
         patron.groupId = groupId;
         patron.setPath(path);
         this.patrons.push(patron);
@@ -471,7 +492,15 @@ class TaproomPhase {
                 if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
                     progressionState.advanceShift();
                 }
+
                 this.shutdown();
+
+                // --- CONTINUOUS SAVE INJECTED HERE ---
+                if (typeof window.savePlayerStateToPi === 'function') {
+                    console.log("[Progression] Shift complete. Saving ledger to Pi...");
+                    window.savePlayerStateToPi();
+                }
+
                 gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
             }
             return;

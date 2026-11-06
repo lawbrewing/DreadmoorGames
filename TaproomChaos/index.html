@@ -30,6 +30,10 @@
             height: 100dvh;
             position: fixed;
             inset: 0;
+            /* ADD THESE THREE LINES: */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
         }
 
         #gameContainer {
@@ -48,8 +52,9 @@
             inset: 0;
             width: 100% !important;
             height: 100% !important;
-            object-fit: fill !important; /* Stretches full 1280x720 edge-to-edge without cropping or touch offset */
+            object-fit: contain !important; /* FIXED: Keeps the 1280x720 aspect ratio perfect */
             display: block;
+            margin: auto; /* Ensures it stays perfectly centered */
         }
 
         /* --- PORTRAIT MODE WARNING --- */

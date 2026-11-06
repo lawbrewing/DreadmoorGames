@@ -1,13 +1,11 @@
-// js/core/input.js
 class InputManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.isDragging = false;
-
         this.bindEvents();
     }
 
-    // Normalizes mouse and touch coordinates to match our internal 1280x720 canvas size
+    // Normalizes mouse and touch coordinates to match the CSS physical boundaries
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
 
@@ -18,12 +16,11 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        const scaleX = this.canvas.width / (rect.width || 1280);
-        const scaleY = this.canvas.height / (rect.height || 720);
-
+        // Because main.js now scales the context by the devicePixelRatio, 
+        // the logical drawing coordinates map 1:1 with the CSS client rect.
         return {
-            x: (clientX - rect.left) * scaleX, // Fixed missing minus sign
-            y: (clientY - rect.top) * scaleY   // Fixed missing minus sign
+            x: clientX - rect.left,
+            y: clientY - rect.top
         };
     }
 
@@ -32,12 +29,16 @@ class InputManager {
         const handleStart = (e) => {
             const pos = this.getPointerPos(e);
 
+            // Map the height to the logical CSS height, not the raw DPI height
+            const dpr = window.devicePixelRatio || 1;
+            const logicalHeight = this.canvas.height / dpr;
+
             // ==========================================
             // TAPROOM AMMO QUICK-CYCLE INTERCEPT
             // ==========================================
             if (typeof currentState !== 'undefined' && currentState === 'TAPROOM') {
-                // Check if click hits the ammo box (Bottom Left: x: 20-100, y: canvas.height - 80 to height)
-                if (pos.x >= 20 && pos.x <= 100 && pos.y >= this.canvas.height - 80 && pos.y <= this.canvas.height) {
+                // Check if click hits the ammo box (Bottom Left: x: 20-100, y: height - 80 to height)
+                if (pos.x >= 20 && pos.x <= 100 && pos.y >= logicalHeight - 80 && pos.y <= logicalHeight) {
                     if (typeof taproomPhase !== 'undefined' && typeof playerState !== 'undefined' && playerState.ammo) {
                         let currentIdx = taproomPhase.selectedAmmoIndex || 0;
                         let nextIdx = (currentIdx + 1) % playerState.ammo.length;
@@ -61,7 +62,9 @@ class InputManager {
             }
 
             this.isDragging = true;
-            gameEvents.emit('DRAG_START', pos);
+            if (typeof gameEvents !== 'undefined') {
+                gameEvents.emit('DRAG_START', pos);
+            }
         };
 
         this.canvas.addEventListener('mousedown', handleStart);
@@ -74,7 +77,9 @@ class InputManager {
         const handleMove = (e) => {
             if (!this.isDragging) return;
             const pos = this.getPointerPos(e);
-            gameEvents.emit('DRAG_MOVE', pos);
+            if (typeof gameEvents !== 'undefined') {
+                gameEvents.emit('DRAG_MOVE', pos);
+            }
         };
 
         this.canvas.addEventListener('mousemove', handleMove);
@@ -89,7 +94,9 @@ class InputManager {
             this.isDragging = false;
 
             const pos = this.getPointerPos(e);
-            gameEvents.emit('DRAG_END', pos);
+            if (typeof gameEvents !== 'undefined') {
+                gameEvents.emit('DRAG_END', pos);
+            }
         };
 
         window.addEventListener('mouseup', handleEnd);

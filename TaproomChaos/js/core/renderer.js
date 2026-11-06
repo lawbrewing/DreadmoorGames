@@ -1260,39 +1260,39 @@ class GameRenderer {
         // --- DYNAMIC SHIFT NOTIFICATIONS ---
         const served = state.patronsServed || 0;
         const quota = state.shiftQuota || 10;
-
+        
         ctx.save();
         ctx.textAlign = 'center';
 
-        if (timeLeft === 0) {
+        if (timeLeft <= 0) {
             // 1. Shift Complete Banner
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.shadowColor = '#3b82f6';
             ctx.shadowBlur = 15;
             ctx.font = 'bold 22px Oswald';
-            ctx.fillText("⏳ SHIFT ENDED! CLOSING TABS...", w / 2, 60);
+            ctx.fillText("⏳ SHIFT ENDED! CLOSING TABS...", w / 2, 80);
 
         } else if (served >= quota) {
             // 2. Quota Met (Bonus Time)
             const pulse = 0.5 + 0.5 * Math.sin(time * 6);
-            ctx.fillStyle = `rgba(34, 197, 94, ${0.85 + pulse * 0.15})`;
+            ctx.fillStyle = `rgba(34, 197, 94, ${0.85 + (pulse * 0.15)})`;
             ctx.shadowColor = '#4ade80';
             ctx.shadowBlur = 10 * pulse;
-            ctx.font = 'bold 16px Oswald';
-            ctx.fillText(`🔥 QUOTA MET! (${served}/${quota}) - BONUS TIME! 🔥`, w / 2, 60);
+            ctx.font = 'bold 18px Oswald';
+            ctx.fillText(`🔥 QUOTA MET! (${served}/${quota}) - BONUS TIME! 🔥`, w / 2, 80);
 
         } else if (timeLeft <= 10) {
             // 3. 10 Second Panic (Quota NOT met)
-            const pulse = 0.5 + 0.5 * Math.sin(time * 15); // Faster pulse
-            ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + pulse * 0.15})`;
+            const pulse = 0.5 + 0.5 * Math.sin(time * 15);
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + (pulse * 0.15)})`;
             ctx.shadowColor = '#ef4444';
             ctx.shadowBlur = 12 * pulse;
-            ctx.font = 'bold 18px Oswald';
+            ctx.font = 'bold 20px Oswald';
 
             // Adds a violent screen-shake effect just to the text
-            const shakeX = (Math.random() - 0.5) * 4;
-            const shakeY = (Math.random() - 0.5) * 4;
-            ctx.fillText(`⚠️ HURRY! ${quota - served} MORE TO MEET QUOTA! ⚠️`, (w / 2) + shakeX, 60 + shakeY);
+            const shakeX = (Math.random() - 0.5) * 6;
+            const shakeY = (Math.random() - 0.5) * 6;
+            ctx.fillText(`⚠️ HURRY! ${quota - served} MORE TO MEET QUOTA! ⚠️`, (w / 2) + shakeX, 80 + shakeY);
         }
         ctx.restore();
 
@@ -1842,15 +1842,40 @@ class GameRenderer {
 
             const count = kettle.items.length;
             if (count > 0) {
-                const poolStartX = kx + 22;
-                const poolWidth = kw - 110;
-                const tileW = Math.min(44, Math.floor(poolWidth / count) - 2);
-                const spacing = Math.min(44, Math.floor(poolWidth / count));
+                const poolStartX = kx + 24;
+                const poolWidth = kw - 100;
+                // Calculate dynamic spacing, centering the ingredients if there are only a few
+                const spacing = Math.min(35, poolWidth / Math.max(1, count - 1));
+                const offsetX = poolStartX + (poolWidth - (count - 1) * spacing) / 2;
 
                 kettle.items.forEach((item, index) => {
-                    const itemX = poolStartX + (index * spacing);
-                    const bobY = ky + 28 + Math.sin(time * 4 + index) * 2.5;
-                    this.drawIngredientTile(itemX, bobY, Math.max(30, tileW), item, true, { time });
+                    // Center the icon coordinates
+                    const cx = (count === 1) ? poolStartX + poolWidth / 2 : offsetX + (index * spacing);
+                    const cy = ky + 24 + Math.sin(time * 3 + index) * 3;
+
+                    const level = this.getIngredientLevel(item);
+
+                    // Map vibrant colors directly to the categories so the icons pop
+                    const catColors = {
+                        'Water': '#38bdf8',
+                        'Grain': '#facc15',
+                        'Adjunct': '#f8fafc',
+                        'Yeast': '#a3e635',
+                        'Hops': '#4ade80',
+                        'Specialty': '#c084fc'
+                    };
+                    const color = catColors[item.category] || '#ffffff';
+
+                    this.ctx.save();
+                    // 1. Draw a dark liquid shadow behind the icon to separate it from the wort
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // 2. Draw ONLY the raw vector icon, bypassing the bulky tile background and text
+                    this.drawCustomIcon(cx, cy, item.category, item.name, color, 0.9, level || 1);
+                    this.ctx.restore();
                 });
 
                 this.ctx.fillStyle = '#e4e4e7';
@@ -2342,7 +2367,9 @@ class GameRenderer {
     drawIngredientTile(x, y, size, item, isMini = false, opts = {}) {
         const ctx = this.ctx;
         const time = opts.time || (Date.now() / 1000);
-        const pad = isMini ? 3.5 : 4.5;
+
+        // REDUCED PADDING: from 4.5 down to 2 for massive space gains
+        const pad = isMini ? 1.5 : 2.0;
         const tx = x + pad;
         const ty = y + pad;
         const s = size - (pad * 2);
@@ -2480,8 +2507,9 @@ class GameRenderer {
             ctx.stroke();
         }
 
-        const iconY = isMini ? ty + (s / 2) - 4 : ty + (s * 0.40);
-        const iconScale = isMini ? 0.62 : 1.1;
+        // INCREASED ICON SCALE: from 1.1 up to 1.35
+        const iconY = isMini ? ty + (s / 2) - 2 : ty + (s * 0.42);
+        const iconScale = isMini ? 0.75 : 1.35;
         this.drawCustomIcon(tx + (s / 2), iconY, item.category, item.name, pal.icon, iconScale, level || 1);
 
         if (!isMini) {
@@ -2540,18 +2568,18 @@ class GameRenderer {
         ctx.fillStyle = isMaxTier ? '#fef08a' : '#f8fafc';
         ctx.textAlign = 'center';
         if (isMini) {
-            ctx.font = 'bold 8px Inter';
+            ctx.font = 'bold 10px Inter'; // Bumped from 8px
             ctx.fillText(item.name.substring(0, 7), tx + (s / 2), ty + s - 5.5);
         } else {
-            ctx.font = 'bold 13.5px Inter';
+            ctx.font = 'bold 15px Inter'; // Bumped from 13.5px
             const words = item.name.split(' ');
             if (words.length > 1) {
-                ctx.fillText(words[0], tx + (s / 2), bannerY + 15);
+                ctx.fillText(words[0], tx + (s / 2), bannerY + 14);
                 ctx.fillStyle = '#e4e4e7';
-                ctx.font = 'bold 12px Inter';
-                ctx.fillText(words.slice(1).join(' '), tx + (s / 2), bannerY + 27);
+                ctx.font = 'bold 14px Inter'; // Bumped from 12px
+                ctx.fillText(words.slice(1).join(' '), tx + (s / 2), bannerY + 28);
             } else {
-                ctx.fillText(item.name, tx + (s / 2), bannerY + 21);
+                ctx.fillText(item.name, tx + (s / 2), bannerY + 22);
             }
         }
 
