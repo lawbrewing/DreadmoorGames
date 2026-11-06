@@ -2,11 +2,13 @@
 
 class BrewingPhase {
     constructor() {
-        // HUGE MOBILE TILES (125px) AND WIDER 6-COLUMN GRID
+        // BALANCED MOBILE TILES (110px) AND WIDER 6-COLUMN GRID
         this.cols = 6;
         this.rows = 4;
-        this.tileSize = 125;
-        this.gridOffset = { x: 290, y: 55 };
+        this.tileSize = 110;
+
+        // Shifted left and down to create breathing room
+        this.gridOffset = { x: 190, y: 80 };
 
         this.grid = [];
         this.isActive = false;
@@ -15,23 +17,24 @@ class BrewingPhase {
         this.currentMergeCombo = 0;
         this.activeOrders = [];
 
-        // DODGE THE MENU BUTTON: Leave x:30, y:55 completely empty
+        // Sacks moved left (x: 20 and x: 100) and made taller (h: 120)
         this.sacks = [
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 155, y: 55, w: 105, h: 110, color: '#eab308' },
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 30, y: 185, w: 105, h: 110, color: '#3b82f6' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 155, y: 185, w: 105, h: 110, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 30, y: 315, w: 105, h: 110, color: '#d9f99d' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 155, y: 315, w: 105, h: 110, color: '#a855f7' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 30, y: 445, w: 105, h: 110, color: '#f97316' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: 20, y: 80, w: 75, h: 120, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 100, y: 80, w: 75, h: 120, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 20, y: 215, w: 75, h: 120, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 100, y: 215, w: 75, h: 120, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 20, y: 350, w: 75, h: 120, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 100, y: 350, w: 75, h: 120, color: '#a855f7' }
         ];
 
-        // 1-Tile Floor Drain in the bottom right slot
-        this.drain = { x: 155, y: 445, w: 105, h: 110 };
+        // Drain positioned cleanly below the sacks
+        this.drain = { x: 20, y: 485, w: 155, h: 55 };
 
+        // Taller Kettles (h: 135) shifted down to anchor the bottom of the screen
         this.kettles = [
-            { x: 30, y: 568, w: 320, h: 110, btnX: 250, btnY: 598, btnW: 86, btnH: 52, items: [] },
-            { x: 380, y: 568, w: 320, h: 110, btnX: 600, btnY: 598, btnW: 86, btnH: 52, items: [] },
-            { x: 730, y: 568, w: 320, h: 110, btnX: 950, btnY: 598, btnW: 86, btnH: 52, items: [] }
+            { x: 190, y: 555, w: 320, h: 135, btnX: 410, btnY: 590, btnW: 86, btnH: 52, items: [] },
+            { x: 530, y: 555, w: 320, h: 135, btnX: 750, btnY: 590, btnW: 86, btnH: 52, items: [] },
+            { x: 870, y: 555, w: 320, h: 135, btnX: 1090, btnY: 590, btnW: 86, btnH: 52, items: [] }
         ];
 
         this.resetGrid();
