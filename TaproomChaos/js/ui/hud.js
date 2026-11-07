@@ -239,7 +239,7 @@ class GameHUD {
                 this.taproomHUD.classList.remove('open');
             }
             if (this.brewingHUD) {
-                this.brewingHUD.classList.add('open');
+                this.brewingHUD.classList.remove('open');
             }
             if (this.btnToggleHUD) {
                 this.btnToggleHUD.innerText = '✕ CLOSE';

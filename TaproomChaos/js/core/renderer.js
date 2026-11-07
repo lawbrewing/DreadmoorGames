@@ -1423,8 +1423,9 @@ class GameRenderer {
     // --- BREWING RENDERING (DEEP VISUAL & MERGE OVERHAUL) ---
     drawBrewing(state) {
         const ctx = this.ctx;
-        const w = window.GAME_WIDTH || 1280;
-        const h = window.GAME_HEIGHT || 720;
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Lock 1:1 coordinate transform
+        const w = this.canvas.width;
+        const h = this.canvas.height;
         const time = Date.now() / 1000;
 
         if (!this.brewMergeEffects) this.brewMergeEffects = [];
@@ -2241,12 +2242,14 @@ class GameRenderer {
         });
     }
 
-    // --- INDUSTRIAL DISPENSER HOPPERS & SACKS ---
+    // --- INDUSTRIAL DISPENSER HOPPERS & SACKS (DYNAMICALLY SCALED) ---
     drawGeneratorSack(sack, time = Date.now() / 1000) {
         const ctx = this.ctx;
         const { x, y, w, h, category, color, cost } = sack;
+        const labelH = Math.round(h * 0.30);
         const cx = x + (w / 2);
-        const cy = y + 32;
+        const cy = y + ((h - labelH) / 2) + 2;
+        const iconScale = Math.min(w / 88, h / 105) * 1.15;
 
         ctx.save();
 
@@ -2269,116 +2272,131 @@ class GameRenderer {
         ctx.shadowColor = 'transparent';
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-        [[x + 6, y + 6], [x + w - 6, y + 6]].forEach(([rx, ry]) => {
-            ctx.beginPath(); ctx.arc(rx, ry, 1.8, 0, Math.PI * 2); ctx.fill();
+        [[x + 8, y + 8], [x + w - 8, y + 8]].forEach(([rx, ry]) => {
+            ctx.beginPath();
+            ctx.arc(rx, ry, 2.2, 0, Math.PI * 2);
+            ctx.fill();
         });
 
-        const glowGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 26);
-        glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+        const glowRadius = Math.round(28 * iconScale);
+        const glowGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, glowRadius);
+        glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
         glowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
         ctx.fillStyle = glowGrad;
-        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Scale vector icon artwork proportionally inside the upper hopper area
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(iconScale, iconScale);
 
         if (category === 'Water') {
             ctx.strokeStyle = '#60a5fa';
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(cx - 16, cy - 6);
-            ctx.lineTo(cx + 4, cy - 6);
-            ctx.quadraticCurveTo(cx + 12, cy - 6, cx + 12, cy + 4);
+            ctx.moveTo(-16, -6);
+            ctx.lineTo(4, -6);
+            ctx.quadraticCurveTo(12, -6, 12, 4);
             ctx.stroke();
 
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(cx - 5, cy - 14);
-            ctx.lineTo(cx + 9, cy - 14);
+            ctx.moveTo(-5, -14);
+            ctx.lineTo(9, -14);
             ctx.stroke();
 
             const dropOffset = (time * 18) % 9;
             ctx.fillStyle = '#38bdf8';
             ctx.beginPath();
-            ctx.arc(cx + 12, cy + 8 + dropOffset, 3.8, 0, Math.PI * 2);
+            ctx.arc(12, 8 + dropOffset, 3.8, 0, Math.PI * 2);
             ctx.fill();
         } else if (category === 'Grain' || category === 'Adjunct') {
             ctx.fillStyle = category === 'Grain' ? '#a16207' : '#9a3412';
             ctx.strokeStyle = '#1c1917';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(cx - 18, cy - 6, 36, 24, 6);
+            ctx.roundRect(-18, -6, 36, 24, 6);
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.ellipse(cx, cy - 6, 16, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, -6, 16, 6, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
             ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
             ctx.lineWidth = 1.2;
             ctx.beginPath();
-            ctx.moveTo(cx - 12, cy + 6);
-            ctx.lineTo(cx + 12, cy + 6);
+            ctx.moveTo(-12, 6);
+            ctx.lineTo(12, 6);
             ctx.stroke();
         } else if (category === 'Yeast') {
             ctx.fillStyle = 'rgba(163, 230, 53, 0.25)';
             ctx.strokeStyle = '#d9f99d';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(cx - 13, cy - 10, 26, 26, 5);
+            ctx.roundRect(-13, -10, 26, 26, 5);
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = '#a3e635';
-            ctx.fillRect(cx - 11, cy + 2, 22, 12);
+            ctx.fillRect(-11, 2, 22, 12);
 
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(cx - 4, cy + 6 - ((time * 12) % 10), 2, 0, Math.PI * 2);
+            ctx.arc(-4, 6 - ((time * 12) % 10), 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(cx + 5, cy + 8 - ((time * 15 + 4) % 10), 1.6, 0, Math.PI * 2);
+            ctx.arc(5, 8 - ((time * 15 + 4) % 10), 1.6, 0, Math.PI * 2);
             ctx.fill();
         } else if (category === 'Hops') {
             ctx.fillStyle = '#14532d';
             ctx.strokeStyle = '#4ade80';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(cx - 16, cy - 10, 32, 24, 4);
+            ctx.roundRect(-16, -10, 32, 24, 4);
             ctx.fill();
             ctx.stroke();
-            this.drawCustomIcon(cx, cy + 2, 'Hops', 'Citra', '#4ade80', 0.65, 3);
+            this.drawCustomIcon(0, 2, 'Hops', 'Citra', '#4ade80', 0.65, 3);
         } else {
             ctx.fillStyle = '#4c1d95';
             ctx.strokeStyle = '#c084fc';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(cx - 17, cy - 10, 34, 24, 4);
+            ctx.roundRect(-17, -10, 34, 24, 4);
             ctx.fill();
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(cx - 15, cy - 8);
-            ctx.lineTo(cx + 15, cy + 12);
+            ctx.moveTo(-15, -8);
+            ctx.lineTo(15, 12);
             ctx.stroke();
             ctx.fillStyle = '#facc15';
-            ctx.beginPath(); ctx.arc(cx, cy + 2, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 2, 4, 0, Math.PI * 2);
+            ctx.fill();
         }
+        ctx.restore();
 
-        ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+        // Scaled bottom label badge
+        const labelY = y + h - labelH - 5;
+        ctx.fillStyle = 'rgba(9, 9, 11, 0.90)';
         ctx.beginPath();
-        ctx.roundRect(x + 4, y + h - 31, w - 8, 27, 7);
+        ctx.roundRect(x + 5, labelY, w - 10, labelH, 8);
         ctx.fill();
 
         ctx.fillStyle = '#f4f4f5';
-        ctx.font = 'bold 10.5px Inter';
+        ctx.font = 'bold 15px Oswald';
         ctx.textAlign = 'center';
-        ctx.fillText(category.toUpperCase(), cx, y + h - 18);
+        ctx.fillText(category.toUpperCase(), cx, labelY + Math.round(labelH * 0.46));
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 11px Inter';
-        ctx.fillText(`$${cost.toFixed(2)}`, cx, y + h - 6);
+        ctx.font = 'bold 14px Inter';
+        ctx.fillText(`$${cost.toFixed(2)}`, cx, labelY + Math.round(labelH * 0.86));
 
         ctx.restore();
     }

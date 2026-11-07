@@ -143,10 +143,21 @@ class BrewingPhase {
     spawnItem(category) {
         const emptyCell = this.findEmptyCell();
         if (emptyCell) {
-            const itemName = gameRecipes.getRandomDrop(category);
+            let itemName = null;
+            if (typeof gameRecipes !== 'undefined') {
+                if (typeof gameRecipes.getRandomDrop === 'function') {
+                    const drop = gameRecipes.getRandomDrop(category);
+                    itemName = (drop && typeof drop === 'object') ? drop.name : drop;
+                }
+                if (category !== 'Specialty' && gameRecipes.chains && Array.isArray(gameRecipes.chains[category])) {
+                    if (!itemName || !gameRecipes.chains[category].includes(itemName)) {
+                        itemName = gameRecipes.chains[category][0];
+                    }
+                }
+            }
             this.grid[emptyCell.row][emptyCell.col] = {
                 id: Math.random().toString(),
-                name: itemName,
+                name: itemName || category,
                 category: category
             };
         } else {

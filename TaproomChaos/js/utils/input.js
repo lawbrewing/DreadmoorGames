@@ -9,7 +9,6 @@ class InputManager {
 
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
 
         const touch = (evt.touches && evt.touches.length > 0)
             ? evt.touches[0]
@@ -18,28 +17,25 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // Failsafe logical dimensions so scale can NEVER become NaN
-        const logicalW = window.GAME_WIDTH || (this.canvas.width / dpr) || 1280;
-        const logicalH = window.GAME_HEIGHT || (this.canvas.height / dpr) || 720;
-
         const safeWidth = Math.max(1, rect.width);
         const safeHeight = Math.max(1, rect.height);
 
-        const offsetX = clientX - rect.left;
-        const offsetY = clientY - rect.top;
+        const scaleX = this.canvas.width / safeWidth;
+        const scaleY = this.canvas.height / safeHeight;
 
         return {
-            x: offsetX * (logicalW / safeWidth),
-            y: offsetY * (logicalH / safeHeight)
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
     bindEvents() {
         // --- START DRAG / CLICK ---
         const handleStart = (e) => {
-            // If an HTML HUD drawer is open, tapping the canvas outside of it closes it cleanly
             const brewDrawer = document.getElementById('brewingHUD');
             const tapDrawer = document.getElementById('taproomHUD');
+
+            // If an HTML HUD drawer is open, tapping the canvas outside of it closes it
             if ((brewDrawer && brewDrawer.classList.contains('open')) ||
                 (tapDrawer && tapDrawer.classList.contains('open'))) {
                 if (brewDrawer) brewDrawer.classList.remove('open');
@@ -52,12 +48,14 @@ class InputManager {
             // ==========================================
             // NATIVE CANVAS MENU BUTTON (TOP-LEFT)
             // ==========================================
-            const menuW = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn) ? brewingPhase.menuBtn.w : 140;
-            const menuH = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn) ? brewingPhase.menuBtn.h : 48;
-            if (pos.x >= 14 && pos.x <= 14 + menuW && pos.y >= 12 && pos.y <= 12 + menuH) {
-                const toggleBtn = document.getElementById('btnToggleHUD');
-                if (toggleBtn) {
-                    toggleBtn.click();
+            const mBtn = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn)
+                ? brewingPhase.menuBtn
+                : { x: 14, y: 12, w: 240, h: 48 };
+
+            if (pos.x >= mBtn.x && pos.x <= mBtn.x + mBtn.w &&
+                pos.y >= mBtn.y && pos.y <= mBtn.y + mBtn.h) {
+                if (typeof hud !== 'undefined' && typeof hud.toggleActiveDrawer === 'function') {
+                    hud.toggleActiveDrawer();
                 } else if (typeof currentState !== 'undefined' && currentState === 'TAPROOM' && tapDrawer) {
                     tapDrawer.classList.toggle('open');
                 } else if (brewDrawer) {

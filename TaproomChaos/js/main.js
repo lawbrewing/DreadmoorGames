@@ -5,20 +5,18 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 function setupCanvas() {
-    const dpr = window.devicePixelRatio || 1;
     const screenW = Math.max(320, window.innerWidth);
     const screenH = Math.max(240, window.innerHeight);
     const aspect = screenW / screenH;
 
-    // Lock vertical physics to 720p, expand horizontal width to match exact device aspect ratio
+    // 1:1 Logical Canvas Buffer (Eliminates all DPI double-scaling desyncs)
     window.GAME_HEIGHT = 720;
     window.GAME_WIDTH = Math.max(1280, Math.round(720 * aspect));
 
-    canvas.width = window.GAME_WIDTH * dpr;
-    canvas.height = window.GAME_HEIGHT * dpr;
+    canvas.width = window.GAME_WIDTH;
+    canvas.height = window.GAME_HEIGHT;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
 
     if (typeof brewingPhase !== 'undefined' && typeof brewingPhase.calculateLayout === 'function') {
         brewingPhase.calculateLayout();
