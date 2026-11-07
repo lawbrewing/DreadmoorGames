@@ -176,6 +176,24 @@
             font-size: clamp(14px, 1.8vw, 18px);
             padding: 12px;
         }
+        /* --- THE SHIELD PIERCERS --- */
+        /* 1. Kill invisible backgrounds and wrappers from eating clicks */
+        .noise-overlay,
+        #gameContainer {
+            pointer-events: none !important;
+        }
+
+        /* 2. Explicitly reactivate clicks ONLY on the canvas and interactive UI */
+        canvas#gameCanvas,
+        #btnToggleHUD,
+        #brewingHUD.open,
+        #taproomHUD.open,
+        #recipeBookOverlay,
+        #gameOverScreen,
+        #startScreen,
+        #startScreen * {
+            pointer-events: auto !important;
+        }
     </style>
 </head>
 <body>
