@@ -8,9 +8,9 @@ function setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const aspect = window.innerWidth / window.innerHeight;
 
-    // Height is ALWAYS 720. Width stretches to fill the phone exactly!
+    // Lock vertical physics to 720, but dynamically stretch the horizontal grid to fill the Pixel 10
     window.GAME_HEIGHT = 720;
-    window.GAME_WIDTH = Math.round(720 * aspect);
+    window.GAME_WIDTH = Math.max(1280, Math.round(720 * aspect));
 
     canvas.width = window.GAME_WIDTH * dpr;
     canvas.height = window.GAME_HEIGHT * dpr;
@@ -19,8 +19,6 @@ function setupCanvas() {
 
 // Run immediately and re-run if the user resizes the browser window
 setupCanvas();
-window.addEventListener('resize', setupCanvas);
-
 
 // Initialize Systems
 const renderer = new GameRenderer(canvas, ctx);
@@ -130,7 +128,8 @@ gameEvents.on('PATRON_ANGRY', (pos) => {
         if (typeof taproomPhase !== 'undefined' && taproomPhase.floatingTexts) {
             taproomPhase.floatingTexts.push({
                 text: `-$${penalty.toFixed(2)}`,
-                x: pos && pos.x ? pos.x : 640, // Defaults to center if pos is missing
+                // UPDATE THIS LINE to dynamically find the center of the ultrawide screen
+                x: pos && pos.x ? pos.x : (window.GAME_WIDTH || 1280) / 2,
                 y: pos && pos.y ? pos.y - 40 : 360,
                 life: 2.0,
                 color: '#ef4444'
@@ -141,7 +140,7 @@ gameEvents.on('PATRON_ANGRY', (pos) => {
         if (typeof window.hud !== 'undefined' && typeof window.hud.update === 'function') {
             window.hud.update();
         } else if (typeof gameEvents !== 'undefined') {
-            gameEvents.emit('UI_UPDATE'); // Fallback if your engine relies on events to update the HUD
+            gameEvents.emit('UI_UPDATE');
         }
     }
 });

@@ -2079,48 +2079,49 @@ class GameRenderer {
         }
 
         // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE
-        const boardX = (window.GAME_WIDTH || 1280) - 245;
-        const boardY = 70;
-        const boardW = 225;
+        const screenW = window.GAME_WIDTH || 1280;
+        const boardW = 350;
+        const boardX = screenW - boardW - 20; // Anchors exactly 20px from the far right edge
+        const boardY = 15;
         const boardMid = boardX + (boardW / 2);
 
         ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
         ctx.strokeStyle = '#3f3f46';
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(boardX, boardY, boardW, 470, 8); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.roundRect(boardX, boardY, boardW, 350, 12); ctx.fill(); ctx.stroke();
 
         ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 20px Oswald';
+        ctx.font = 'bold 26px Oswald';
         ctx.textAlign = 'center';
-        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 32);
+        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 40);
         ctx.fillStyle = '#a1a1aa';
-        ctx.fillRect(boardX + 12, boardY + 45, boardW - 24, 2);
+        ctx.fillRect(boardX + 15, boardY + 55, boardW - 30, 2);
 
         if (state.activeOrders && state.activeOrders.length > 0) {
             state.activeOrders.forEach((order, i) => {
-                const oy = boardY + 85 + (i * 170);
+                const oy = boardY + 95 + (i * 150);
 
                 ctx.fillStyle = '#4ade80';
-                ctx.font = 'bold 16px Inter';
+                ctx.font = 'bold 22px Inter';
                 ctx.fillText(`+ $${order.bounty.toFixed(2)} BOUNTY`, boardMid, oy);
 
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 15px Inter';
-                ctx.fillText(order.name, boardMid, oy + 24, boardW - 16);
+                ctx.font = 'bold 20px Inter';
+                ctx.fillText(order.name, boardMid, oy + 28, boardW - 20);
 
                 ctx.fillStyle = '#38bdf8';
-                ctx.font = '13px Inter';
+                ctx.font = '15px Inter';
 
                 const words = order.hint.split(' ');
                 let line = '';
-                let hintY = oy + 48;
+                let hintY = oy + 54;
 
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
-                    if (ctx.measureText(testLine).width > boardW - 20 && n > 0) {
+                    if (ctx.measureText(testLine).width > boardW - 30 && n > 0) {
                         ctx.fillText(line.trim(), boardMid, hintY);
                         line = words[n] + ' ';
-                        hintY += 18;
+                        hintY += 20;
                     } else {
                         line = testLine;
                     }
@@ -2129,13 +2130,13 @@ class GameRenderer {
 
                 if (i === 0) {
                     ctx.fillStyle = '#3f3f46';
-                    ctx.fillRect(boardX + 20, hintY + 20, boardW - 40, 1.5);
+                    ctx.fillRect(boardX + 30, hintY + 20, boardW - 60, 2);
                 }
             });
         } else {
             ctx.fillStyle = '#71717a';
-            ctx.font = 'italic 16px Inter';
-            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 240);
+            ctx.font = 'italic 20px Inter';
+            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 180);
         }
     }
 
