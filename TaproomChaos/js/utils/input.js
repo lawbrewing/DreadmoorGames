@@ -5,7 +5,6 @@ class InputManager {
         this.bindEvents();
     }
 
-    // Normalizes mouse and touch coordinates to match the 1280x720 logical game grid
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
 
@@ -16,13 +15,12 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // Map the physical CSS click directly back to the 1280x720 logical game grid
-        const scaleX = 1280 / rect.width;
-        const scaleY = 720 / rect.height;
+        // Because height is fixed to 720 internally and 100dvh visually, scale is a perfect ratio
+        const scale = rect.height / 720;
 
         return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
+            x: (clientX - rect.left) / scale,
+            y: (clientY - rect.top) / scale
         };
     }
 

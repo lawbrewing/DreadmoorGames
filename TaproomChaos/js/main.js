@@ -6,12 +6,14 @@ const ctx = canvas.getContext('2d');
 
 function setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
+    const aspect = window.innerWidth / window.innerHeight;
 
-    // Lock internal resolution to the game's exact 1280x720 grid, multiplied by Retina DPI
-    canvas.width = 1280 * dpr;
-    canvas.height = 720 * dpr;
+    // Height is ALWAYS 720. Width stretches to fill the phone exactly!
+    window.GAME_HEIGHT = 720;
+    window.GAME_WIDTH = Math.round(720 * aspect);
 
-    // Scale the drawing context so the 1280x720 logic remains razor-sharp
+    canvas.width = window.GAME_WIDTH * dpr;
+    canvas.height = window.GAME_HEIGHT * dpr;
     ctx.scale(dpr, dpr);
 }
 

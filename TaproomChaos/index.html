@@ -49,9 +49,10 @@
         }
 
         canvas {
-            /* Automatically fills the max 16:9 area without stretching the hitboxes! */
-            width: min(100dvw, calc(100dvh * 16 / 9)) !important;
-            height: min(100dvh, calc(100dvw * 9 / 16)) !important;
+            position: absolute;
+            inset: 0;
+            width: 100dvw !important;
+            height: 100dvh !important;
             display: block;
         }
 

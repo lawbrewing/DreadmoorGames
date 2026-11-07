@@ -2,13 +2,37 @@
 
 class BrewingPhase {
     constructor() {
-        // 6 COLUMNS x 4 ROWS (115px tiles = 690px wide grid)
         this.cols = 6;
         this.rows = 4;
         this.tileSize = 115;
 
-        // Positioned cleanly in the center-left space (x: 300 to 990)
-        this.gridOffset = { x: 300, y: 70 };
+        // Dynamically get the screen width (fallback to 1280 for safety)
+        const screenW = window.GAME_WIDTH || 1280;
+        const centerX = screenW / 2;
+
+        // 1. CENTER THE GRID (690px total width)
+        this.gridOffset = { x: centerX - 345, y: 70 };
+
+        // 2. ANCHOR SACKS TO THE LEFT OF THE GRID
+        const leftAnchor = this.gridOffset.x - 265;
+        this.sacks = [
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: leftAnchor, y: 80, w: 110, h: 100, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: leftAnchor + 125, y: 80, w: 110, h: 100, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: leftAnchor, y: 195, w: 110, h: 100, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: leftAnchor + 125, y: 195, w: 110, h: 100, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: leftAnchor, y: 310, w: 110, h: 100, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: leftAnchor + 125, y: 310, w: 110, h: 100, color: '#a855f7' }
+        ];
+
+        this.drain = { x: leftAnchor, y: 430, w: 235, h: 75 };
+
+        // 3. DISTRIBUTE KETTLES EVENLY ACROSS THE WIDE SCREEN
+        const kSpace = screenW / 3;
+        this.kettles = [
+            { x: (kSpace * 0.5) - 187, y: 560, w: 375, h: 135, btnX: (kSpace * 0.5) + 73, btnY: 595, btnW: 95, btnH: 60, items: [] },
+            { x: (kSpace * 1.5) - 187, y: 560, w: 375, h: 135, btnX: (kSpace * 1.5) + 73, btnY: 595, btnW: 95, btnH: 60, items: [] },
+            { x: (kSpace * 2.5) - 187, y: 560, w: 375, h: 135, btnX: (kSpace * 2.5) + 73, btnY: 595, btnW: 95, btnH: 60, items: [] }
+        ];
 
         this.grid = [];
         this.isActive = false;
@@ -16,27 +40,6 @@ class BrewingPhase {
         this.floatingTexts = [];
         this.currentMergeCombo = 0;
         this.activeOrders = [];
-
-        // 6 GENERATOR SACKS (Stacked neatly on the left side: x: 25 & x: 145)
-        this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 25, y: 80, w: 110, h: 100, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 150, y: 80, w: 110, h: 100, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 25, y: 195, w: 110, h: 100, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 150, y: 195, w: 110, h: 100, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 25, y: 310, w: 110, h: 100, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 150, y: 310, w: 110, h: 100, color: '#a855f7' }
-        ];
-
-        // FLOOR DRAIN (Positioned under the sacks on the left)
-        this.drain = { x: 25, y: 430, w: 235, h: 75 };
-
-        // 3 BREW KETTLES (Distributed evenly across the bottom)
-        this.kettles = [
-            { x: 35, y: 560, w: 375, h: 135, btnX: 295, btnY: 595, btnW: 95, btnH: 60, items: [] },
-            { x: 452, y: 560, w: 375, h: 135, btnX: 712, btnY: 595, btnW: 95, btnH: 60, items: [] },
-            { x: 870, y: 560, w: 375, h: 135, btnX: 1130, btnY: 595, btnW: 95, btnH: 60, items: [] }
-        ];
-
         this.resetGrid();
         this.setupEventListeners();
     }

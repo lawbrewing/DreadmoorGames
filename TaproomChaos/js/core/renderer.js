@@ -2079,7 +2079,7 @@ class GameRenderer {
         }
 
         // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE
-        const boardX = 1030;
+        const boardX = (window.GAME_WIDTH || 1280) - 245;
         const boardY = 70;
         const boardW = 225;
         const boardMid = boardX + (boardW / 2);
