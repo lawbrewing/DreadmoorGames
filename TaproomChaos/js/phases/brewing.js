@@ -19,54 +19,64 @@ class BrewingPhase {
 
     // Dynamically calculates the largest, safest layout for ANY device screen
     calculateLayout() {
-        // Height is strictly 720. Width expands based on phone aspect ratio.
         const W = window.GAME_WIDTH || 1280;
         const H = 720;
 
-        // 1. SACKS: Locked to the left, safely below the Menu button
+        // 1. SACKS: Shifted down to y: 140 to completely clear the Menu button!
         const sackPad = 25;
+        const sackW = 100;
+        const sackH = 95; // Slightly compacted to fit 3 rows comfortably
+        const gap = 15;
+
+        const row1 = 140;
+        const row2 = row1 + sackH + gap; // 250
+        const row3 = row2 + sackH + gap; // 360
+        const drainY = row3 + sackH + gap; // 470
+
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: sackPad, y: 100, w: 100, h: 110, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: sackPad + 115, y: 100, w: 100, h: 110, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: sackPad, y: 225, w: 100, h: 110, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: sackPad + 115, y: 225, w: 100, h: 110, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: sackPad, y: 350, w: 100, h: 110, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: sackPad + 115, y: 350, w: 100, h: 110, color: '#a855f7' }
-        ];
-        this.drain = { x: sackPad, y: 475, w: 215, h: 50 };
-
-        // 2. KETTLES: Spread evenly across the ultrawide bottom 
-        const kSpace = W / 3;
-        const kW = Math.min(420, kSpace - 30); // Max width 420px
-
-        // Preserve items during rotation/resize
-        const k1 = (this.kettles && this.kettles[0]) ? this.kettles[0].items : [];
-        const k2 = (this.kettles && this.kettles[1]) ? this.kettles[1].items : [];
-        const k3 = (this.kettles && this.kettles[2]) ? this.kettles[2].items : [];
-
-        this.kettles = [
-            { x: (kSpace * 0.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 0.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k1 },
-            { x: (kSpace * 1.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 1.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k2 },
-            { x: (kSpace * 2.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 2.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k3 }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: sackPad, y: row1, w: sackW, h: sackH, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: sackPad + sackW + gap, y: row1, w: sackW, h: sackH, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: sackPad, y: row2, w: sackW, h: sackH, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: sackPad + sackW + gap, y: row2, w: sackW, h: sackH, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: sackPad, y: row3, w: sackW, h: sackH, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: sackPad + sackW + gap, y: row3, w: sackW, h: sackH, color: '#a855f7' }
         ];
 
-        // 3. CONTRACTS: Locked to the far right edge
+        this.drain = { x: sackPad, y: drainY, w: (sackW * 2) + gap, h: 50 };
+
+        // 2. CONTRACTS: Locked to the far right edge
         this.boardW = 320;
         this.boardX = W - this.boardW - 20;
         this.boardY = 20;
         this.boardH = 500;
 
-        // 4. GRID: Large fixed tiles, perfectly centered in the massive remaining space
-        this.tileSize = 125;
-        const gridW = this.tileSize * this.cols; // 750px wide grid
+        // 3. KETTLES: Placed explicitly in the safe area BETWEEN the drain and the contracts board
+        const kettleAreaStartX = sackPad + (sackW * 2) + gap + 30;
+        const kettleAreaW = this.boardX - kettleAreaStartX;
 
-        const leftBoundary = sackPad + 215;
-        const rightBoundary = this.boardX;
-        const centerSpaceX = leftBoundary + ((rightBoundary - leftBoundary) / 2);
+        const kSpace = kettleAreaW / 3;
+        const kW = Math.min(380, kSpace - 20); // Scales safely without overlapping
+
+        // Preserve items during screen rotation/resize
+        const k1 = (this.kettles && this.kettles[0]) ? this.kettles[0].items : [];
+        const k2 = (this.kettles && this.kettles[1]) ? this.kettles[1].items : [];
+        const k3 = (this.kettles && this.kettles[2]) ? this.kettles[2].items : [];
+
+        this.kettles = [
+            { x: kettleAreaStartX + (kSpace * 0.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 0.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k1 },
+            { x: kettleAreaStartX + (kSpace * 1.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 1.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k2 },
+            { x: kettleAreaStartX + (kSpace * 2.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 2.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k3 }
+        ];
+
+        // 4. GRID: Perfectly centered in the remaining space above the kettles
+        this.tileSize = 120;
+        const gridW = this.tileSize * this.cols;
+
+        const centerSpaceX = kettleAreaStartX + (kettleAreaW / 2);
 
         this.gridOffset = {
             x: centerSpaceX - (gridW / 2),
-            y: 40 // Centered vertically in top area
+            y: 45
         };
     }
 
