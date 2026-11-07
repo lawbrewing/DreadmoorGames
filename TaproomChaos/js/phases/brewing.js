@@ -19,61 +19,54 @@ class BrewingPhase {
 
     // Dynamically calculates the largest, safest layout for ANY device screen
     calculateLayout() {
-        const W = window.GAME_WIDTH || window.innerWidth;
-        const H = window.GAME_HEIGHT || window.innerHeight;
+        // Height is strictly 720. Width expands based on phone aspect ratio.
+        const W = window.GAME_WIDTH || 1280;
+        const H = 720;
 
-        // 1. RIGHT ANCHOR: Contracts Board
-        this.boardW = Math.max(260, Math.min(400, W * 0.28));
-        this.boardX = W - this.boardW - 15;
-        this.boardY = 15;
-        this.boardH = Math.max(350, H - 30);
-
-        // 2. LEFT ANCHOR: Sacks
-        const leftPad = 15;
-        const sackW = Math.max(75, Math.min(125, W * 0.09));
-        const sackH = Math.max(85, Math.min(130, H * 0.16));
-        const sackStartY = 85;
-
+        // 1. SACKS: Locked to the left, safely below the Menu button
+        const sackPad = 25;
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: leftPad, y: sackStartY, w: sackW, h: sackH, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: leftPad + sackW + 10, y: sackStartY, w: sackW, h: sackH, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: leftPad, y: sackStartY + sackH + 10, w: sackW, h: sackH, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: leftPad + sackW + 10, y: sackStartY + sackH + 10, w: sackW, h: sackH, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: leftPad, y: sackStartY + (sackH * 2) + 20, w: sackW, h: sackH, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: leftPad + sackW + 10, y: sackStartY + (sackH * 2) + 20, w: sackW, h: sackH, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: sackPad, y: 100, w: 100, h: 110, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: sackPad + 115, y: 100, w: 100, h: 110, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: sackPad, y: 225, w: 100, h: 110, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: sackPad + 115, y: 225, w: 100, h: 110, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: sackPad, y: 350, w: 100, h: 110, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: sackPad + 115, y: 350, w: 100, h: 110, color: '#a855f7' }
         ];
+        this.drain = { x: sackPad, y: 475, w: 215, h: 50 };
 
-        this.drain = { x: leftPad, y: sackStartY + (sackH * 3) + 30, w: sackW * 2 + 10, h: sackH * 0.5 };
-
-        // 3. BOTTOM ANCHOR: Kettles
-        const kH = Math.max(100, Math.min(150, H * 0.22));
-        const kY = H - kH - 10;
+        // 2. KETTLES: Spread evenly across the ultrawide bottom 
         const kSpace = W / 3;
-        const kW = Math.min(kSpace - 20, 420);
+        const kW = Math.min(420, kSpace - 30); // Max width 420px
 
+        // Preserve items during rotation/resize
         const k1 = (this.kettles && this.kettles[0]) ? this.kettles[0].items : [];
         const k2 = (this.kettles && this.kettles[1]) ? this.kettles[1].items : [];
         const k3 = (this.kettles && this.kettles[2]) ? this.kettles[2].items : [];
 
         this.kettles = [
-            { x: (kSpace * 0.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 0.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k1 },
-            { x: (kSpace * 1.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 1.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k2 },
-            { x: (kSpace * 2.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 2.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k3 }
+            { x: (kSpace * 0.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 0.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k1 },
+            { x: (kSpace * 1.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 1.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k2 },
+            { x: (kSpace * 2.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: (kSpace * 2.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k3 }
         ];
 
-        // 4. CENTER FILL: The Grid
-        const leftBounds = leftPad + (sackW * 2) + 30;
-        const rightBounds = this.boardX - 20;
-        const availableW = rightBounds - leftBounds;
-        const availableH = kY - 80;
+        // 3. CONTRACTS: Locked to the far right edge
+        this.boardW = 320;
+        this.boardX = W - this.boardW - 20;
+        this.boardY = 20;
+        this.boardH = 500;
 
-        this.tileSize = Math.floor(Math.min(availableW / this.cols, availableH / this.rows));
+        // 4. GRID: Large fixed tiles, perfectly centered in the massive remaining space
+        this.tileSize = 125;
+        const gridW = this.tileSize * this.cols; // 750px wide grid
 
-        const actualGridW = this.tileSize * this.cols;
-        const actualGridH = this.tileSize * this.rows;
+        const leftBoundary = sackPad + 215;
+        const rightBoundary = this.boardX;
+        const centerSpaceX = leftBoundary + ((rightBoundary - leftBoundary) / 2);
+
         this.gridOffset = {
-            x: leftBounds + (availableW - actualGridW) / 2,
-            y: 70 + (availableH - actualGridH) / 2
+            x: centerSpaceX - (gridW / 2),
+            y: 40 // Centered vertically in top area
         };
     }
 
@@ -100,6 +93,37 @@ class BrewingPhase {
         }
     }
 
+    // --- PASTE THESE MISSING FUNCTIONS HERE ---
+
+    findEmptyCell() {
+        const emptyCells = [];
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (!this.grid[r][c]) {
+                    emptyCells.push({ row: r, col: c });
+                }
+            }
+        }
+        if (emptyCells.length === 0) return null;
+        return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    }
+
+    spawnItem(category) {
+        const emptyCell = this.findEmptyCell();
+        if (emptyCell) {
+            const itemName = gameRecipes.getRandomDrop(category);
+            this.grid[emptyCell.row][emptyCell.col] = {
+                id: Math.random().toString(),
+                name: itemName,
+                category: category
+            };
+        } else {
+            // Centered popup dynamically based on your new layout
+            this.floatingTexts.push(
+                new FloatingTitle(this.gridOffset.x + ((this.cols * this.tileSize) / 2), this.gridOffset.y - 15, "Grid is Full!", "#ef4444")
+            );
+        }
+    }
 
     setupEventListeners() {
         if (typeof gameEvents === 'undefined') return;

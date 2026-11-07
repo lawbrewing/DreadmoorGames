@@ -6,22 +6,29 @@ const ctx = canvas.getContext('2d');
 
 function setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
+    const aspect = window.innerWidth / window.innerHeight;
 
-    // Engine dimensions now perfectly match the device's actual screen
-    window.GAME_WIDTH = window.innerWidth;
-    window.GAME_HEIGHT = window.innerHeight;
+    // 1. Lock internal physics height to exactly 720
+    window.GAME_HEIGHT = 720;
+
+    // 2. Expand internal width to match the phone's exact aspect ratio
+    window.GAME_WIDTH = Math.max(1280, Math.round(720 * aspect));
 
     canvas.width = window.GAME_WIDTH * dpr;
     canvas.height = window.GAME_HEIGHT * dpr;
-    ctx.scale(dpr, dpr);
 
-    // Force UI to recalculate its layout to fill the new screen size
-    if (typeof brewingPhase !== 'undefined' && brewingPhase.calculateLayout) {
-        brewingPhase.calculateLayout();
-    }
+    // Reset transform to prevent scaling bugs on resize
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 }
 setupCanvas();
-window.addEventListener('resize', setupCanvas);
+
+window.addEventListener('resize', () => {
+    setupCanvas();
+    if (typeof brewingPhase !== 'undefined' && brewingPhase.isActive) {
+        brewingPhase.calculateLayout();
+    }
+});
 
 // Initialize Systems
 const renderer = new GameRenderer(canvas, ctx);

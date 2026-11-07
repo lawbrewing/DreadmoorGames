@@ -15,10 +15,13 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // 1:1 Mapping - Immune to scaling bugs on all devices
+        // Map physical CSS screen clicks back to the 720p-locked engine coordinates
+        const scaleX = window.GAME_WIDTH / rect.width;
+        const scaleY = window.GAME_HEIGHT / rect.height;
+
         return {
-            x: clientX - rect.left,
-            y: clientY - rect.top
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
