@@ -32,34 +32,16 @@ class InputManager {
     bindEvents() {
         // --- START DRAG / CLICK ---
         const handleStart = (e) => {
-            const brewDrawer = document.getElementById('brewingHUD');
-            const tapDrawer = document.getElementById('taproomHUD');
-
-            // If an HTML HUD drawer is open, tapping the canvas outside of it closes it
-            if ((brewDrawer && brewDrawer.classList.contains('open')) ||
-                (tapDrawer && tapDrawer.classList.contains('open'))) {
-                if (brewDrawer) brewDrawer.classList.remove('open');
-                if (tapDrawer) tapDrawer.classList.remove('open');
-                return;
-            }
-
             const pos = this.getPointerPos(e);
 
             // ==========================================
-            // NATIVE CANVAS MENU BUTTON (TOP-LEFT)
+            // NATIVE CANVAS MENU BUTTON (TOP-LEFT: x 0..280, y 0..70)
             // ==========================================
-            const mBtn = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn)
-                ? brewingPhase.menuBtn
-                : { x: 14, y: 12, w: 240, h: 48 };
-
-            if (pos.x >= mBtn.x && pos.x <= mBtn.x + mBtn.w &&
-                pos.y >= mBtn.y && pos.y <= mBtn.y + mBtn.h) {
-                if (typeof hud !== 'undefined' && typeof hud.toggleActiveDrawer === 'function') {
-                    hud.toggleActiveDrawer();
-                } else if (typeof currentState !== 'undefined' && currentState === 'TAPROOM' && tapDrawer) {
-                    tapDrawer.classList.toggle('open');
-                } else if (brewDrawer) {
-                    brewDrawer.classList.toggle('open');
+            if (pos.x >= 0 && pos.x <= 280 && pos.y >= 0 && pos.y <= 70) {
+                const isTaproom = (typeof currentState !== 'undefined' && currentState === 'TAPROOM');
+                const activeDrawer = document.getElementById(isTaproom ? 'taproomHUD' : 'brewingHUD');
+                if (activeDrawer) {
+                    activeDrawer.classList.add('open');
                 }
                 return;
             }

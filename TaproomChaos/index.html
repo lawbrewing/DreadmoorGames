@@ -193,7 +193,7 @@
         <!-- TAPROOM HUD DRAWER -->
         <div id="taproomHUD" class="hud-panel">
             <!-- NATIVE CLOSE BUTTON -->
-            <button onclick="document.getElementById('btnToggleHUD').click()" style="background: #3f3f46; color: #f4f4f5; border: 1px solid #52525b; padding: 12px; margin-bottom: 20px; font-family: 'Oswald'; font-size: 18px; cursor: pointer; border-radius: 6px; letter-spacing: 1px; width: 100%;">❌ CLOSE MENU</button>
+            <button onclick="document.getElementById('taproomHUD').classList.remove('open')" style="background: #3f3f46; color: #f4f4f5; border: 1px solid #52525b; padding: 12px; margin-bottom: 20px; font-family: 'Oswald'; font-size: 18px; cursor: pointer; border-radius: 6px; letter-spacing: 1px; width: 100%;">❌ CLOSE MENU</button>
 
             <h2 style="color: #dc2626; font-family: 'Oswald';">ON TAP</h2>
             <h2 id="hudTimer" style="color: #facc15; font-family: 'Oswald'; margin-top: 8px;">TIME LEFT: 60s</h2>
@@ -204,7 +204,7 @@
         <!-- BREWING HUD DRAWER -->
         <div id="brewingHUD" class="hud-panel">
             <!-- NATIVE CLOSE BUTTON -->
-            <button onclick="document.getElementById('btnToggleHUD').click()" style="background: #3f3f46; color: #f4f4f5; border: 1px solid #52525b; padding: 12px; margin-bottom: 20px; font-family: 'Oswald'; font-size: 18px; cursor: pointer; border-radius: 6px; letter-spacing: 1px; width: 100%;">❌ CLOSE MENU</button>
+            <button onclick="document.getElementById('brewingHUD').classList.remove('open')" style="background: #3f3f46; color: #f4f4f5; border: 1px solid #52525b; padding: 12px; margin-bottom: 20px; font-family: 'Oswald'; font-size: 18px; cursor: pointer; border-radius: 6px; letter-spacing: 1px; width: 100%;">❌ CLOSE MENU</button>
 
             <h2 style="color: #dc2626; font-family: 'Oswald';">BREWERY BALANCE</h2>
             <p id="hudTips" style="font-family: 'Inter'; color: #4ade80; font-weight: 600;">Tips: $0.00</p>

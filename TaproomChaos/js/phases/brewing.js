@@ -173,6 +173,15 @@ class BrewingPhase {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
 
+            // 0. Check Native Canvas Menu Button
+            if (pos.x >= 0 && pos.x <= 280 && pos.y >= 0 && pos.y <= 70) {
+                const brewDrawer = document.getElementById('brewingHUD');
+                if (brewDrawer) {
+                    brewDrawer.classList.add('open');
+                }
+                return;
+            }
+
             // 1. Check Dispenser Sacks
             for (const sack of this.sacks) {
                 if (pos.x >= sack.x && pos.x <= sack.x + sack.w &&
