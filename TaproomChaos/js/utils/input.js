@@ -1,3 +1,5 @@
+// js/core/input.js
+
 class InputManager {
     constructor(canvas) {
         this.canvas = canvas;
@@ -7,6 +9,7 @@ class InputManager {
 
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
 
         const touch = (evt.touches && evt.touches.length > 0)
             ? evt.touches[0]
@@ -15,45 +18,72 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // Map physical CSS screen clicks back to the 720p-locked engine coordinates
-        const scaleX = window.GAME_WIDTH / rect.width;
-        const scaleY = window.GAME_HEIGHT / rect.height;
+        // Failsafe logical dimensions so scale can NEVER become NaN
+        const logicalW = window.GAME_WIDTH || (this.canvas.width / dpr) || 1280;
+        const logicalH = window.GAME_HEIGHT || (this.canvas.height / dpr) || 720;
+
+        const safeWidth = Math.max(1, rect.width);
+        const safeHeight = Math.max(1, rect.height);
+
+        const offsetX = clientX - rect.left;
+        const offsetY = clientY - rect.top;
 
         return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
+            x: offsetX * (logicalW / safeWidth),
+            y: offsetY * (logicalH / safeHeight)
         };
     }
 
     bindEvents() {
         // --- START DRAG / CLICK ---
         const handleStart = (e) => {
+            // If an HTML HUD drawer is open, tapping the canvas outside of it closes it cleanly
+            const brewDrawer = document.getElementById('brewingHUD');
+            const tapDrawer = document.getElementById('taproomHUD');
+            if ((brewDrawer && brewDrawer.classList.contains('open')) ||
+                (tapDrawer && tapDrawer.classList.contains('open'))) {
+                if (brewDrawer) brewDrawer.classList.remove('open');
+                if (tapDrawer) tapDrawer.classList.remove('open');
+                return;
+            }
+
             const pos = this.getPointerPos(e);
+
+            // ==========================================
+            // NATIVE CANVAS MENU BUTTON (TOP-LEFT)
+            // ==========================================
+            const menuW = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn) ? brewingPhase.menuBtn.w : 140;
+            const menuH = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn) ? brewingPhase.menuBtn.h : 48;
+            if (pos.x >= 14 && pos.x <= 14 + menuW && pos.y >= 12 && pos.y <= 12 + menuH) {
+                const toggleBtn = document.getElementById('btnToggleHUD');
+                if (toggleBtn) {
+                    toggleBtn.click();
+                } else if (typeof currentState !== 'undefined' && currentState === 'TAPROOM' && tapDrawer) {
+                    tapDrawer.classList.toggle('open');
+                } else if (brewDrawer) {
+                    brewDrawer.classList.toggle('open');
+                }
+                return;
+            }
 
             // ==========================================
             // TAPROOM AMMO QUICK-CYCLE INTERCEPT
             // ==========================================
             if (typeof currentState !== 'undefined' && currentState === 'TAPROOM') {
-                // Check if click hits the ammo box (Bottom Left: x: 20-100, y: 640-720)
                 if (pos.x >= 20 && pos.x <= 100 && pos.y >= 640 && pos.y <= 720) {
                     if (typeof taproomPhase !== 'undefined' && typeof playerState !== 'undefined' && playerState.ammo) {
                         let currentIdx = taproomPhase.selectedAmmoIndex || 0;
                         let nextIdx = (currentIdx + 1) % playerState.ammo.length;
 
-                        // Cycle until we find non-empty ammo
                         while (nextIdx !== currentIdx && playerState.ammo[nextIdx].count !== 'Infinite' && playerState.ammo[nextIdx].count <= 0) {
                             nextIdx = (nextIdx + 1) % playerState.ammo.length;
                         }
 
                         taproomPhase.selectedAmmoIndex = nextIdx;
-                        console.log(`[Input] Quick-swapped ammo to: ${playerState.ammo[nextIdx].name}`);
-
-                        // Play the swap sound effect
                         if (window.audioManager) {
                             window.audioManager.playSFX('swap');
                         }
-
-                        return; // Stop click from passing through to taproom gameplay
+                        return;
                     }
                 }
             }
@@ -66,7 +96,7 @@ class InputManager {
 
         this.canvas.addEventListener('mousedown', handleStart);
         this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevents screen scrolling/bouncing on mobile
+            e.preventDefault();
             handleStart(e);
         }, { passive: false });
 

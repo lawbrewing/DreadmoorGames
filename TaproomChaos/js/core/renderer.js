@@ -1423,8 +1423,8 @@ class GameRenderer {
     // --- BREWING RENDERING (DEEP VISUAL & MERGE OVERHAUL) ---
     drawBrewing(state) {
         const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+        const w = window.GAME_WIDTH || 1280;
+        const h = window.GAME_HEIGHT || 720;
         const time = Date.now() / 1000;
 
         if (!this.brewMergeEffects) this.brewMergeEffects = [];
@@ -1436,7 +1436,7 @@ class GameRenderer {
         const dragX = state.dragState ? state.dragState.mouseX : -999;
         const dragY = state.dragState ? state.dragState.mouseY : -999;
 
-        const bgGrad = ctx.createRadialGradient(w / 2, h * 0.45, 60, w / 2, h / 2, 820);
+        const bgGrad = ctx.createRadialGradient(w / 2, h * 0.45, 60, w / 2, h / 2, 960);
         bgGrad.addColorStop(0, '#27272a');
         bgGrad.addColorStop(0.55, '#141418');
         bgGrad.addColorStop(1, '#070709');
@@ -1459,7 +1459,7 @@ class GameRenderer {
             10,
             state.gridOffset.x + (state.cols * state.tileSize) / 2,
             state.gridOffset.y + 160,
-            420
+            460
         );
         lampGlow.addColorStop(0, 'rgba(251, 191, 36, 0.08)');
         lampGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
@@ -1467,8 +1467,31 @@ class GameRenderer {
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
 
+        // 0. DRAW NATIVE CANVAS MENU BUTTON
+        const mBtn = state.menuBtn || { x: 14, y: 12, w: 220, h: 48 };
+        ctx.save();
+        const menuGrad = ctx.createLinearGradient(mBtn.x, mBtn.y, mBtn.x, mBtn.y + mBtn.h);
+        menuGrad.addColorStop(0, '#6366f1');
+        menuGrad.addColorStop(1, '#4f46e5');
+        ctx.fillStyle = menuGrad;
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(mBtn.x, mBtn.y, mBtn.w, mBtn.h, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Oswald';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('☰ MENU', mBtn.x + (mBtn.w / 2), mBtn.y + (mBtn.h / 2) + 1);
+        ctx.restore();
+
+        // 1. DRAW GENERATOR SACKS
         (state.sacks || []).forEach(sack => this.drawGeneratorSack(sack, time));
 
+        // 2. DRAW METAL GRID TRAY
         const trayX = state.gridOffset.x - 14;
         const trayY = state.gridOffset.y - 14;
         const trayW = (state.cols * state.tileSize) + 28;
@@ -1513,6 +1536,7 @@ class GameRenderer {
             ctx.beginPath(); ctx.moveTo(bx - 2, by - 2); ctx.lineTo(bx + 2, by + 2); ctx.stroke();
         });
 
+        // 3. DRAW GRID TILES
         const dragLevel = dragItem ? this.getIngredientLevel(dragItem) : 0;
         const canDragMerge = dragItem && dragLevel >= 1 && dragLevel < 5;
         let hoveredMergeTarget = null;
@@ -1617,45 +1641,46 @@ class GameRenderer {
 
         this.updateAndDrawMergeEffects(ctx, time);
 
+        // 4. DRAW KETTLES & CONNECTING MANIFOLD PIPE (RIGHT COLUMN)
         const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
 
         if (unlockedCount > 1 && state.kettles && state.kettles.length >= unlockedCount) {
             const firstK = state.kettles[0];
             const lastUnlockedK = state.kettles[unlockedCount - 1];
-            const pipeStartX = firstK.x + 30;
-            const pipeEndX = lastUnlockedK.x + lastUnlockedK.w - 30;
-            const pipeY = firstK.y + 52;
+            const pipeX = firstK.x + 28;
+            const pipeStartY = firstK.y + 50;
+            const pipeEndY = lastUnlockedK.y + 50;
 
             this.ctx.strokeStyle = unlockedCount === 3 ? '#f59e0b' : '#b45309';
-            this.ctx.lineWidth = 12;
+            this.ctx.lineWidth = 10;
             this.ctx.lineCap = 'round';
             this.ctx.beginPath();
-            this.ctx.moveTo(pipeStartX, pipeY);
-            this.ctx.lineTo(pipeEndX, pipeY);
+            this.ctx.moveTo(pipeX, pipeStartY);
+            this.ctx.lineTo(pipeX, pipeEndY);
             this.ctx.stroke();
 
             this.ctx.strokeStyle = unlockedCount === 3 ? '#fef08a' : '#fbbf24';
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 2.5;
             this.ctx.beginPath();
-            this.ctx.moveTo(pipeStartX, pipeY - 2);
-            this.ctx.lineTo(pipeEndX, pipeY - 2);
+            this.ctx.moveTo(pipeX - 2, pipeStartY);
+            this.ctx.lineTo(pipeX - 2, pipeEndY);
             this.ctx.stroke();
         }
 
         (state.kettles || []).forEach((kettle, idx) => {
             const kx = kettle.x;
             const ky = kettle.y;
-            const kw = kettle.w;
-            const kh = kettle.h;
+            const kw = Math.max(80, kettle.w);
+            const kh = Math.max(60, kettle.h);
             const isUnlocked = idx < unlockedCount;
 
             if (!isUnlocked) {
-                this.ctx.fillStyle = 'rgba(24, 24, 27, 0.68)';
+                this.ctx.fillStyle = 'rgba(24, 24, 27, 0.78)';
                 this.ctx.strokeStyle = idx === 1 ? '#b45309' : '#38bdf8';
                 this.ctx.lineWidth = 2;
                 this.ctx.setLineDash([6, 6]);
                 this.ctx.beginPath();
-                this.ctx.roundRect(kx, ky + 10, kw, kh - 10, 12);
+                this.ctx.roundRect(kx, ky + 6, kw, kh - 6, 12);
                 this.ctx.fill();
                 this.ctx.stroke();
                 this.ctx.setLineDash([]);
@@ -1665,29 +1690,29 @@ class GameRenderer {
                 const tierTitle = idx === 1 ? '🔒 COPPER BOIL KETTLE' : '🔒 SMART PRO BREW VAT';
 
                 this.ctx.fillStyle = isNext ? '#facc15' : '#71717a';
-                this.ctx.font = 'bold 15px Oswald';
+                this.ctx.font = 'bold 17px Oswald';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(tierTitle, kx + (kw / 2), ky + 46);
+                this.ctx.fillText(tierTitle, kx + (kw / 2), ky + 42);
 
-                this.ctx.font = 'bold 12px Inter';
+                this.ctx.font = 'bold 14px Inter';
                 this.ctx.fillStyle = isNext ? '#4ade80' : '#52525b';
                 this.ctx.fillText(
                     isNext ? `Click to Upgrade ($${unlockCost})` : `Unlock Kettle #${idx} First`,
                     kx + (kw / 2),
-                    ky + 72
+                    ky + 68
                 );
 
                 const reqShift = idx === 1 ? 'Rec. by Shift 5 (Copper Tier)' : 'Rec. by Shift 10 (Digital Tier)';
-                this.ctx.font = 'italic 10px Inter';
+                this.ctx.font = 'italic 12px Inter';
                 this.ctx.fillStyle = '#a1a1aa';
-                this.ctx.fillText(reqShift, kx + (kw / 2), ky + 94);
+                this.ctx.fillText(reqShift, kx + (kw / 2), ky + 92);
                 return;
             }
 
             const isHoveringKettle = Boolean(
                 dragItem &&
                 dragX >= kx && dragX <= kx + kw &&
-                dragY >= ky && dragY <= ky + kh
+                dragY >= ky && dragY <= ky + kh + 10
             );
 
             const kettleBodyGrad = this.ctx.createLinearGradient(kx, ky, kx + kw, ky);
@@ -1797,13 +1822,13 @@ class GameRenderer {
             this.ctx.strokeStyle = '#18181b';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
-            this.ctx.ellipse(kx + (kw / 2), ky + 18, (kw / 2) + 2, 16, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(kx + (kw / 2), ky + 18, Math.max(1, (kw / 2) + 2), 16, 0, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.stroke();
 
             const wortGrad = this.ctx.createRadialGradient(
                 kx + (kw / 2), ky + 18, 4,
-                kx + (kw / 2), ky + 18, kw / 2
+                kx + (kw / 2), ky + 18, Math.max(5, kw / 2)
             );
             if (hasItems) {
                 wortGrad.addColorStop(0, '#fbbf24');
@@ -1815,7 +1840,7 @@ class GameRenderer {
             }
             this.ctx.fillStyle = wortGrad;
             this.ctx.beginPath();
-            this.ctx.ellipse(kx + (kw / 2), ky + 18, (kw / 2) - 6, 12, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(kx + (kw / 2), ky + 18, Math.max(1, (kw / 2) - 6), 12, 0, 0, Math.PI * 2);
             this.ctx.fill();
 
             if (hasItems) {
@@ -1843,19 +1868,14 @@ class GameRenderer {
             const count = kettle.items.length;
             if (count > 0) {
                 const poolStartX = kx + 24;
-                const poolWidth = kw - 100;
-                // Calculate dynamic spacing, centering the ingredients if there are only a few
+                const poolWidth = kw - 115;
                 const spacing = Math.min(35, poolWidth / Math.max(1, count - 1));
                 const offsetX = poolStartX + (poolWidth - (count - 1) * spacing) / 2;
 
                 kettle.items.forEach((item, index) => {
-                    // Center the icon coordinates
                     const cx = (count === 1) ? poolStartX + poolWidth / 2 : offsetX + (index * spacing);
                     const cy = ky + 24 + Math.sin(time * 3 + index) * 3;
-
                     const level = this.getIngredientLevel(item);
-
-                    // Map vibrant colors directly to the categories so the icons pop
                     const catColors = {
                         'Water': '#38bdf8',
                         'Grain': '#facc15',
@@ -1867,21 +1887,18 @@ class GameRenderer {
                     const color = catColors[item.category] || '#ffffff';
 
                     this.ctx.save();
-                    // 1. Draw a dark liquid shadow behind the icon to separate it from the wort
                     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
                     this.ctx.beginPath();
                     this.ctx.arc(cx, cy, 14, 0, Math.PI * 2);
                     this.ctx.fill();
-
-                    // 2. Draw ONLY the raw vector icon, bypassing the bulky tile background and text
                     this.drawCustomIcon(cx, cy, item.category, item.name, color, 0.9, level || 1);
                     this.ctx.restore();
                 });
 
                 this.ctx.fillStyle = '#e4e4e7';
-                this.ctx.font = '10px Inter';
+                this.ctx.font = '11px Inter';
                 this.ctx.textAlign = 'left';
-                this.ctx.fillText(`${count} in vat (click to undo)`, kx + 24, ky + kh);
+                this.ctx.fillText(`${count} in vat (tap to undo)`, kx + 24, ky + kh - 2);
 
                 if (typeof gameRecipes !== 'undefined') {
                     const ingNames = kettle.items.map(i => i.name);
@@ -1928,10 +1945,10 @@ class GameRenderer {
                 const emptyLabel = isHoveringKettle
                     ? '⬇ DROP TO ADD TO KETTLE'
                     : (idx === 0 ? 'STEEL TUN #1' : (idx === 1 ? 'COPPER KETTLE #2' : 'SMART VAT #3'));
-                this.ctx.fillStyle = isHoveringKettle ? '#4ade80' : 'rgba(255, 255, 255, 0.45)';
-                this.ctx.font = 'bold 11px Inter';
+                this.ctx.fillStyle = isHoveringKettle ? '#4ade80' : 'rgba(255, 255, 255, 0.55)';
+                this.ctx.font = 'bold 13px Inter';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(emptyLabel, kx + (kw / 2) - 30, ky + 66);
+                this.ctx.fillText(emptyLabel, kx + (kw - 95) / 2, ky + 68);
             }
 
             let brewCost = 0;
@@ -1961,18 +1978,18 @@ class GameRenderer {
             this.ctx.fillStyle = '#ffffff';
             this.ctx.textAlign = 'center';
             if (brewCost > 0) {
-                this.ctx.font = 'bold 14px Oswald';
-                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 20);
-                this.ctx.font = 'bold 11px Inter';
-                this.ctx.fillStyle = '#dcfce7';
-                this.ctx.fillText(`$${brewCost.toFixed(2)}`, kettle.btnX + (kettle.btnW / 2), kettle.btnY + 36);
-            } else {
                 this.ctx.font = 'bold 15px Oswald';
-                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 28);
+                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 22);
+                this.ctx.font = 'bold 12px Inter';
+                this.ctx.fillStyle = '#dcfce7';
+                this.ctx.fillText(`$${brewCost.toFixed(2)}`, kettle.btnX + (kettle.btnW / 2), kettle.btnY + 40);
+            } else {
+                this.ctx.font = 'bold 16px Oswald';
+                this.ctx.fillText('BREW', kettle.btnX + (kettle.btnW / 2), kettle.btnY + 32);
             }
         });
 
-        // 5B. DRAW THE INDUSTRIAL FLOOR DRAIN (1-Tile Version)
+        // 5. DRAW THE INDUSTRIAL FLOOR DRAIN (PROPORTIONALLY SCALED)
         if (state.drain) {
             const dx = state.drain.x;
             const dy = state.drain.y;
@@ -1993,32 +2010,34 @@ class GameRenderer {
             this.ctx.stroke();
 
             const gcx = dx + (dw / 2);
-            const gcy = dy + 44;
+            const gcy = dy + (dh * 0.40);
+            const grateRadius = Math.max(14, Math.min(26, dh * 0.22));
+
             this.ctx.fillStyle = '#09090b';
             this.ctx.strokeStyle = isHoveringDrain ? '#f87171' : '#71717a';
             this.ctx.lineWidth = 2.5;
             this.ctx.beginPath();
-            this.ctx.arc(gcx, gcy, 24, 0, Math.PI * 2);
+            this.ctx.arc(gcx, gcy, grateRadius, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.stroke();
 
-            for (let gx = -14; gx <= 14; gx += 7) {
+            for (let gx = -12; gx <= 12; gx += 6) {
                 this.ctx.beginPath();
-                this.ctx.moveTo(gcx + gx, gcy - 18);
-                this.ctx.lineTo(gcx + gx, gcy + 18);
+                this.ctx.moveTo(gcx + gx, gcy - (grateRadius - 5));
+                this.ctx.lineTo(gcx + gx, gcy + (grateRadius - 5));
                 this.ctx.stroke();
             }
 
             this.ctx.fillStyle = isHoveringDrain ? '#fca5a5' : '#a1a1aa';
-            this.ctx.font = 'bold 12px Oswald';
+            this.ctx.font = 'bold 14px Oswald';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(isHoveringDrain ? 'RELEASE' : 'DRAIN', gcx, dy + dh - 22);
-            this.ctx.font = '10px Inter';
+            this.ctx.fillText(isHoveringDrain ? 'RELEASE TO DUMP' : 'FLOOR DRAIN', gcx, dy + dh - 26);
+            this.ctx.font = '12px Inter';
             this.ctx.fillStyle = isHoveringDrain ? '#f87171' : '#71717a';
-            this.ctx.fillText('(Drop to dump)', gcx, dy + dh - 8);
+            this.ctx.fillText('(Drop ingredient to trash)', gcx, dy + dh - 10);
         }
 
-        // 6. DRAW THE ITEM CURRENTLY BEING DRAGGED + LIVE MERGE PREVIEW TOOLTIP
+        // 6. DRAW DRAGGED ITEM + LIVE MERGE PREVIEW TOOLTIP
         if (dragItem) {
             ctx.save();
             ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
@@ -2040,8 +2059,8 @@ class GameRenderer {
                 const nextName = gameRecipes.chains[dragItem.category][hoveredMergeTarget.level];
                 if (nextName) {
                     ctx.save();
-                    const pillW = 168;
-                    const pillH = 26;
+                    const pillW = 176;
+                    const pillH = 28;
                     const px = Math.max(12, Math.min(w - pillW - 12, dragX - pillW / 2));
                     const py = Math.max(12, dragY - (state.tileSize * 0.78) - 18);
 
@@ -2054,9 +2073,9 @@ class GameRenderer {
                     ctx.stroke();
 
                     ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 11px Inter';
+                    ctx.font = 'bold 12px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`⚡ MERGE → ${nextName} (L${hoveredMergeTarget.level + 1})`, px + pillW / 2, py + 17);
+                    ctx.fillText(`⚡ MERGE → ${nextName} (L${hoveredMergeTarget.level + 1})`, px + pillW / 2, py + 18);
                     ctx.restore();
                 }
             }
@@ -2067,7 +2086,7 @@ class GameRenderer {
             state.floatingTexts.forEach(ft => {
                 this.ctx.save();
                 this.ctx.globalAlpha = Math.max(0, ft.alpha);
-                this.ctx.font = 'bold 20px Oswald';
+                this.ctx.font = 'bold 22px Oswald';
                 this.ctx.textAlign = 'center';
                 this.ctx.strokeStyle = '#000000';
                 this.ctx.lineWidth = 3;
@@ -2078,28 +2097,31 @@ class GameRenderer {
             });
         }
 
-        // 8. RENDER ACTIVE CONTRACT ORDERS ON THE RIGHT SIDE
+        // 8. RENDER ACTIVE CONTRACT ORDERS (TOP OF RIGHT COLUMN)
         const boardX = state.boardX;
         const boardY = state.boardY;
         const boardW = state.boardW;
         const boardH = state.boardH;
         const boardMid = boardX + (boardW / 2);
 
-        ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
+        ctx.fillStyle = 'rgba(24, 24, 27, 0.92)';
         ctx.strokeStyle = '#3f3f46';
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(boardX, boardY, boardW, boardH, 12); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.roundRect(boardX, boardY, boardW, boardH, 12);
+        ctx.fill();
+        ctx.stroke();
 
         ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 24px Oswald';
+        ctx.font = 'bold 25px Oswald';
         ctx.textAlign = 'center';
-        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 40);
+        ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 34);
         ctx.fillStyle = '#a1a1aa';
-        ctx.fillRect(boardX + 15, boardY + 55, boardW - 30, 2);
+        ctx.fillRect(boardX + 15, boardY + 46, boardW - 30, 2);
 
         if (state.activeOrders && state.activeOrders.length > 0) {
             state.activeOrders.forEach((order, i) => {
-                const oy = boardY + 100 + (i * 180);
+                const oy = boardY + 76 + (i * 112);
 
                 ctx.fillStyle = '#4ade80';
                 ctx.font = 'bold 20px Inter';
@@ -2107,36 +2129,36 @@ class GameRenderer {
 
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 18px Inter';
-                ctx.fillText(order.name, boardMid, oy + 30, boardW - 20);
+                ctx.fillText(order.name, boardMid, oy + 24, boardW - 20);
 
                 ctx.fillStyle = '#38bdf8';
                 ctx.font = '15px Inter';
 
                 const words = order.hint.split(' ');
                 let line = '';
-                let hintY = oy + 60;
+                let hintY = oy + 46;
 
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
-                    if (ctx.measureText(testLine).width > boardW - 30 && n > 0) {
+                    if (ctx.measureText(testLine).width > boardW - 26 && n > 0) {
                         ctx.fillText(line.trim(), boardMid, hintY);
                         line = words[n] + ' ';
-                        hintY += 22;
+                        hintY += 20;
                     } else {
                         line = testLine;
                     }
                 }
                 ctx.fillText(line.trim(), boardMid, hintY);
 
-                if (i === 0) {
+                if (i === 0 && state.activeOrders.length > 1) {
                     ctx.fillStyle = '#3f3f46';
-                    ctx.fillRect(boardX + 30, hintY + 25, boardW - 60, 2);
+                    ctx.fillRect(boardX + 24, oy + 82, boardW - 48, 2);
                 }
             });
         } else {
             ctx.fillStyle = '#71717a';
-            ctx.font = 'italic 18px Inter';
-            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 200);
+            ctx.font = 'italic 20px Inter';
+            ctx.fillText("All contracts fulfilled!", boardMid, boardY + 160);
         }
     }
 

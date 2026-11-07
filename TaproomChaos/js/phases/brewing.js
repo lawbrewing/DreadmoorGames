@@ -17,70 +17,88 @@ class BrewingPhase {
         this.setupEventListeners();
     }
 
-    // Dynamically calculates the largest, safest layout for ANY device screen
     calculateLayout() {
-        const W = window.GAME_WIDTH || 1280;
+        const aspect = window.innerWidth / Math.max(1, window.innerHeight);
         const H = 720;
+        const W = window.GAME_WIDTH || Math.max(1280, Math.round(H * aspect));
 
-        // 1. SACKS: Shifted down to y: 140 to completely clear the Menu button!
-        const sackPad = 25;
-        const sackW = 100;
-        const sackH = 95; // Slightly compacted to fit 3 rows comfortably
-        const gap = 15;
+        // 1. LEFT COLUMN: Native Menu Button + 6 Large Sacks + Floor Drain
+        const leftPad = 14;
+        const leftColW = Math.round(Math.max(216, Math.min(284, W * 0.17)));
+        const gap = 12;
+        const sackW = Math.floor((leftColW - gap) / 2);
+        const sackH = 148;
 
-        const row1 = 140;
-        const row2 = row1 + sackH + gap; // 250
-        const row3 = row2 + sackH + gap; // 360
-        const drainY = row3 + sackH + gap; // 470
+        this.menuBtn = { x: leftPad, y: 12, w: leftColW, h: 48 };
+
+        const row1 = 72;
+        const row2 = row1 + sackH + gap; // 232
+        const row3 = row2 + sackH + gap; // 392
+        const drainY = row3 + sackH + gap; // 552
 
         this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: sackPad, y: row1, w: sackW, h: sackH, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: sackPad + sackW + gap, y: row1, w: sackW, h: sackH, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: sackPad, y: row2, w: sackW, h: sackH, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: sackPad + sackW + gap, y: row2, w: sackW, h: sackH, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: sackPad, y: row3, w: sackW, h: sackH, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: sackPad + sackW + gap, y: row3, w: sackW, h: sackH, color: '#a855f7' }
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: leftPad, y: row1, w: sackW, h: sackH, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: leftPad + sackW + gap, y: row1, w: sackW, h: sackH, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: leftPad, y: row2, w: sackW, h: sackH, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: leftPad + sackW + gap, y: row2, w: sackW, h: sackH, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: leftPad, y: row3, w: sackW, h: sackH, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: leftPad + sackW + gap, y: row3, w: sackW, h: sackH, color: '#a855f7' }
         ];
 
-        this.drain = { x: sackPad, y: drainY, w: (sackW * 2) + gap, h: 50 };
+        this.drain = { x: leftPad, y: drainY, w: leftColW, h: H - drainY - 12 };
 
-        // 2. CONTRACTS: Locked to the far right edge
-        this.boardW = 320;
-        this.boardX = W - this.boardW - 20;
-        this.boardY = 20;
-        this.boardH = 500;
+        // 2. RIGHT COLUMN: Large Shift Contracts Board (Top) + 3 Stacked Kettles (Bottom)
+        const rightPad = 14;
+        this.boardW = Math.round(Math.max(310, Math.min(410, W * 0.24)));
+        this.boardX = W - this.boardW - rightPad;
+        this.boardY = 12;
+        this.boardH = 282;
 
-        // 3. KETTLES: Placed explicitly in the safe area BETWEEN the drain and the contracts board
-        const kettleAreaStartX = sackPad + (sackW * 2) + gap + 30;
-        const kettleAreaW = this.boardX - kettleAreaStartX;
+        const kW = this.boardW;
+        const kH = 112;
+        const kGap = 20;
+        const kStartY = this.boardY + this.boardH + 20; // 314
 
-        const kSpace = kettleAreaW / 3;
-        const kW = Math.min(380, kSpace - 20); // Scales safely without overlapping
-
-        // Preserve items during screen rotation/resize
         const k1 = (this.kettles && this.kettles[0]) ? this.kettles[0].items : [];
         const k2 = (this.kettles && this.kettles[1]) ? this.kettles[1].items : [];
         const k3 = (this.kettles && this.kettles[2]) ? this.kettles[2].items : [];
 
-        this.kettles = [
-            { x: kettleAreaStartX + (kSpace * 0.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 0.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k1 },
-            { x: kettleAreaStartX + (kSpace * 1.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 1.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k2 },
-            { x: kettleAreaStartX + (kSpace * 2.5) - (kW / 2), y: 555, w: kW, h: 145, btnX: kettleAreaStartX + (kSpace * 2.5) + (kW / 2) - 100, btnY: 590, btnW: 90, btnH: 55, items: k3 }
-        ];
+        this.kettles = [0, 1, 2].map((idx) => {
+            const ky = kStartY + idx * (kH + kGap);
+            const btnW = 94;
+            const btnH = 52;
+            return {
+                x: this.boardX,
+                y: ky,
+                w: kW,
+                h: kH,
+                btnX: this.boardX + kW - btnW - 14,
+                btnY: ky + 42,
+                btnW: btnW,
+                btnH: btnH,
+                items: idx === 0 ? k1 : (idx === 1 ? k2 : k3)
+            };
+        });
 
-        // 4. GRID: Perfectly centered in the remaining space above the kettles
-        this.tileSize = 120;
-        const gridW = this.tileSize * this.cols;
+        // 3. CENTER COLUMN: Full-Height 6x4 Grid
+        const centerLeft = leftPad + leftColW + 20;
+        const centerRight = this.boardX - 20;
+        const availableW = Math.max(400, centerRight - centerLeft);
+        const gridTop = 52;
+        const availableH = H - gridTop - 16;
 
-        const centerSpaceX = kettleAreaStartX + (kettleAreaW / 2);
+        // Calculate largest square tile that fits the center zone (accounting for 28px metal tray border)
+        this.tileSize = Math.floor(Math.min((availableW - 28) / this.cols, (availableH - 28) / this.rows));
+
+        const actualGridW = this.tileSize * this.cols;
+        const actualGridH = this.tileSize * this.rows;
 
         this.gridOffset = {
-            x: centerSpaceX - (gridW / 2),
-            y: 45
+            x: Math.round(centerLeft + (availableW - actualGridW) / 2),
+            y: Math.round(gridTop + (availableH - actualGridH) / 2)
         };
     }
 
-    // THIS IS THE MISSING FUNCTION THAT CRASHED THE GAME
     resetGrid() {
         this.grid = [];
         for (let r = 0; r < this.rows; r++) {
@@ -95,6 +113,7 @@ class BrewingPhase {
     init() {
         this.isActive = true;
         this.dragState = null;
+        this.calculateLayout();
         if (!this.grid || this.grid.length === 0) {
             this.resetGrid();
         }
@@ -103,7 +122,10 @@ class BrewingPhase {
         }
     }
 
-    // --- PASTE THESE MISSING FUNCTIONS HERE ---
+    shutdown() {
+        this.isActive = false;
+        this.dragState = null;
+    }
 
     findEmptyCell() {
         const emptyCells = [];
@@ -128,7 +150,6 @@ class BrewingPhase {
                 category: category
             };
         } else {
-            // Centered popup dynamically based on your new layout
             this.floatingTexts.push(
                 new FloatingTitle(this.gridOffset.x + ((this.cols * this.tileSize) / 2), this.gridOffset.y - 15, "Grid is Full!", "#ef4444")
             );
@@ -141,7 +162,7 @@ class BrewingPhase {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
 
-            // 1. Check Dispenser Sacks (Free to pull; COGS charged on Brew)
+            // 1. Check Dispenser Sacks
             for (const sack of this.sacks) {
                 if (pos.x >= sack.x && pos.x <= sack.x + sack.w &&
                     pos.y >= sack.y && pos.y <= sack.y + sack.h) {
@@ -154,15 +175,13 @@ class BrewingPhase {
             const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
             for (let i = 0; i < this.kettles.length; i++) {
                 const k = this.kettles[i];
-                if (pos.x >= k.x && pos.x <= k.x + k.w && pos.y >= k.y && pos.y <= k.y + k.h) {
+                if (pos.x >= k.x && pos.x <= k.x + k.w && pos.y >= k.y && pos.y <= k.y + k.h + 10) {
                     if (i < unlockedCount) {
-                        // Clicked BREW button
                         if (pos.x >= k.btnX && pos.x <= k.btnX + k.btnW &&
                             pos.y >= k.btnY && pos.y <= k.btnY + k.btnH) {
                             this.brewKettle(i);
                             return;
                         }
-                        // Clicked Kettle body -> Undo last ingredient back to grid
                         if (k.items.length > 0) {
                             const emptyCell = this.findEmptyCell();
                             if (emptyCell) {
@@ -172,7 +191,6 @@ class BrewingPhase {
                             }
                         }
                     } else if (i === unlockedCount && typeof playerState !== 'undefined') {
-                        // Unlock next kettle
                         const unlockCost = playerState.kettleCosts ? playerState.kettleCosts[i] : 50;
                         if (playerState.canAfford(unlockCost)) {
                             gameEvents.emit('SPEND_TIPS', unlockCost);
@@ -233,7 +251,7 @@ class BrewingPhase {
             const unlockedCount = (typeof playerState !== 'undefined') ? playerState.unlockedKettles : 1;
             for (let i = 0; i < unlockedCount; i++) {
                 const k = this.kettles[i];
-                if (endX >= k.x && endX <= k.x + k.w && endY >= k.y && endY <= k.y + k.h) {
+                if (endX >= k.x && endX <= k.x + k.w && endY >= k.y && endY <= k.y + k.h + 10) {
                     if (k.items.length < 7) {
                         k.items.push(dragItem);
                         this.grid[startR][startC] = null;
@@ -256,7 +274,6 @@ class BrewingPhase {
 
                 const targetItem = this.grid[targetRow][targetCol];
 
-                // MERGE: Identical ingredient & category
                 if (targetItem && targetItem.name === dragItem.name && targetItem.category === dragItem.category) {
                     const nextName = gameRecipes.getMergeResult(dragItem.name);
                     if (nextName) {
@@ -274,14 +291,12 @@ class BrewingPhase {
                     }
                 }
 
-                // SWAP: Occupied by a different tile
                 if (targetItem) {
                     this.grid[startR][startC] = targetItem;
                     this.grid[targetRow][targetCol] = dragItem;
                     return;
                 }
 
-                // MOVE: Empty cell
                 this.grid[targetRow][targetCol] = dragItem;
                 this.grid[startR][startC] = null;
                 return;
@@ -335,13 +350,12 @@ class BrewingPhase {
                 new FloatingTitle(k.x + (k.w / 2), k.y - 20, `Brewed Swill (Cost: $${totalBrewCost.toFixed(2)})`, '#94a3b8')
             );
         } else {
-            // NEW: CONTRACT ORDER FULFILLMENT CHECK!
             const orderIndex = this.activeOrders.findIndex(o => o.name === brewResult.name);
             if (orderIndex !== -1) {
                 const bounty = this.activeOrders[orderIndex].bounty;
                 gameEvents.emit('EARN_TIPS', bounty);
                 this.floatingTexts.push(new FloatingTitle(k.x + (k.w / 2), k.y - 60, `CONTRACT DONE! +$${bounty}`, '#4ade80'));
-                this.activeOrders.splice(orderIndex, 1); // Remove fulfilled order
+                this.activeOrders.splice(orderIndex, 1);
             }
 
             const isNew = (typeof playerState !== 'undefined') && !playerState.unlockedRecipes.includes(brewResult.name);

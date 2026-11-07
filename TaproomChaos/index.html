@@ -30,7 +30,6 @@
             height: 100dvh;
             position: fixed;
             inset: 0;
-            /* ADD THESE THREE LINES: */
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             user-select: none;
@@ -86,7 +85,7 @@
             }
         }
 
-        /* --- UNIFIED COLLAPSIBLE HUD DRAWER (BOTH BREWING & TAPROOM) --- */
+        /* --- UNIFIED COLLAPSIBLE HUD DRAWER --- */
         #brewingHUD,
         #taproomHUD {
             position: absolute;
@@ -134,10 +133,6 @@
             user-select: none;
         }
 
-            #btnToggleHUD:hover {
-                background: #4f46e5;
-            }
-
         .hud-library-link {
             display: block;
             margin-top: auto;
@@ -153,12 +148,6 @@
             letter-spacing: 0.8px;
             transition: all 0.2s ease;
         }
-
-            .hud-library-link:hover {
-                background: #27272a;
-                color: #f4f4f5;
-                border-color: #71717a;
-            }
 
         /* Responsive UI Scaling */
         .hud-panel h2 {
@@ -176,16 +165,21 @@
             font-size: clamp(14px, 1.8vw, 18px);
             padding: 12px;
         }
-        /* --- THE SHIELD PIERCERS --- */
+
+        /* --- THE SHIELD PIERCERS (NEW) --- */
         /* 1. Kill invisible backgrounds and wrappers from eating clicks */
         .noise-overlay,
         #gameContainer {
             pointer-events: none !important;
         }
 
-        /* 2. Explicitly reactivate clicks ONLY on the canvas and interactive UI */
+        /* 2. Hide the HTML menu button so the native Canvas button handles clicks */
+        #btnToggleHUD {
+            display: none !important;
+        }
+
+        /* 3. Explicitly reactivate clicks ONLY on the canvas and interactive UI */
         canvas#gameCanvas,
-        #btnToggleHUD,
         #brewingHUD.open,
         #taproomHUD.open,
         #recipeBookOverlay,
@@ -205,7 +199,7 @@
         PLEASE ROTATE DEVICE<br>TO LANDSCAPE
     </div>
 
-    <!-- Unified HUD Toggle Button (Works in both Brewing and Taproom phases!) -->
+    <!-- Hidden HTML Button (Kept for HUD javascript reference) -->
     <button id="btnToggleHUD">☰ MENU</button>
 
     <!-- Responsive Game Viewport -->
@@ -250,7 +244,7 @@
                 <button id="btn-skip-track" style="padding: 8px 12px; cursor: pointer; background: #3b82f6; color: white; border: none; font-family: 'Oswald', sans-serif;">Skip Track ($1.00)</button>
             </div>
 
-            <!-- NEW: SAVE BUTTON INTEGRATION -->
+            <!-- SAVE BUTTON INTEGRATION -->
             <button id="btnSaveGame" class="menu-btn" style="background: #8b5cf6; color: white; border: 2px solid #a855f7; margin-bottom: 15px; cursor: pointer; border-radius: 6px; font-family: 'Oswald';">💾 SAVE PROGRESS</button>
 
             <a href="../index.html" class="hud-library-link">❮ BACK TO LIBRARY</a>
@@ -279,7 +273,7 @@
         </div>
     </div>
 
-    <!-- THE BOUNCER / START SCREEN (Captures Audio Autoplay Context Safely) -->
+    <!-- THE BOUNCER / START SCREEN -->
     <div id="startScreen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(9, 9, 11, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;">
         <h1 style="color: #facc15; font-family: 'Oswald', sans-serif; font-size: 54px; margin-bottom: 5px; text-shadow: 0 0 20px rgba(250, 204, 21, 0.4);">TAPROOM CHAOS</h1>
         <p style="color: #a1a1aa; font-family: 'Inter', sans-serif; margin-bottom: 40px; letter-spacing: 2px;">DREADMOOR GAMES NETWORK</p>
@@ -302,24 +296,24 @@
         </div>
     </div>
 
-    <!-- Scripts (Cache-busted to v3 to guarantee mobile updates) -->
-    <script src="js/core/events.js?v=4"></script>
-    <script src="js/core/audio.js?v=4"></script>
-    <script src="js/core/input.js?v=4"></script>
-    <script src="js/core/renderer.js?v=4"></script>
-    <script src="js/config/economy.js?v=4"></script>
-    <script src="js/config/population.js?v=4"></script>
-    <script src="js/config/recipes.js?v=4"></script>
-    <script src="js/config/patrons.js?v=4"></script>
-    <script src="js/data/megaPack.js?v=4"></script>
-    <script src="js/engine/SpriteManager.js?v=4"></script>
-    <script src="js/state/player.js?v=4"></script>
-    <script src="js/state/progression.js?v=4"></script>
-    <script src="js/entities/patron.js?v=4"></script>
-    <script src="js/entities/title.js?v=4"></script>
-    <script src="js/ui/hud.js?v=4"></script>
-    <script src="js/phases/brewing.js?v=4"></script>
-    <script src="js/phases/taproom.js?v=4"></script>
-    <script src="js/main.js?v=4"></script>
+    <!-- Scripts (Cache-busted to v10 to guarantee mobile updates) -->
+    <script src="js/core/events.js?v=10"></script>
+    <script src="js/core/audio.js?v=10"></script>
+    <script src="js/core/input.js?v=10"></script>
+    <script src="js/core/renderer.js?v=10"></script>
+    <script src="js/config/economy.js?v=10"></script>
+    <script src="js/config/population.js?v=10"></script>
+    <script src="js/config/recipes.js?v=10"></script>
+    <script src="js/config/patrons.js?v=10"></script>
+    <script src="js/data/megaPack.js?v=10"></script>
+    <script src="js/engine/SpriteManager.js?v=10"></script>
+    <script src="js/state/player.js?v=10"></script>
+    <script src="js/state/progression.js?v=10"></script>
+    <script src="js/entities/patron.js?v=10"></script>
+    <script src="js/entities/title.js?v=10"></script>
+    <script src="js/ui/hud.js?v=10"></script>
+    <script src="js/phases/brewing.js?v=10"></script>
+    <script src="js/phases/taproom.js?v=10"></script>
+    <script src="js/main.js?v=10"></script>
 </body>
 </html>
