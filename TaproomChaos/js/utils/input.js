@@ -7,7 +7,6 @@ class InputManager {
 
     getPointerPos(evt) {
         const rect = this.canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
 
         const touch = (evt.touches && evt.touches.length > 0)
             ? evt.touches[0]
@@ -16,12 +15,10 @@ class InputManager {
         const clientX = touch ? touch.clientX : evt.clientX;
         const clientY = touch ? touch.clientY : evt.clientY;
 
-        // Since the canvas scales perfectly to the screen height, scale is purely height-based
-        const scale = rect.height / 720;
-
+        // 1:1 Mapping - Immune to scaling bugs on all devices
         return {
-            x: (clientX - rect.left) / scale,
-            y: (clientY - rect.top) / scale
+            x: clientX - rect.left,
+            y: clientY - rect.top
         };
     }
 

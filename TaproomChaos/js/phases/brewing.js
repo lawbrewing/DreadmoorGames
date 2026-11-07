@@ -2,35 +2,8 @@
 
 class BrewingPhase {
     constructor() {
-        const screenW = window.GAME_WIDTH || 1280;
-
         this.cols = 6;
         this.rows = 4;
-        this.tileSize = 135; // MASSIVE tiles (810px wide grid)
-
-        // Dynamically center the grid between the Sacks and Contracts
-        this.gridOffset = { x: Math.max(280, (screenW - 810) / 2), y: 15 };
-
-        // MASSIVE SACKS - Anchored left, shifted down to y:100 to avoid the Menu button
-        this.sacks = [
-            { id: 'sack_water', category: 'Water', cost: 0.25, x: 20, y: 100, w: 110, h: 125, color: '#3b82f6' },
-            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: 145, y: 100, w: 110, h: 125, color: '#eab308' },
-            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: 20, y: 240, w: 110, h: 125, color: '#22c55e' },
-            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: 145, y: 240, w: 110, h: 125, color: '#d9f99d' },
-            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: 20, y: 380, w: 110, h: 125, color: '#f97316' },
-            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: 145, y: 380, w: 110, h: 125, color: '#a855f7' }
-        ];
-
-        this.drain = { x: 20, y: 520, w: 235, h: 40 };
-
-        // MASSIVE KETTLES - Spread evenly across the entire bottom of the ultrawide screen
-        const kSpace = screenW / 3;
-        const kWidth = Math.min(440, kSpace - 20); // Scale up to 440px wide if space permits
-        this.kettles = [
-            { x: (kSpace * 0.5) - (kWidth / 2), y: 565, w: kWidth, h: 145, btnX: (kSpace * 0.5) + (kWidth / 2) - 105, btnY: 610, btnW: 95, btnH: 55, items: [] },
-            { x: (kSpace * 1.5) - (kWidth / 2), y: 565, w: kWidth, h: 145, btnX: (kSpace * 1.5) + (kWidth / 2) - 105, btnY: 610, btnW: 95, btnH: 55, items: [] },
-            { x: (kSpace * 2.5) - (kWidth / 2), y: 565, w: kWidth, h: 145, btnX: (kSpace * 2.5) + (kWidth / 2) - 105, btnY: 610, btnW: 95, btnH: 55, items: [] }
-        ];
 
         this.grid = [];
         this.isActive = false;
@@ -39,10 +12,72 @@ class BrewingPhase {
         this.currentMergeCombo = 0;
         this.activeOrders = [];
 
+        this.calculateLayout();
         this.resetGrid();
         this.setupEventListeners();
     }
- 
+
+    // Dynamically calculates the largest, safest layout for ANY device screen
+    calculateLayout() {
+        const W = window.GAME_WIDTH || window.innerWidth;
+        const H = window.GAME_HEIGHT || window.innerHeight;
+
+        // 1. RIGHT ANCHOR: Contracts Board
+        this.boardW = Math.max(260, Math.min(400, W * 0.28));
+        this.boardX = W - this.boardW - 15;
+        this.boardY = 15;
+        this.boardH = Math.max(350, H - 30);
+
+        // 2. LEFT ANCHOR: Sacks
+        const leftPad = 15;
+        const sackW = Math.max(75, Math.min(125, W * 0.09));
+        const sackH = Math.max(85, Math.min(130, H * 0.16));
+        const sackStartY = 85;
+
+        this.sacks = [
+            { id: 'sack_water', category: 'Water', cost: 0.25, x: leftPad, y: sackStartY, w: sackW, h: sackH, color: '#3b82f6' },
+            { id: 'sack_grain', category: 'Grain', cost: 0.25, x: leftPad + sackW + 10, y: sackStartY, w: sackW, h: sackH, color: '#eab308' },
+            { id: 'sack_hops', category: 'Hops', cost: 0.25, x: leftPad, y: sackStartY + sackH + 10, w: sackW, h: sackH, color: '#22c55e' },
+            { id: 'sack_yeast', category: 'Yeast', cost: 0.25, x: leftPad + sackW + 10, y: sackStartY + sackH + 10, w: sackW, h: sackH, color: '#d9f99d' },
+            { id: 'sack_adjunct', category: 'Adjunct', cost: 0.25, x: leftPad, y: sackStartY + (sackH * 2) + 20, w: sackW, h: sackH, color: '#f97316' },
+            { id: 'sack_specialty', category: 'Specialty', cost: 1.50, x: leftPad + sackW + 10, y: sackStartY + (sackH * 2) + 20, w: sackW, h: sackH, color: '#a855f7' }
+        ];
+
+        this.drain = { x: leftPad, y: sackStartY + (sackH * 3) + 30, w: sackW * 2 + 10, h: sackH * 0.5 };
+
+        // 3. BOTTOM ANCHOR: Kettles
+        const kH = Math.max(100, Math.min(150, H * 0.22));
+        const kY = H - kH - 10;
+        const kSpace = W / 3;
+        const kW = Math.min(kSpace - 20, 420);
+
+        const k1 = (this.kettles && this.kettles[0]) ? this.kettles[0].items : [];
+        const k2 = (this.kettles && this.kettles[1]) ? this.kettles[1].items : [];
+        const k3 = (this.kettles && this.kettles[2]) ? this.kettles[2].items : [];
+
+        this.kettles = [
+            { x: (kSpace * 0.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 0.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k1 },
+            { x: (kSpace * 1.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 1.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k2 },
+            { x: (kSpace * 2.5) - (kW / 2), y: kY, w: kW, h: kH, btnX: (kSpace * 2.5) + (kW / 2) - (kW * 0.26), btnY: kY + kH * 0.4, btnW: kW * 0.24, btnH: kH * 0.45, items: k3 }
+        ];
+
+        // 4. CENTER FILL: The Grid
+        const leftBounds = leftPad + (sackW * 2) + 30;
+        const rightBounds = this.boardX - 20;
+        const availableW = rightBounds - leftBounds;
+        const availableH = kY - 80;
+
+        this.tileSize = Math.floor(Math.min(availableW / this.cols, availableH / this.rows));
+
+        const actualGridW = this.tileSize * this.cols;
+        const actualGridH = this.tileSize * this.rows;
+        this.gridOffset = {
+            x: leftBounds + (availableW - actualGridW) / 2,
+            y: 70 + (availableH - actualGridH) / 2
+        };
+    }
+
+    // THIS IS THE MISSING FUNCTION THAT CRASHED THE GAME
     resetGrid() {
         this.grid = [];
         for (let r = 0; r < this.rows; r++) {
@@ -60,45 +95,11 @@ class BrewingPhase {
         if (!this.grid || this.grid.length === 0) {
             this.resetGrid();
         }
-        // Generate 2 new Contract Orders at the start of every shift!
         if (typeof gameRecipes !== 'undefined') {
             this.activeOrders = gameRecipes.getDailyOrders(2);
         }
     }
 
-    shutdown() {
-        this.isActive = false;
-        this.dragState = null;
-    }
-
-    findEmptyCell() {
-        const emptyCells = [];
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                if (!this.grid[r][c]) {
-                    emptyCells.push({ row: r, col: c });
-                }
-            }
-        }
-        if (emptyCells.length === 0) return null;
-        return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    }
-
-    spawnItem(category) {
-        const emptyCell = this.findEmptyCell();
-        if (emptyCell) {
-            const itemName = gameRecipes.getRandomDrop(category);
-            this.grid[emptyCell.row][emptyCell.col] = {
-                id: Math.random().toString(),
-                name: itemName,
-                category: category
-            };
-        } else {
-            this.floatingTexts.push(
-                new FloatingTitle(this.gridOffset.x + 270, this.gridOffset.y - 15, "Grid is Full!", "#ef4444")
-            );
-        }
-    }
 
     setupEventListeners() {
         if (typeof gameEvents === 'undefined') return;
