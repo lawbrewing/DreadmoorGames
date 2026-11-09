@@ -6,14 +6,24 @@
     <title>Law Brewing Bar Dice</title>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        :root {
+            --gold: #eab308;
+            --gold-glow: rgba(234, 179, 8, 0.55);
+            --brass: #b45309;
+            --felt: #0f291e;
+            --mahogany-dark: #160a06;
+            --mahogany-mid: #2b130b;
+        }
 
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #1a1a1a;
+            background-color: #0d0604;
             color: white;
             overflow-x: hidden;
             overscroll-behavior-y: contain;
+            margin: 0;
         }
 
         #root {
@@ -24,44 +34,223 @@
         }
 
         .loading-text {
-            margin-top: 20px;
-            color: #888;
+            margin-top: 40px;
+            color: #eab308;
+            font-family: 'Rye', serif;
             text-align: center;
+            letter-spacing: 0.1em;
         }
 
         .font-western {
             font-family: 'Rye', serif;
         }
 
-        .dice-face {
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            user-select: none;
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
         }
 
-            .dice-face:active {
-                transform: scale(0.95);
-            }
-
-        .glass-panel {
-            background: rgba(30, 30, 30, 0.95);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
+        /* -------------------------------------------
+           MAHOGANY BARTOP & AMBIENT LIGHTING
+        ------------------------------------------- */
         .wood-texture {
-            background-color: #3e2723;
-            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);
+            background-color: var(--mahogany-dark);
+            background-image:
+                radial-gradient(ellipse at 50% 25%, rgba(245, 158, 11, 0.14) 0%, rgba(0, 0, 0, 0.65) 70%),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 9px),
+                repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0px, rgba(43, 19, 11, 0.35) 12px, rgba(22, 10, 6, 0.4) 24px),
+                linear-gradient(180deg, #2b120a 0%, #1a0b06 50%, #0d0503 100%);
             width: 100%;
             min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wood-texture::before {
+            content: "";
+            position: absolute;
+            top: 14%;
+            left: 8%;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 5px solid rgba(0, 0, 0, 0.28);
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.2), 18px 25px 0 -4px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .wood-texture::after {
+            content: "";
+            position: absolute;
+            bottom: 10%;
+            right: 6%;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* -------------------------------------------
+           NEON SIGN & BRASS PLAQUE PANELS
+        ------------------------------------------- */
+        @keyframes neon-flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                text-shadow:
+                    0 0 4px #fef08a,
+                    0 0 12px #eab308,
+                    0 0 22px rgba(234, 179, 8, 0.65),
+                    0 2px 4px rgba(0, 0, 0, 0.9);
+            }
+            20%, 24%, 55% {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+            }
+        }
+
+        .neon-title {
+            color: #fef08a;
+            animation: neon-flicker 6s infinite;
+        }
+
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(32, 22, 17, 0.94) 0%, rgba(18, 12, 9, 0.97) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            box-shadow:
+                0 10px 25px -5px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .coaster-card {
+            background: radial-gradient(circle at 50% 30%, #291d18 0%, #17100d 100%);
+            border: 2px solid #452c1e;
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.75),
+                inset 0 1px 1px rgba(255, 255, 255, 0.08);
+            position: relative;
+        }
+
+        .chalkboard-banner {
+            background: radial-gradient(circle at center, #1e2421 0%, #111513 100%);
+            border: 2px solid #78350f;
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.7),
+                inset 0 0 18px rgba(0, 0, 0, 0.85);
+            position: relative;
+        }
+
+        /* Speech Bubble Pop Animation */
+        @keyframes bubble-pop {
+            0% { transform: scale(0.7) translateY(6px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .speech-bubble {
+            animation: bubble-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            background: #fef9c3;
+            color: #1c1917;
+            border: 2px solid #b45309;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.65);
+            position: relative;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: -7px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 6px 7px 6px;
+            border-style: solid;
+            border-color: transparent transparent #b45309 transparent;
+        }
+
+        /* -------------------------------------------
+           RECESSED FELT DICE TRAY
+        ------------------------------------------- */
+        .felt-dice-pit {
+            background: radial-gradient(ellipse at center, #163d2d 0%, #0b2218 70%, #06140e 100%);
+            border: 3px solid #78350f;
+            box-shadow:
+                inset 0 8px 22px rgba(0, 0, 0, 0.9),
+                inset 0 0 40px rgba(0, 0, 0, 0.65),
+                0 2px 0 rgba(251, 191, 36, 0.2);
+            position: relative;
+        }
+
+        .brass-rivet {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fde047, #b45309 70%, #451a03 100%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            position: absolute;
+        }
+
+        /* -------------------------------------------
+           3D SCULPTED BAR DICE
+        ------------------------------------------- */
+        .dice-face {
+            transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+            position: relative;
+        }
+
+        .dice-face:active {
+            transform: scale(0.92);
+        }
+
+        .die-ivory {
+            background: linear-gradient(145deg, #fffbeb 0%, #f3e8d2 55%, #d6c3a5 100%);
+            border: 1px solid #a89070;
+            box-shadow:
+                0 6px 12px rgba(0, 0, 0, 0.75),
+                0 3px 0 #8c7355,
+                inset 0 2px 3px rgba(255, 255, 255, 0.9),
+                inset 0 -2px 4px rgba(138, 112, 80, 0.45);
+        }
+
+        .die-ivory:hover {
+            filter: brightness(1.05);
+        }
+
+        .die-wild-ace {
+            background: linear-gradient(145deg, #fef9c3 0%, #fde047 45%, #ca8a04 100%);
+            border: 1px solid #fef08a;
+            box-shadow:
+                0 6px 15px rgba(234, 179, 8, 0.4),
+                0 3px 0 #854d0e,
+                inset 0 2px 4px rgba(255, 255, 255, 0.95),
+                inset 0 -2px 5px rgba(133, 77, 14, 0.6);
+        }
+
+        .die-held {
+            transform: translateY(-10px) scale(1.04) !important;
+            border: 2px solid #facc15 !important;
+            box-shadow:
+                0 14px 20px -4px rgba(0, 0, 0, 0.85),
+                0 0 18px rgba(234, 179, 8, 0.75),
+                0 3px 0 #b45309,
+                inset 0 2px 3px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .pip-dot {
+            background: radial-gradient(circle at 35% 35%, #334155 0%, #0f172a 70%, #020617 100%);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .pip-six-red {
+            background: radial-gradient(circle at 35% 35%, #ef4444 0%, #991b1b 75%, #450a0a 100%);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.6);
         }
 
         @keyframes pulse-yellow {
             0%, 100% {
-                box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.7);
+                box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.7), 0 4px 12px rgba(0, 0, 0, 0.6);
             }
-
             50% {
-                box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+                box-shadow: 0 0 0 10px rgba(234, 179, 8, 0), 0 4px 18px rgba(234, 179, 8, 0.5);
             }
         }
 
@@ -70,11 +259,14 @@
         }
 
         .active-turn {
-            border-color: #eab308;
+            border-color: #eab308 !important;
+            box-shadow:
+                0 0 22px rgba(234, 179, 8, 0.35),
+                inset 0 0 15px rgba(234, 179, 8, 0.12) !important;
         }
 
         .inactive-turn {
-            opacity: 0.8;
+            opacity: 0.88;
         }
 
         .cheat-sheet-container:hover .cheat-sheet {
@@ -90,76 +282,36 @@
         }
 
         @keyframes dice-roll {
-            0% {
-                transform: rotate(0deg) scale(1);
-            }
-
-            25% {
-                transform: rotate(-25deg) scale(1.1);
-            }
-
-            50% {
-                transform: rotate(25deg) scale(0.9);
-            }
-
-            75% {
-                transform: rotate(-10deg) scale(1.05);
-            }
-
-            100% {
-                transform: rotate(0deg) scale(1);
-            }
+            0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+            20% { transform: translate3d(-6px, -12px, 0) rotate(-35deg) scale(1.12); }
+            45% { transform: translate3d(8px, 6px, 0) rotate(40deg) scale(0.92); }
+            70% { transform: translate3d(-4px, -6px, 0) rotate(-18deg) scale(1.06); }
+            100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
         }
 
         .rolling-animation {
-            animation: dice-roll 0.4s ease-in-out;
+            animation: dice-roll 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
         }
 
         /* -------------------------------------------
            AVATAR AMBIENT ANIMATIONS
         ------------------------------------------- */
         @keyframes blink {
-            0%, 90%, 100% {
-                transform: scaleY(1);
-            }
-
-            95% {
-                transform: scaleY(0.1);
-            }
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
         }
 
         @keyframes glasses-glint {
-            0%, 80%, 100% {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-
-            85% {
-                opacity: 0.8;
-            }
-
-            90% {
-                opacity: 0;
-                transform: translateX(25px);
-            }
+            0%, 80%, 100% { opacity: 0; transform: translateX(-10px); }
+            85% { opacity: 0.85; }
+            90% { opacity: 0; transform: translateX(25px); }
         }
 
         @keyframes egret-peck {
-            0%, 100% {
-                transform: rotate(0deg);
-            }
-
-            40% {
-                transform: rotate(-8deg);
-            }
-
-            50% {
-                transform: rotate(12deg);
-            }
-
-            60% {
-                transform: rotate(0deg);
-            }
+            0%, 100% { transform: rotate(0deg); }
+            40% { transform: rotate(-8deg); }
+            50% { transform: rotate(12deg); }
+            60% { transform: rotate(0deg); }
         }
 
         @keyframes cigar-flicker {
@@ -167,10 +319,23 @@
                 fill: #c53030;
                 filter: drop-shadow(0 0 1px #e53e3e);
             }
-
             50% {
-                fill: #f56565;
-                filter: drop-shadow(0 0 4px #f56565);
+                fill: #ff7b00;
+                filter: drop-shadow(0 0 5px #f56565);
+            }
+        }
+
+        @keyframes cigar-smoke {
+            0% {
+                opacity: 0;
+                transform: translate(0, 0) scale(0.5);
+            }
+            40% {
+                opacity: 0.55;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-6px, -18px) scale(1.6);
             }
         }
 
@@ -180,58 +345,42 @@
             animation: blink 4s infinite;
         }
 
-        .anim-glint {
-            animation: glasses-glint 5s infinite;
-        }
-
-        .anim-peck {
-            transform-origin: 50% 80%;
-            animation: egret-peck 3s infinite ease-in-out;
-        }
-
-        .anim-cigar {
-            animation: cigar-flicker 1.5s infinite;
-        }
+        .anim-glint { animation: glasses-glint 5s infinite; }
+        .anim-peck { transform-origin: 50% 80%; animation: egret-peck 3s infinite ease-in-out; }
+        .anim-cigar { animation: cigar-flicker 1.5s infinite; }
+        .anim-smoke-1 { animation: cigar-smoke 2.6s infinite ease-out; }
+        .anim-smoke-2 { animation: cigar-smoke 2.6s infinite 1.3s ease-out; }
 
         /* -------------------------------------------
            CONTAINER EMOTIONAL REACTIONS
         ------------------------------------------- */
         @keyframes react-bounce {
-            0%, 100% {
-                transform: translateY(0) scale(1);
-            }
-
-            50% {
-                transform: translateY(-12px) scale(1.15);
-                background-color: #422006;
-            }
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.05); background-color: #422006; }
         }
 
-        .reaction-rolling {
-            border-color: #eab308;
-        }
+        .reaction-rolling { border-color: #eab308 !important; }
 
         .reaction-winner {
-            animation: react-bounce 0.7s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
-            border-color: #eab308;
-            box-shadow: 0 0 25px rgba(234,179,8,1);
+            animation: react-bounce 0.75s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
+            border-color: #eab308 !important;
+            box-shadow: 0 0 28px rgba(234, 179, 8, 0.9) !important;
             z-index: 20;
             position: relative;
         }
 
         .reaction-loser {
-            filter: grayscale(0.8) brightness(0.6);
-            border-color: #1e293b;
+            filter: grayscale(0.8) brightness(0.65);
+            border-color: #1e293b !important;
         }
 
         .reaction-angry {
-            border-color: #ef4444;
-            background-color: #450a0a;
+            border-color: #ef4444 !important;
+            background: radial-gradient(circle at 50% 30%, #450a0a 0%, #1f0505 100%) !important;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.4) !important;
         }
 
-        .reaction-smug {
-            border-color: #3b82f6;
-        }
+        .reaction-smug { border-color: #3b82f6 !important; }
 
         /* -------------------------------------------
            INTERNAL FACIAL RIGGING
@@ -242,185 +391,59 @@
             transform-origin: center;
         }
 
-        /* Rolling */
         @keyframes eyes-dart {
-            0%, 100% {
-                transform: translateX(0);
-            }
-
-            25% {
-                transform: translateX(-4px);
-            }
-
-            75% {
-                transform: translateX(4px);
-            }
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
         }
 
         @keyframes sweat-drip {
-            0%, 100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(3px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(3px); }
         }
 
-        .reaction-rolling .avatar-eyes {
-            animation: eyes-dart 0.3s infinite;
-        }
+        .reaction-rolling .avatar-eyes { animation: eyes-dart 0.3s infinite; }
+        .reaction-rolling .avatar-mouth { transform: scale(0.4, 0.4); }
+        .reaction-rolling .avatar-sweat { opacity: 1 !important; animation: sweat-drip 0.15s infinite alternate; }
+        .reaction-rolling .avatar-eyebrow-l { transform: translateY(-2px) rotate(-5deg); }
+        .reaction-rolling .avatar-eyebrow-r { transform: translateY(-2px) rotate(5deg); }
 
-        .reaction-rolling .avatar-mouth {
-            transform: scale(0.4, 0.4);
-        }
+        .reaction-winner .avatar-mouth { transform: scale(1.6, 2) translateY(2px); }
+        .reaction-winner .avatar-eyebrow-l { transform: translateY(-8px) rotate(-25deg); }
+        .reaction-winner .avatar-eyebrow-r { transform: translateY(-8px) rotate(25deg); }
+        .reaction-winner .avatar-eyes { transform: scaleY(0.2); }
 
-        .reaction-rolling .avatar-sweat {
-            opacity: 1 !important;
-            animation: sweat-drip 0.15s infinite alternate;
-        }
-
-        .reaction-rolling .avatar-eyebrow-l {
-            transform: translateY(-2px) rotate(-5deg);
-        }
-
-        .reaction-rolling .avatar-eyebrow-r {
-            transform: translateY(-2px) rotate(5deg);
-        }
-
-        /* Winner */
-        .reaction-winner .avatar-mouth {
-            transform: scale(1.6, 2) translateY(2px);
-        }
-
-        .reaction-winner .avatar-eyebrow-l {
-            transform: translateY(-8px) rotate(-25deg);
-        }
-
-        .reaction-winner .avatar-eyebrow-r {
-            transform: translateY(-8px) rotate(25deg);
-        }
-
-        .reaction-winner .avatar-eyes {
-            transform: scaleY(0.2);
-        }
-
-        /* Angry */
         @keyframes face-rage {
-            0%, 100% {
-                transform: translate(0,0);
-            }
-
-            25% {
-                transform: translate(-2px, 1px);
-            }
-
-            75% {
-                transform: translate(2px, -1px);
-            }
+            0%, 100% { transform: translate(0,0); }
+            25% { transform: translate(-2px, 1px); }
+            75% { transform: translate(2px, -1px); }
         }
 
-        .reaction-angry .avatar-mouth {
-            transform: scale(1.5, -1) translateY(-6px);
-            animation: face-rage 0.1s infinite;
-        }
+        .reaction-angry .avatar-mouth { transform: scale(1.5, -1) translateY(-6px); animation: face-rage 0.1s infinite; }
+        .reaction-angry .avatar-eyebrow-l { transform: translateY(6px) rotate(40deg); stroke: #ef4444; animation: face-rage 0.1s infinite; }
+        .reaction-angry .avatar-eyebrow-r { transform: translateY(6px) rotate(-40deg); stroke: #ef4444; animation: face-rage 0.1s infinite; }
+        .reaction-angry .avatar-eyes { transform: scale(1.3) translateY(2px); fill: #ef4444; animation: face-rage 0.1s infinite; }
 
-        .reaction-angry .avatar-eyebrow-l {
-            transform: translateY(6px) rotate(40deg);
-            stroke: #ef4444;
-            animation: face-rage 0.1s infinite;
-        }
+        .reaction-smug .avatar-mouth { transform: scale(0.8) translateX(4px) rotate(-15deg); }
+        .reaction-smug .avatar-eyebrow-l { transform: translateY(-6px) rotate(-15deg); }
+        .reaction-smug .avatar-eyebrow-r { transform: translateY(2px) rotate(10deg); }
+        .reaction-smug .avatar-eyes { transform: scaleY(0.8) translateX(2px); }
 
-        .reaction-angry .avatar-eyebrow-r {
-            transform: translateY(6px) rotate(-40deg);
-            stroke: #ef4444;
-            animation: face-rage 0.1s infinite;
-        }
+        .reaction-loser .avatar-mouth { transform: scale(1.4, -1.6) translateY(-8px); }
+        .reaction-loser .avatar-eyebrow-l { transform: translateY(-4px) rotate(-30deg); }
+        .reaction-loser .avatar-eyebrow-r { transform: translateY(-4px) rotate(30deg); }
+        .reaction-loser .avatar-eyes { transform: scaleY(0.4) translateY(4px); }
+        .reaction-loser .avatar-sweat { opacity: 1 !important; transform: translateY(12px); transition: transform 2s ease-in; }
 
-        .reaction-angry .avatar-eyes {
-            transform: scale(1.3) translateY(2px);
-            fill: #ef4444;
-            animation: face-rage 0.1s infinite;
-        }
-
-        /* Smug */
-        .reaction-smug .avatar-mouth {
-            transform: scale(0.8) translateX(4px) rotate(-15deg);
-        }
-
-        .reaction-smug .avatar-eyebrow-l {
-            transform: translateY(-6px) rotate(-15deg);
-        }
-
-        .reaction-smug .avatar-eyebrow-r {
-            transform: translateY(2px) rotate(10deg);
-        }
-
-        .reaction-smug .avatar-eyes {
-            transform: scaleY(0.8) translateX(2px);
-        }
-
-        /* Loser */
-        .reaction-loser .avatar-mouth {
-            transform: scale(1.4, -1.6) translateY(-8px);
-        }
-
-        .reaction-loser .avatar-eyebrow-l {
-            transform: translateY(-4px) rotate(-30deg);
-        }
-
-        .reaction-loser .avatar-eyebrow-r {
-            transform: translateY(-4px) rotate(30deg);
-        }
-
-        .reaction-loser .avatar-eyes {
-            transform: scaleY(0.4) translateY(4px);
-        }
-
-        .reaction-loser .avatar-sweat {
-            opacity: 1 !important;
-            transform: translateY(12px);
-            transition: transform 2s ease-in;
-        }
-
-        /* Loomis Bird Beak Overrides */
-        .reaction-rolling .avatar-beak-top {
-            transform: rotate(-5deg);
-        }
-
-        .reaction-rolling .avatar-beak-bottom {
-            transform: rotate(5deg);
-        }
-
-        .reaction-winner .avatar-beak-top {
-            transform: rotate(-35deg) translateY(-2px);
-        }
-
-        .reaction-winner .avatar-beak-bottom {
-            transform: rotate(35deg) translateY(2px);
-        }
-
-        .reaction-angry .avatar-beak-top {
-            transform: rotate(-10deg);
-            animation: face-rage 0.1s infinite;
-        }
-
-        .reaction-angry .avatar-beak-bottom {
-            transform: rotate(-5deg);
-            animation: face-rage 0.1s infinite;
-        }
-
-        .reaction-smug .avatar-beak-top {
-            transform: translateY(-2px);
-        }
-
-        .reaction-loser .avatar-beak-top {
-            transform: translateY(6px) rotate(15deg);
-        }
-
-        .reaction-loser .avatar-beak-bottom {
-            transform: translateY(6px);
-        }
+        .reaction-rolling .avatar-beak-top { transform: rotate(-5deg); }
+        .reaction-rolling .avatar-beak-bottom { transform: rotate(5deg); }
+        .reaction-winner .avatar-beak-top { transform: rotate(-35deg) translateY(-2px); }
+        .reaction-winner .avatar-beak-bottom { transform: rotate(35deg) translateY(2px); }
+        .reaction-angry .avatar-beak-top { transform: rotate(-10deg); animation: face-rage 0.1s infinite; }
+        .reaction-angry .avatar-beak-bottom { transform: rotate(-5deg); animation: face-rage 0.1s infinite; }
+        .reaction-smug .avatar-beak-top { transform: translateY(-2px); }
+        .reaction-loser .avatar-beak-top { transform: translateY(6px) rotate(15deg); }
+        .reaction-loser .avatar-beak-bottom { transform: translateY(6px); }
 
         .die-physics {
             transition: transform 0.45s cubic-bezier(0.25, 1.25, 0.5, 1);
@@ -440,13 +463,181 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <div id="root"><div class="loading-text">Loading Law Brewing Bar Dice...</div></div>
+    <div id="root"><div class="loading-text">Pouring Pints & Setting the Dice...</div></div>
     <audio id="bgm" src="Inheriting_the_Sea.mp3" loop preload="auto"></audio>
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
+        /* -------------------------------------------
+           PROCEDURAL WEB AUDIO SYNTHESIZER
+        ------------------------------------------- */
+        const SoundFX = {
+            ctx: null,
+            muted: false,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            shakeAndRoll() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                // 5 wooden cup rattle clacks
+                for (let i = 0; i < 5; i++) {
+                    const t = now + i * 0.065 + (Math.random() * 0.015);
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(320 + Math.random() * 240, t);
+                    osc.frequency.exponentialRampToValueAtTime(75, t + 0.045);
+
+                    gain.gain.setValueAtTime(0.16, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.05);
+                }
+
+                // Heavy leather & felt thud on landing
+                const landTime = now + 0.36;
+                const thudOsc = this.ctx.createOscillator();
+                const thudGain = this.ctx.createGain();
+                thudOsc.type = 'sine';
+                thudOsc.frequency.setValueAtTime(115, landTime);
+                thudOsc.frequency.exponentialRampToValueAtTime(32, landTime + 0.14);
+
+                thudGain.gain.setValueAtTime(0.32, landTime);
+                thudGain.gain.exponentialRampToValueAtTime(0.001, landTime + 0.15);
+
+                thudOsc.connect(thudGain);
+                thudGain.connect(this.ctx.destination);
+                thudOsc.start(landTime);
+                thudOsc.stop(landTime + 0.16);
+            },
+            holdClick(locking = true) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(locking ? 520 : 720, now);
+                osc.frequency.exponentialRampToValueAtTime(locking ? 860 : 420, now + 0.055);
+
+                gain.gain.setValueAtTime(0.14, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.065);
+            },
+            callTheBar() {
+                // Double knuckle-rap on the mahogany bartop
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [0, 0.14].forEach(offset => {
+                    const t = now + offset;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(160, t);
+                    osc.frequency.exponentialRampToValueAtTime(42, t + 0.09);
+
+                    gain.gain.setValueAtTime(0.4, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.095);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.1);
+                });
+            },
+            doubleTapBell() {
+                // Brass tavern bell ring
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [880, 1320, 1760].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = idx === 0 ? 'triangle' : 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.18 / (idx + 1), now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.66);
+                });
+            },
+            potWin() {
+                // Cash register coin cascade
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [987.77, 1318.51, 1567.98, 1975.53].forEach((freq, idx) => {
+                    const t = now + idx * 0.07;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, t);
+
+                    gain.gain.setValueAtTime(0.16, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.29);
+                });
+            },
+            buyRound() {
+                // Pint glass clink
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [1850, 2420].forEach((freq, i) => {
+                    const t = now + i * 0.05;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, t);
+
+                    gain.gain.setValueAtTime(0.12, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.23);
+                });
+            }
+        };
+
         const Icons = {
-            Star: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 0L14.59 8.06L22.5 5.5L17.3 12L22.5 18.5L14.59 15.94L12 24L9.41 15.94L1.5 18.5L6.7 12L1.5 5.5L9.41 8.06L12 0Z"/></svg>,
+            Star: () => (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="#78350f" strokeWidth="1">
+                    <path d="M12 1.5L14.85 8.35L22.2 9.1L16.7 14.05L18.3 21.3L12 17.55L5.7 21.3L7.3 14.05L1.8 9.1L9.15 8.35L12 1.5Z"/>
+                </svg>
+            ),
             Beer: () => (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 7h10v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V7Z" fill="#eab308" stroke="#eab308" fillOpacity="0.5"/>
@@ -458,14 +649,17 @@
                     <line x1="17" y1="7" x2="17" y2="21" stroke="currentColor"/>
                 </svg>
             ),
-            DollarSign: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+            DollarSign: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
             Skull: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="M12.5 17l.5-2 .5 2h2l.5-2 .5 2"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg>,
-            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
-            Check: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             Help: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
             Mug: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 6h2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M4 6h13v14H4V6Z"/><path d="M8 6v14"/><path d="M12 6v14"/><path d="M4 10h13"/></svg>,
             Party: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M15 11a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path d="M19 12c0 2.2-1.5 4.3-4.5 4.3S10 14.2 10 12c0-2.3 1.5-4.3 4.5-4.3S19 9.8 19 12z"/><path d="M21 12c0 3.3-2.5 6-7 6s-7-2.7-7-6c0-3.3 2.5-6 7-6s7 2.7 7 6z"/><path d="M22 12c0 4.4-3.4 8-10 8S2 16.4 2 12 5.4 4 12 4s10 3.6 10 8z"/></svg>,
-            TrendingUp: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+            TrendingUp: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+            VolumeOn: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
+            VolumeOff: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
+            Bell: () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
         };
 
         const Icon = ({ name, size = 16, className = "" }) => {
@@ -560,37 +754,31 @@
             Cutter: () => (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full overflow-visible">
                     <rect width="100" height="100" fill="#7b341e"/>
-                    {/* Head Base */}
                     <circle cx="50" cy="55" r="30" fill="#f6ad55"/>
-                    {/* Bandana / Hat */}
                     <path d="M15 35 Q50 10 85 35 L80 45 Q50 35 20 45 Z" fill="#e53e3e"/>
 
-                    {/* Fixed Cheek Scar / Stitches (Stays pinned to his face) */}
                     <line x1="60" y1="65" x2="70" y2="75" stroke="#c53030" strokeWidth="2"/>
                     <line x1="63" y1="68" x2="67" y2="66" stroke="#c53030" strokeWidth="1"/>
 
-                    {/* Eyes & Eye Patch Strap */}
                     <g className="avatar-eyes avatar-part">
                         <line x1="20" y1="45" x2="50" y2="60" stroke="#1a202c" strokeWidth="2"/>
-                        <circle cx="35" cy="52" r="8" fill="#1a202c"/> {/* Eye patch */}
-                        <circle cx="65" cy="52" r="4" fill="#1a202c" className="anim-blink"/> {/* Good eye */}
+                        <circle cx="35" cy="52" r="8" fill="#1a202c"/>
+                        <circle cx="65" cy="52" r="4" fill="#1a202c" className="anim-blink"/>
                     </g>
 
-                    {/* Eyebrows with centered transform origins */}
                     <path d="M28 46 Q35 43 42 46" stroke="#1a202c" strokeWidth="2.5" fill="none" className="avatar-eyebrow-l avatar-part" style={{ transformOrigin: "35px 46px" }}/>
                     <path d="M58 46 Q65 43 72 46" stroke="#1a202c" strokeWidth="2.5" fill="none" className="avatar-eyebrow-r avatar-part" style={{ transformOrigin: "65px 46px" }}/>
 
-                    {/* Isolated Mouth */}
                     <path d="M42 77 Q50 74 58 77" stroke="#1a202c" strokeWidth="3" fill="none" className="avatar-mouth avatar-part" style={{ transformOrigin: "50px 76px" }}/>
 
-                    {/* Cigar - Fixed in the corner of his jaw with independent flicker */}
                     <g>
                         <line x1="26" y1="74" x2="38" y2="74" stroke="#78350f" strokeWidth="3.5" strokeLinecap="round"/>
                         <line x1="22" y1="74" x2="26" y2="74" stroke="#d97706" strokeWidth="3.5" strokeLinecap="round"/>
                         <circle cx="21" cy="74" r="2.5" className="anim-cigar"/>
+                        <circle cx="20" cy="70" r="3" fill="#cbd5e1" className="anim-smoke-1" />
+                        <circle cx="18" cy="68" r="2.5" fill="#e2e8f0" className="anim-smoke-2" />
                     </g>
 
-                    {/* Sweat Drop for Rolling/Tense States */}
                     <path d="M 80 40 Q 80 45 83 45 Q 86 45 86 40 L 83 33 Z" fill="#38bdf8" className="avatar-part avatar-sweat" style={{ opacity: 0 }} />
                 </svg>
             ),
@@ -621,14 +809,101 @@
         const BUY_A_ROUND_COST = 20;
         const GAME_STATE_BAR_VICTORY = 'BAR_VICTORY';
 
+        /* -------------------------------------------
+           6 CRAFT BEERS WITH 1-ROUND GAMEPLAY BUFFS
+        ------------------------------------------- */
         const ROUND_DRINKS = [
-            { name: "nIPLy", desc: "A crisp cold IPA." },
-            { name: "NOT Burnt Marshmallow", desc: "A heavy, sweet pastry stout treat." },
-            { name: "Raspberry Cabana", desc: "A tart fruited sour." },
-            { name: "subLime", desc: "Concepted like Sublime singing 311 songs as if it were real life." },
-            { name: "Hopped Up on Enemy's Blood", desc: "A fierce tangerine IPA." },
-            { name: "The Patient Egret", desc: "A smooth pineapple milkshake nitro IPA." }
+            {
+                id: "niply",
+                name: "nIPLy",
+                desc: "A crisp cold IPA.",
+                buffTitle: "Crisp Hopped Focus",
+                buffRule: "Base roll limit increased to 4 Shakes this round!"
+            },
+            {
+                id: "marshmallow",
+                name: "NOT Burnt Marshmallow",
+                desc: "A heavy, sweet pastry stout treat.",
+                buffTitle: "Velvet Sugar Coma",
+                buffRule: "Heavy pastry stout caps the table at 2 Shakes max this round!"
+            },
+            {
+                id: "cabana",
+                name: "Raspberry Cabana",
+                desc: "A tart fruited sour.",
+                buffTitle: "Tart Pucker Stakes",
+                buffRule: "High-stakes sour! Ante jumps to $15 per player this round!"
+            },
+            {
+                id: "sublime",
+                name: "subLime",
+                desc: "Concepted like Sublime singing 311 songs as if it were real life.",
+                buffTitle: "3-1-1 Jukebox Groove",
+                buffRule: "Finishing a hand holding both a 3 and a 1 (Star) pays an instant +$10 bonus!"
+            },
+            {
+                id: "blood",
+                name: "Hopped Up on Enemy's Blood",
+                desc: "A fierce tangerine IPA.",
+                buffTitle: "Tangerine Bloodlust",
+                buffRule: "All patrons play Aggressive AI & losing round penalty jumps to $30!"
+            },
+            {
+                id: "egret",
+                name: "The Patient Egret",
+                desc: "A smooth pineapple milkshake nitro IPA.",
+                buffTitle: "Lagoon Zen",
+                buffRule: "All patrons hunt Flights (Straights) & rolling a Flight pays +$15 instantly!"
+            }
         ];
+
+        /* -------------------------------------------
+           PATRON LORE & TRASH-TALK DIALOGUE
+        ------------------------------------------- */
+        const PATRON_QUOTES = {
+            "Pinecone Pete": {
+                rolling: "Easy does it... just need a safe pair.",
+                call: "I'm knockin' the wood early! Beat that!",
+                winner: "Hah! Slow and steady fills the wallet!",
+                salty: "Highway robbery! I had a solid hand!",
+                loser: "Aw pinecones... put this round on my tab."
+            },
+            "Rick the Prick": {
+                rolling: "Outta my way, I'm rolling five Aces!",
+                call: "Boom! Calling it early, try keeping up!",
+                winner: "Pay up! Easiest money in Dreadmoor!",
+                salty: "Are these dice loaded?! Total garbage!",
+                loser: "Whatever! I wanted to buy a round anyway!"
+            },
+            "Mara Lawson": {
+                rolling: "Let the tides of Dreadmoor guide the cup...",
+                call: "The lighthouse beam stops here. Match it!",
+                winner: "The fog clears, and the pot is mine.",
+                salty: "A rogue wave took my hand at the last second.",
+                loser: "Bartender, pour something dark for the table."
+            },
+            "James Roberts": {
+                rolling: "Running Monte Carlo EV on this hold...",
+                call: "Optimal stopping threshold reached. Good luck.",
+                winner: "Positive expected value confirmed.",
+                salty: "A 2.4% tail-risk bad beat! Absurd variance!",
+                loser: "Rebalancing my liquid portfolio... bartender!"
+            },
+            "Cutter McCoy": {
+                rolling: "*Puffs cigar* Let's see some bones...",
+                call: "Slammin' the cup! Beat that with one eye!",
+                winner: "Har! Drinks taste better on your dime!",
+                salty: "By the reef, how'd that hand lose?!",
+                loser: "Bah! Pour the grog before I change my mind."
+            },
+            "Loomis": {
+                rolling: "*Stares intensely at the felt...*",
+                call: "*SHARP BEAK CLACK ON THE BAR!*",
+                winner: "KRA-KAAAW! 🦢 *Preens feathers*",
+                salty: "*Angry lagoon hiss! Ruffles plumage*",
+                loser: "*Sad egret honk... nudges $20 with beak*"
+            }
+        };
 
         const HAND_RANKS = {
             FIVE_OF_A_KIND: 8, FOUR_OF_A_KIND: 7, FULL_HOUSE: 6, STRAIGHT: 5,
@@ -705,6 +980,8 @@
             }
         };
 
+        const has311Combo = (dice) => dice && dice.includes(3) && dice.includes(1);
+
         const PipMap = {
             2: [0, 8],
             3: [0, 4, 8],
@@ -714,42 +991,58 @@
         };
 
         const renderPips = (val, size) => {
-            if (val === 1) return <Icon name="Star" size={size === "large" ? 36 : 18} className="text-yellow-400" />;
+            if (val === 1) {
+                return (
+                    <div className="flex flex-col items-center justify-center">
+                        <Icon name="Star" size={size === "large" ? 34 : 18} className="text-amber-600 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" />
+                    </div>
+                );
+            }
 
             const pips = Array(9).fill(null);
             const activeIndices = PipMap[val] || [];
             const pipSize = size === "large" ? "w-3 h-3" : "w-1.5 h-1.5";
+            const pipColorClass = val === 6 ? "pip-six-red" : "pip-dot";
 
             return (
-                <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-2 gap-1 place-items-center">
+                <div className={`grid grid-cols-3 grid-rows-3 w-full h-full ${size === "large" ? "p-2.5 gap-1" : "p-1 gap-0.5"} place-items-center`}>
                     {pips.map((_, i) => (
-                        <div key={i} className={`rounded-full ${activeIndices.includes(i) ? 'bg-white shadow-sm' : 'bg-transparent'} ${pipSize}`}></div>
+                        <div key={i} className={`rounded-full ${activeIndices.includes(i) ? pipColorClass : 'bg-transparent'} ${pipSize}`}></div>
                     ))}
                 </div>
             );
         };
 
         const Die = ({ value, held, onClick, size = "large", isRolling = false, physics = {x: 0, y: 0, rot: 0} }) => {
-            const isZero = value === 0;
-            const sizeClass = size === "large" ? "w-16 h-16" : "w-8 h-8";
+            const isZero = value === 0 && !isRolling;
+            const sizeClass = size === "large" ? "w-16 h-16 md:w-[4.25rem] md:h-[4.25rem]" : "w-8 h-8";
 
             if (isZero) {
-                 return (
-                    <div className={`${sizeClass} flex items-center justify-center rounded-xl border-2 border-slate-700 bg-slate-900 text-slate-700 shadow-inner`}>
-                        <Icon name="Mug" size={size === "large" ? 24 : 12} />
+                return (
+                    <div className={`${sizeClass} flex items-center justify-center rounded-xl border border-amber-900/40 bg-black/40 text-amber-800/50 shadow-inner`}>
+                        <Icon name="Mug" size={size === "large" ? 24 : 13} />
                     </div>
-                 );
+                );
             }
 
+            const displayVal = isRolling && value === 0 ? ((Math.floor(Math.random() * 6)) + 1) : value;
             const style = isRolling ? {} : { transform: `translate3d(${physics.x}px, ${physics.y}px, 0) rotate(${physics.rot}deg)` };
+            const surfaceClass = displayVal === 1 ? "die-wild-ace" : "die-ivory";
 
             return (
-                <div
-                    onClick={onClick}
-                    className={`${sizeClass} flex items-center justify-center rounded-xl border-2 cursor-pointer shadow-lg dice-face ${held ? 'border-yellow-500 bg-yellow-900/50 -translate-y-2 !transform-none' : 'border-slate-600 bg-slate-800 hover:bg-slate-700'} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`}
-                    style={held ? {} : style}
-                >
-                    {renderPips(value, size)}
+                <div className="relative flex flex-col items-center">
+                    <div
+                        onClick={onClick}
+                        className={`${sizeClass} flex items-center justify-center rounded-xl cursor-pointer dice-face ${surfaceClass} ${held ? 'die-held' : ''} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`}
+                        style={held ? {} : style}
+                    >
+                        {renderPips(displayVal, size)}
+                    </div>
+                    {size === "large" && held && (
+                        <span className="mt-1 px-1.5 py-0.5 text-[9px] font-black tracking-widest uppercase bg-yellow-500 text-black rounded shadow border border-yellow-200 leading-none">
+                            HELD
+                        </span>
+                    )}
                 </div>
             );
         };
@@ -761,7 +1054,15 @@
             const [pot, setPot] = useState(0);
             const [round, setRound] = useState(1);
             const [message, setMessage] = useState("Welcome to Law Brewing!");
-            const [hasSubmittedScore, setHasSubmittedScore] = useState(false); // Add this line
+            const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
+            const [isMuted, setIsMuted] = useState(false);
+
+            // Drink Buffs & Bar Rules State
+            const [activeDrinkBuff, setActiveDrinkBuff] = useState(null);
+            const [nextDrinkBuff, setNextDrinkBuff] = useState(null);
+            const [roundMaxRolls, setRoundMaxRolls] = useState(3);
+            const [isCapLocked, setIsCapLocked] = useState(false);
+            const [doubleTapUsed, setDoubleTapUsed] = useState(false);
 
             const [sessionStats, setSessionStats] = useState({
                 roundsSurvived: 0,
@@ -784,40 +1085,60 @@
             const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
             const [lastRoundRankings, setLastRoundRankings] = useState([]);
 
+            // Refs to prevent stale closures inside timeouts
             const playerDiceRef = useRef(playerDice);
             const opponentsRef = useRef(opponents);
+            const fundsRef = useRef(funds);
+            const potRef = useRef(pot);
+            const roundMaxRollsRef = useRef(roundMaxRolls);
+            const activeDrinkBuffRef = useRef(activeDrinkBuff);
+            const nextDrinkBuffRef = useRef(nextDrinkBuff);
 
             useEffect(() => { playerDiceRef.current = playerDice; }, [playerDice]);
             useEffect(() => { opponentsRef.current = opponents; }, [opponents]);
+            useEffect(() => { fundsRef.current = funds; }, [funds]);
+            useEffect(() => { potRef.current = pot; }, [pot]);
+            useEffect(() => { roundMaxRollsRef.current = roundMaxRolls; }, [roundMaxRolls]);
+            useEffect(() => { activeDrinkBuffRef.current = activeDrinkBuff; }, [activeDrinkBuff]);
+            useEffect(() => { nextDrinkBuffRef.current = nextDrinkBuff; }, [nextDrinkBuff]);
 
-                const submitBarDiceScore = async (finalStats, finalRound) => {
-    let name = prompt("BAR CLOSED! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
-    if (!name) name = "ANONYMOUS";
-    const cleanName = name.trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
+            const toggleAudio = () => {
+                const bgm = document.getElementById('bgm');
+                const nextMute = !isMuted;
+                setIsMuted(nextMute);
+                SoundFX.muted = nextMute;
+                if (bgm) bgm.muted = nextMute;
+            };
 
-    const payload = {
-        player_name: cleanName,
-        score: finalStats.totalEarnings, // Lifetime tips/cash earned as high score
-        level_reached: finalRound,
-        stats: finalStats
-    };
+            const submitBarDiceScore = async (finalStats, finalRound) => {
+                let name = prompt("BAR CLOSED! Enter your Patron ID (Max 15 chars):", "ANONYMOUS");
+                if (!name) name = "ANONYMOUS";
+                const cleanName = name.trim().toUpperCase().substring(0, 15).replace(/[^A-Z0-9 ]/g, "");
 
-    try {
-        await fetch('https://lawbrewing.tail03b2f1.ts.net/api/scores/bar_dice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        console.log("Bar Dice telemetry saved to Dreadmoor API.");
-    } catch (err) {
-        console.error("Telemetry failed to send:", err);
-    }
-};
+                const payload = {
+                    player_name: cleanName,
+                    score: finalStats.totalEarnings,
+                    level_reached: finalRound,
+                    stats: finalStats
+                };
+
+                try {
+                    await fetch('https://lawbrewing.tail03b2f1.ts.net/api/scores/bar_dice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log("Bar Dice telemetry saved to Dreadmoor API.");
+                } catch (err) {
+                    console.error("Telemetry failed to send:", err);
+                }
+            };
 
             useEffect(() => {
                 if (gameState === 'ROLLING') {
                     const activeId = turnOrder[currentTurnIndex];
                     if (activeId !== undefined && activeId !== 'player') {
+                        SoundFX.shakeAndRoll();
                         const aiDelay = setTimeout(() => {
                             playAITurn(activeId);
                         }, 1200);
@@ -827,56 +1148,134 @@
             }, [currentTurnIndex, gameState, turnOrder]);
 
             const playAITurn = (aiId) => {
+                const isLeadRoller = currentTurnIndex === 0;
+                const maxAllowedRolls = roundMaxRollsRef.current;
+                const currentBuff = activeDrinkBuffRef.current;
+                let leadCalledEarly = false;
+                let newCap = maxAllowedRolls;
+                let bonusAlert = "";
+
                 const newOpps = opponentsRef.current.map(opp => {
                     if (opp.id === aiId) {
-                        let currentDice = [1,1,1,1,1].map(()=>Math.ceil(Math.random()*6));
-                        for(let r=0; r<2; r++) {
-                            const keeps = getAIKeeps(currentDice, opp);
+                        let currentDice = [1,1,1,1,1].map(() => Math.ceil(Math.random() * 6));
+                        let rollsUsed = 1;
+
+                        for (let r = 1; r < maxAllowedRolls; r++) {
+                            const evalNow = evaluateHand(currentDice);
+                            // If AI is Lead Roller, check if they want to Call the Bar early!
+                            if (isLeadRoller) {
+                                if (r === 1 && evalNow.rank >= HAND_RANKS.STRAIGHT) {
+                                    leadCalledEarly = true;
+                                    newCap = 1;
+                                    break;
+                                }
+                                if (r === 2 && evalNow.rank >= HAND_RANKS.THREE_OF_A_KIND) {
+                                    leadCalledEarly = true;
+                                    newCap = 2;
+                                    break;
+                                }
+                            }
+                            // Stop rerolling if already holding 5-of-a-Kind
+                            if (evalNow.rank === HAND_RANKS.FIVE_OF_A_KIND) break;
+
+                            const keeps = getAIKeeps(currentDice, opp, currentBuff);
+                            if (keeps.length === 5) break;
                             currentDice = currentDice.map((d, i) => keeps.includes(i) ? d : Math.ceil(Math.random() * 6));
+                            rollsUsed++;
                         }
+
+                        const finalHand = evaluateHand(currentDice);
+                        let updatedMoney = opp.money;
+
+                        // Check instant drink bonuses for AI
+                        if (currentBuff?.id === 'sublime' && has311Combo(currentDice)) {
+                            updatedMoney += 10;
+                            bonusAlert = ` 🎶 ${opp.name} hit the 3-1-1 Jukebox Groove (+$10)!`;
+                        }
+                        if (currentBuff?.id === 'egret' && finalHand.rank === HAND_RANKS.STRAIGHT) {
+                            updatedMoney += 15;
+                            bonusAlert += ` 🦢 ${opp.name} hit Lagoon Zen Flight (+$15)!`;
+                        }
+
+                        const quotePool = PATRON_QUOTES[opp.name];
+                        const chosenQuote = leadCalledEarly
+                            ? quotePool?.call
+                            : (finalHand.rank >= HAND_RANKS.FULL_HOUSE ? "Top that hand, barkeep!" : null);
+
                         return {
                             ...opp,
+                            money: updatedMoney,
                             dice: currentDice,
-                            hand: evaluateHand(currentDice),
-                            status: 'Done'
+                            hand: finalHand,
+                            rollsUsed,
+                            status: 'Done',
+                            quote: chosenQuote
                         };
                     }
                     return opp;
                 });
 
+                if (leadCalledEarly) {
+                    SoundFX.callTheBar();
+                    setRoundMaxRolls(newCap);
+                    roundMaxRollsRef.current = newCap;
+                    setIsCapLocked(true);
+                }
+
                 setOpponents(newOpps);
                 opponentsRef.current = newOpps;
-                advanceTurn();
+                advanceTurn(leadCalledEarly ? newCap : null, bonusAlert);
             };
 
-            const advanceTurn = () => {
+            const advanceTurn = (justCalledCap = null, extraNote = "") => {
                 const nextIndex = currentTurnIndex + 1;
+                const capToUse = justCalledCap || roundMaxRollsRef.current;
+
                 if (nextIndex >= turnOrder.length) {
-                    finishRound();
+                    finishRound(extraNote);
                 } else {
                     setCurrentTurnIndex(nextIndex);
                     const nextId = turnOrder[nextIndex];
+                    const callPrefix = justCalledCap ? `🔨 BAR CALLED IN ${justCalledCap}! ` : "";
+
                     if (nextId === 'player') {
                         setPlayerDice([0,0,0,0,0]);
                         setHeldDice([false,false,false,false,false]);
                         setDicePhysics(Array(5).fill({x:0, y:0, rot:0}));
-                        setRollsLeft(3);
-                        setMessage("It's your turn! Roll for the pot.");
+                        setRollsLeft(capToUse);
+                        setMessage(`${callPrefix}Your turn! You have up to ${capToUse} ${capToUse === 1 ? 'shake' : 'shakes'}.${extraNote}`);
                     } else {
-                        const oppName = opponentsRef.current.find(o => o.id === nextId)?.name || "Opponent";
-                        setMessage(`Waiting for ${oppName}...`);
+                        const nextOpp = opponentsRef.current.find(o => o.id === nextId);
+                        const oppName = nextOpp?.name || "Opponent";
+                        // Set rolling quote on active opponent
+                        const updated = opponentsRef.current.map(o =>
+                            o.id === nextId ? { ...o, quote: PATRON_QUOTES[o.name]?.rolling } : o
+                        );
+                        setOpponents(updated);
+                        opponentsRef.current = updated;
+                        setMessage(`${callPrefix}${oppName} is shaking the dice cup...${extraNote}`);
                     }
                 }
             };
 
             const initializeGame = () => {
+                SoundFX.init();
                 setHasSubmittedScore(false);
                 const bgm = document.getElementById('bgm');
-                if (bgm) { bgm.volume = 0.4; bgm.play().catch(e => console.log("Audio play blocked", e)); }
+                if (bgm) {
+                    bgm.volume = 0.4;
+                    bgm.muted = isMuted;
+                    bgm.play().catch(e => console.log("Audio play blocked", e));
+                }
                 setFunds(HOUSE_START_MONEY);
+                fundsRef.current = HOUSE_START_MONEY;
                 setRound(1);
                 setLastRoundRankings([]);
                 setRetiredPatronTypes([]);
+                setActiveDrinkBuff(null);
+                setNextDrinkBuff(null);
+                activeDrinkBuffRef.current = null;
+                nextDrinkBuffRef.current = null;
 
                 setSessionStats({
                     roundsSurvived: 0,
@@ -897,6 +1296,7 @@
                     money: PATRON_START_MONEY,
                     status: 'Waiting',
                     typeId: pType.name,
+                    quote: null,
                     Avatar: getAvatarComponent(pType.name)
                 }));
 
@@ -904,18 +1304,18 @@
                 opponentsRef.current = newOpponents;
 
                 const order = [...newOpponents.map(o => o.id), 'player'];
-                setupRound(order, newOpponents);
+                setupRound(order, newOpponents, HOUSE_START_MONEY, null);
             };
 
-            const processEliminations = (currentOpponents) => {
+            const processEliminations = (currentOpponents, requiredAnte) => {
                  const survivingOpponents = [];
                  const newRetired = [];
                  let eliminationMsg = "";
 
                  currentOpponents.forEach(opp => {
-                     if (opp.money < CONTRIBUTION) {
+                     if (opp.money < requiredAnte) {
                          newRetired.push(opp.typeId);
-                         eliminationMsg += `\n🚨 ${opp.name} couldn't pay the ante and left.`;
+                         eliminationMsg += `\n🚨 ${opp.name} couldn't cover the $${requiredAnte} ante and tabbed out.`;
                      } else {
                          survivingOpponents.push(opp);
                      }
@@ -928,7 +1328,7 @@
                      const seatsNeeded = numOpponentsToPlay - survivingOpponents.length;
                      const sittingTypes = finalOpponents.map(o => o.typeId);
 
-                     for(let i=0; i<seatsNeeded; i++) {
+                     for (let i = 0; i < seatsNeeded; i++) {
                          const availableTypes = BASE_PATRON_TYPES.filter(p => !allRetired.includes(p.name) && !sittingTypes.includes(p.name));
 
                          if (availableTypes.length > 0) {
@@ -936,18 +1336,19 @@
                              sittingTypes.push(replacementType.name);
 
                              finalOpponents.push({
-                                ...replacementType,
-                                id: Math.max(...currentOpponents.map(o => o.id), 0) + 1 + i,
-                                dice: [0,0,0,0,0],
-                                hand: null,
-                                money: PATRON_START_MONEY,
-                                status: 'Waiting',
-                                typeId: replacementType.name,
-                                Avatar: getAvatarComponent(replacementType.name)
+                                 ...replacementType,
+                                 id: Math.max(...currentOpponents.map(o => o.id), 0) + 1 + i,
+                                 dice: [0,0,0,0,0],
+                                 hand: null,
+                                 money: PATRON_START_MONEY,
+                                 status: 'Waiting',
+                                 typeId: replacementType.name,
+                                 quote: "Fresh tab! Deal me in.",
+                                 Avatar: getAvatarComponent(replacementType.name)
                              });
-                             eliminationMsg += ` ${replacementType.name} sat down.`;
+                             eliminationMsg += ` ${replacementType.name} pulled up a barstool.`;
                          } else {
-                             eliminationMsg += ` No one else to take the seat!`;
+                             eliminationMsg += ` No one else left in the taproom to take the seat!`;
                          }
                      }
                  }
@@ -956,13 +1357,17 @@
             };
 
             const startRound = () => {
-                const { opponents: nextOpponents, newRetiredList, msg } = processEliminations(opponentsRef.current);
+                const incomingDrink = nextDrinkBuffRef.current;
+                const nextAnte = incomingDrink?.id === 'cabana' ? 15 : CONTRIBUTION;
+
+                const { opponents: nextOpponents, newRetiredList, msg } = processEliminations(opponentsRef.current, nextAnte);
 
                 if (newRetiredList.length > retiredPatronTypes.length) {
                      setRetiredPatronTypes(newRetiredList);
                 }
 
                 if (nextOpponents.length === 0 && newRetiredList.length >= BASE_PATRON_TYPES.length) {
+                    SoundFX.potWin();
                     setGameState(GAME_STATE_BAR_VICTORY);
                     return;
                 }
@@ -984,63 +1389,84 @@
                 }
 
                 if (msg) {
-                     setMessage(msg);
-                     setTimeout(() => setupRound(order, nextOpponents), 2500);
+                     setMessage(msg.trim());
+                     setTimeout(() => setupRound(order, nextOpponents, fundsRef.current, incomingDrink), 2300);
                 } else {
-                     setupRound(order, nextOpponents);
+                     setupRound(order, nextOpponents, fundsRef.current, incomingDrink);
                 }
             };
 
-            const setupRound = (order, currentOpponents) => {
-                let currentFunds = funds;
+            const setupRound = (order, currentOpponents, availableFunds, brewBuff) => {
+                const roundAnte = brewBuff?.id === 'cabana' ? 15 : CONTRIBUTION;
 
-                if (currentFunds < CONTRIBUTION) {
-                    setMessage("Womp. Womp. The House cannot afford the ante. GAME OVER.");
+                if (availableFunds < roundAnte) {
+                    setMessage(`Womp. Womp. The House cannot afford the $${roundAnte} ante. GAME OVER.`);
                     setTimeout(() => setGameState('GAME_OVER'), 2000);
                     return;
                 }
 
-                let newOpponents = [...currentOpponents];
-                currentFunds -= CONTRIBUTION;
-                newOpponents = newOpponents.map(opp => ({ ...opp, money: opp.money - CONTRIBUTION }));
-                const totalPot = (newOpponents.length + 1) * CONTRIBUTION;
+                setActiveDrinkBuff(brewBuff);
+                activeDrinkBuffRef.current = brewBuff;
+                setNextDrinkBuff(null);
+                nextDrinkBuffRef.current = null;
+
+                const startingMaxRolls = brewBuff?.id === 'niply' ? 4 : (brewBuff?.id === 'marshmallow' ? 2 : 3);
+                setRoundMaxRolls(startingMaxRolls);
+                roundMaxRollsRef.current = startingMaxRolls;
+                setIsCapLocked(false);
+                setDoubleTapUsed(false);
+
+                let currentFunds = availableFunds - roundAnte;
+                const newOpponents = currentOpponents.map(opp => ({
+                    ...opp,
+                    money: opp.money - roundAnte,
+                    dice: [0,0,0,0,0],
+                    hand: null,
+                    status: 'Waiting',
+                    quote: order[0] === opp.id ? PATRON_QUOTES[opp.name]?.rolling : null
+                }));
+                const totalPot = (newOpponents.length + 1) * roundAnte;
 
                 setFunds(currentFunds);
+                fundsRef.current = currentFunds;
                 setPot(totalPot);
+                potRef.current = totalPot;
 
                 setPlayerDice([0,0,0,0,0]);
                 setPlayerHand(null);
                 setHeldDice([false, false, false, false, false]);
                 setDicePhysics(Array(5).fill({x:0, y:0, rot:0}));
-                setRollsLeft(3);
+                setRollsLeft(startingMaxRolls);
 
-                const resetOpponents = newOpponents.map(opp => ({ ...opp, dice: [0,0,0,0,0], hand: null, status: 'Waiting' }));
-                setOpponents(resetOpponents);
+                setOpponents(newOpponents);
+                opponentsRef.current = newOpponents;
                 setTurnOrder(order);
                 setCurrentTurnIndex(0);
                 setGameState('ROLLING');
 
                 const firstId = order[0];
-                if (firstId === 'player') setMessage(`Ante up! Pot is $${totalPot}. You go first!`);
-                else {
-                    const opp = resetOpponents.find(o => o.id === firstId);
+                if (firstId === 'player') {
+                    setMessage(`Ante up ($${roundAnte})! Pot is $${totalPot}. You have The Hammer—set the roll cap!`);
+                } else {
+                    const opp = newOpponents.find(o => o.id === firstId);
                     const name = opp ? opp.name : "Opponent";
-                    setMessage(`Ante up! Pot is $${totalPot}. ${name} starts.`);
+                    setMessage(`Ante up ($${roundAnte})! Pot is $${totalPot}. ${name} has The Hammer and leads off.`);
                 }
             };
 
             const rollDice = () => {
                 if (rollsLeft <= 0 || turnOrder[currentTurnIndex] !== 'player') return;
 
+                SoundFX.shakeAndRoll();
                 setIsRollingDice(true);
                 setTimeout(() => setIsRollingDice(false), 450);
 
                 const newPhysics = dicePhysics.map((p, idx) => {
                     if (heldDice[idx]) return { x: 0, y: 0, rot: 0 };
                     return {
-                        x: Math.floor(Math.random() * 16 - 8),
-                        y: Math.floor(Math.random() * 12 - 6),
-                        rot: Math.floor(Math.random() * 24 - 12)
+                        x: Math.floor(Math.random() * 14 - 7),
+                        y: Math.floor(Math.random() * 10 - 5),
+                        rot: Math.floor(Math.random() * 22 - 11)
                     };
                 });
                 setDicePhysics(newPhysics);
@@ -1054,30 +1480,99 @@
                 setRollsLeft(rollsLeft - 1);
             };
 
+            const handleDoubleTap = () => {
+                if (doubleTapUsed || fundsRef.current < 10 || gameState !== 'ROLLING') return;
+                SoundFX.doubleTapBell();
+                setDoubleTapUsed(true);
+
+                const nextFunds = fundsRef.current - 10;
+                setFunds(nextFunds);
+                fundsRef.current = nextFunds;
+
+                let addedPot = 10;
+                const updatedOpps = opponentsRef.current.map(opp => {
+                    if (opp.money >= 10) {
+                        addedPot += 10;
+                        return { ...opp, money: opp.money - 10, quote: "Double Tap?! Raising the stakes!" };
+                    }
+                    return { ...opp, quote: "Too tapped out to match!" };
+                });
+
+                const nextPot = potRef.current + addedPot;
+                setPot(nextPot);
+                potRef.current = nextPot;
+                setOpponents(updatedOpps);
+                opponentsRef.current = updatedOpps;
+                setMessage(`🔔 DOUBLE TAP! The bell rings and the Pot surges to $${nextPot}!`);
+            };
+
+            const checkPlayerInstantBonuses = (finalDice) => {
+                const buff = activeDrinkBuffRef.current;
+                const hand = evaluateHand(finalDice);
+                let bonusCash = 0;
+                let note = "";
+
+                if (buff?.id === 'sublime' && has311Combo(finalDice)) {
+                    bonusCash += 10;
+                    note += " 🎶 3-1-1 Jukebox Bonus (+$10)!";
+                }
+                if (buff?.id === 'egret' && hand?.rank === HAND_RANKS.STRAIGHT) {
+                    bonusCash += 15;
+                    note += " 🦢 Lagoon Zen Flight Bonus (+$15)!";
+                }
+
+                if (bonusCash > 0) {
+                    SoundFX.potWin();
+                    const updatedFunds = fundsRef.current + bonusCash;
+                    setFunds(updatedFunds);
+                    fundsRef.current = updatedFunds;
+                    setSessionStats(prev => ({ ...prev, totalEarnings: prev.totalEarnings + bonusCash }));
+                }
+                return note;
+            };
+
             useEffect(() => {
                  if (gameState === 'ROLLING' && turnOrder[currentTurnIndex] === 'player' && rollsLeft === 0) {
                       const timer = setTimeout(() => {
-                          advanceTurn();
-                      }, 1000);
+                           const bonusNote = checkPlayerInstantBonuses(playerDiceRef.current);
+                           advanceTurn(null, bonusNote);
+                      }, 950);
                       return () => clearTimeout(timer);
                  }
             }, [rollsLeft, currentTurnIndex, gameState]);
 
             const forceFinish = () => {
-                if (turnOrder[currentTurnIndex] !== 'player') return;
-                setRollsLeft(0);
+                if (turnOrder[currentTurnIndex] !== 'player' || playerDice[0] === 0) return;
+                const isLeadRoller = currentTurnIndex === 0;
+                const rollsUsed = roundMaxRollsRef.current - rollsLeft;
+
+                const bonusNote = checkPlayerInstantBonuses(playerDiceRef.current);
+
+                if (isLeadRoller && rollsUsed < roundMaxRollsRef.current) {
+                    SoundFX.callTheBar();
+                    setRoundMaxRolls(rollsUsed);
+                    roundMaxRollsRef.current = rollsUsed;
+                    setIsCapLocked(true);
+                    advanceTurn(rollsUsed, bonusNote);
+                } else {
+                    setRollsLeft(0);
+                }
             };
 
-            const getAIKeeps = (dice, opp) => {
+            const getAIKeeps = (dice, opp, currentBuff) => {
                 const keeps = [];
-                const type = opp.type;
+                // Check if active beer overrides AI personality
+                let effectiveType = opp.type;
+                if (currentBuff?.id === 'blood') effectiveType = "Aggressive";
+                if (currentBuff?.id === 'egret') effectiveType = "Patient";
+
                 const name = opp.name;
 
                 dice.forEach((d, i) => { if (d === 1) keeps.push(i); });
                 const counts = {};
                 dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
 
-                if (name === "Loomis" || type === "Patient") {
+                if (effectiveType === "Patient" || name === "Loomis") {
                     const straightTargets = [2, 3, 4, 5, 6];
                     const seenValues = new Set();
                     dice.forEach((d, idx) => {
@@ -1090,7 +1585,7 @@
                     return keeps;
                 }
 
-                if (type === "Calculator") {
+                if (effectiveType === "Calculator") {
                     let bestVal = 0;
                     let maxCount = 0;
                     for (let [val, count] of Object.entries(counts)) {
@@ -1122,7 +1617,7 @@
                     return keeps;
                 }
 
-                if (type === "Aggressive") {
+                if (effectiveType === "Aggressive") {
                     for (let i = 0; i < 5; i++) {
                         if (keeps.includes(i)) continue;
                         const val = dice[i];
@@ -1131,7 +1626,7 @@
                     return keeps;
                 }
 
-                if (type === "Conservative") {
+                if (effectiveType === "Conservative") {
                     for (let i = 0; i < 5; i++) {
                         if (keeps.includes(i)) continue;
                         if (counts[dice[i]] >= 2) keeps.push(i);
@@ -1146,294 +1641,520 @@
                 return keeps;
             };
 
-            const finishRound = () => {
+            const finishRound = (extraNote = "") => {
                 setGameState('EVALUATION');
                 const finalPHand = evaluateHand(playerDiceRef.current);
                 setPlayerHand(finalPHand);
 
                 const finalOpponents = opponentsRef.current.map(opp => ({ ...opp, hand: evaluateHand(opp.dice) }));
                 setOpponents(finalOpponents);
+                if (extraNote) setMessage(prev => prev + extraNote);
 
                 setTimeout(() => determineWinner(finalPHand, finalOpponents), 1000);
             };
 
             const determineWinner = (pHand, opps) => {
-    const safePHand = pHand || { rank: 1, value: 0 };
-    const safeOpps = opps.map(o => ({...o, hand: o.hand || {rank:1, value:0}}));
+                const safePHand = pHand || { rank: 1, value: 0 };
+                const safeOpps = opps.map(o => ({...o, hand: o.hand || {rank:1, value:0}}));
 
-    const allPlayers = [
-        { id: 'player', name: 'You', hand: safePHand },
-        ...safeOpps.map(o => ({ id: o.id, name: o.name, hand: o.hand, money: o.money, typeId: o.typeId }))
-    ];
+                const allPlayers = [
+                    { id: 'player', name: 'You', hand: safePHand },
+                    ...safeOpps.map(o => ({ id: o.id, name: o.name, hand: o.hand, money: o.money, typeId: o.typeId }))
+                ];
 
-    allPlayers.sort((a, b) => {
-        if (b.hand.rank !== a.hand.rank) return b.hand.rank - a.hand.rank;
-        return b.hand.value - a.hand.value;
-    });
+                allPlayers.sort((a, b) => {
+                    if (b.hand.rank !== a.hand.rank) return b.hand.rank - a.hand.rank;
+                    return b.hand.value - a.hand.value;
+                });
 
-    setLastRoundRankings(allPlayers);
+                setLastRoundRankings(allPlayers);
 
-    const loser = allPlayers[allPlayers.length - 1];
-    const winner = allPlayers[0];
-    const losingDrink = ROUND_DRINKS[Math.floor(Math.random() * ROUND_DRINKS.length)];
+                const loser = allPlayers[allPlayers.length - 1];
+                const winner = allPlayers[0];
+                const losingDrink = ROUND_DRINKS[Math.floor(Math.random() * ROUND_DRINKS.length)];
 
-    let msg = "";
-    let newFunds = funds;
+                // Queue this drink's buff for the NEXT round!
+                setNextDrinkBuff({ ...losingDrink, buyer: loser.name });
+                nextDrinkBuffRef.current = { ...losingDrink, buyer: loser.name };
 
-    // Track pot win & earnings
-    let wonPotThisRound = false;
-    let earningsThisRound = 0;
+                const currentRoundCost = activeDrinkBuffRef.current?.id === 'blood' ? 30 : BUY_A_ROUND_COST;
 
-    if (winner.id === 'player') {
-        newFunds += pot;
-        wonPotThisRound = true;
-        earningsThisRound = pot;
-        msg += `WINNER: You won the $${pot} Pot!`;
-    } else {
-        const winnerPatron = opps.find(o => o.id === winner.id);
-        setOpponents(prev => prev.map(o => o.id === winner.id ? { ...o, money: o.money + pot } : o));
-        msg += `WINNER: ${winnerPatron.name} won the $${pot} Pot.`;
-    }
-    msg += `\n`;
+                let msg = "";
+                let newFunds = fundsRef.current;
+                const activePot = potRef.current;
 
-    if (loser.id === 'player') {
-        newFunds -= BUY_A_ROUND_COST;
-        msg += `LOSER: You bought a round of ${losingDrink.name} (-$${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
-    } else {
-        const loserPatron = opps.find(o => o.id === loser.id);
-        const newPatronMoney = Math.max(0, loserPatron.money - BUY_A_ROUND_COST);
-        setOpponents(prev => prev.map(o => o.id === loser.id ? { ...o, money: newPatronMoney } : o));
-        msg += `LOSER: ${loserPatron.name} bought a round of ${losingDrink.name} ($${BUY_A_ROUND_COST}).\n*${losingDrink.desc}*`;
-    }
+                let wonPotThisRound = false;
+                let earningsThisRound = 0;
 
-    // --- NEW: Update Stats ---
-    const updatedStats = {
-        roundsSurvived: sessionStats.roundsSurvived + 1,
-        highestHandRank: Math.max(sessionStats.highestHandRank, safePHand.rank),
-        potsWon: sessionStats.potsWon + (wonPotThisRound ? 1 : 0),
-        totalEarnings: sessionStats.totalEarnings + earningsThisRound
-    };
-    setSessionStats(updatedStats);
+                if (winner.id === 'player') {
+                    SoundFX.potWin();
+                    newFunds += activePot;
+                    wonPotThisRound = true;
+                    earningsThisRound = activePot;
+                    msg += `🏆 WINNER: You scooped the $${activePot} Pot!`;
+                } else {
+                    SoundFX.buyRound();
+                    const winnerPatron = opps.find(o => o.id === winner.id);
+                    msg += `🏆 WINNER: ${winnerPatron.name} scooped the $${activePot} Pot.`;
+                }
+                msg += `\n`;
 
-    setPot(0);
+                if (loser.id === 'player') {
+                    newFunds -= currentRoundCost;
+                    msg += `🍺 ON THE TAB: You bought a round of ${losingDrink.name} (-$${currentRoundCost}).\nNext Round Tap Buff: [${losingDrink.buffTitle}]`;
+                } else {
+                    const loserPatron = opps.find(o => o.id === loser.id);
+                    msg += `🍺 ON THE TAB: ${loserPatron.name} bought a round of ${losingDrink.name} (-$${currentRoundCost}).\nNext Round Tap Buff: [${losingDrink.buffTitle}]`;
+                }
 
-    // Replace the newFunds <= 0 block with this:
-    if (newFunds <= 0) {
-        setMessage(`FINAL: ${msg} \n\n Womp. Womp. The House is out of money.`);
-        setFunds(0);
-        setTimeout(() => {
-            const bgm = document.getElementById('bgm');
-            if (bgm) bgm.pause();
-            setGameState('GAME_OVER');
-            // submitBarDiceScore removed from here!
-        }, 3000);
-     } else {
-            setFunds(newFunds);
-            setMessage(msg);
-            setGameState('ROUND_END');
-        }
-};
+                // Update opponent money & reaction speech bubbles
+                setOpponents(prev => prev.map(o => {
+                    let m = o.money;
+                    if (o.id === winner.id) m += activePot;
+                    if (o.id === loser.id) m = Math.max(0, m - currentRoundCost);
+
+                    const quotes = PATRON_QUOTES[o.name];
+                    let reactionQuote = null;
+                    if (o.id === winner.id) reactionQuote = quotes?.winner;
+                    else if (o.id === loser.id) reactionQuote = quotes?.loser;
+                    else if ((o.hand?.rank || 1) >= 5) reactionQuote = quotes?.salty;
+
+                    return { ...o, money: m, quote: reactionQuote };
+                }));
+
+                setSessionStats(prev => ({
+                    roundsSurvived: prev.roundsSurvived + 1,
+                    highestHandRank: Math.max(prev.highestHandRank, safePHand.rank),
+                    potsWon: prev.potsWon + (wonPotThisRound ? 1 : 0),
+                    totalEarnings: prev.totalEarnings + earningsThisRound
+                }));
+
+                setPot(0);
+                potRef.current = 0;
+
+                if (newFunds <= 0) {
+                    setMessage(`FINAL: ${msg} \n\n 💀 Womp. Womp. The House is out of money.`);
+                    setFunds(0);
+                    fundsRef.current = 0;
+                    setTimeout(() => {
+                        const bgm = document.getElementById('bgm');
+                        if (bgm) bgm.pause();
+                        setGameState('GAME_OVER');
+                    }, 3000);
+                } else {
+                    setFunds(newFunds);
+                    fundsRef.current = newFunds;
+                    setMessage(msg);
+                    setGameState('ROUND_END');
+                }
+            };
 
             const toggleDie = (idx) => {
-                if (gameState !== 'ROLLING' || rollsLeft === 3 || turnOrder[currentTurnIndex] !== 'player') return;
+                if (gameState !== 'ROLLING' || rollsLeft === roundMaxRolls || turnOrder[currentTurnIndex] !== 'player') return;
                 if (playerDice[idx] === 0) return;
                 const newHeld = [...heldDice];
                 newHeld[idx] = !newHeld[idx];
+                SoundFX.holdClick(newHeld[idx]);
                 setHeldDice(newHeld);
             };
 
             const currentHandDisplay = useMemo(() => evaluateHand(playerDice), [playerDice]);
             const isPlayerTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === 'player';
+            const isPlayerLead = turnOrder[0] === 'player';
+            const playerRollsUsed = roundMaxRolls - rollsLeft;
 
             return (
                 <div className="wood-texture flex flex-col items-center">
-                    <div className="absolute inset-0 bg-black/40 pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-black/35 pointer-events-none"></div>
 
-                    <div className="w-full max-w-4xl p-3 z-10 flex justify-between items-center glass-panel mt-4 rounded-lg shadow-2xl mx-2 relative z-[50]">
+                    {/* TOP NEON & BRASS HEADER */}
+                    <div className="w-full max-w-4xl p-3.5 z-10 flex justify-between items-center glass-panel mt-3 rounded-xl shadow-2xl mx-2 relative z-[50]">
                         <div className="flex items-center gap-3">
                             <div>
-                                <h1 className="text-xl font-western text-yellow-500 tracking-wider">LAW BREWING BAR DICE</h1>
-                                <div className="flex gap-3 text-xs text-slate-300 font-mono">
-                                    <span title="House Funds: Start at $50. Game over if $0 is reached." className="flex items-center gap-1 cursor-help"><Icon name="DollarSign" size={12} className="text-green-400"/> {funds}</span>
-                                    <span title="Current Pot: All players contribute $10. The winner takes this pot." className="flex items-center gap-1 cursor-help"><Icon name="Beer" size={12} className="text-amber-500"/> ${pot}</span>
+                                <h1 className="text-lg md:text-2xl font-western neon-title tracking-wider leading-tight">
+                                    LAW BREWING BAR DICE
+                                </h1>
+                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs font-mono-num">
+                                    <span title="House Funds" className="flex items-center gap-1 bg-black/50 border border-emerald-700/60 px-2.5 py-0.5 rounded-full text-emerald-400 font-bold">
+                                        <Icon name="DollarSign" size={12} className="text-emerald-400"/> {funds}
+                                    </span>
+                                    <span title="Current Center Pot" className="flex items-center gap-1 bg-black/50 border border-amber-600/60 px-2.5 py-0.5 rounded-full text-amber-400 font-bold">
+                                        <Icon name="Beer" size={12} className="text-amber-400"/> POT: ${pot}
+                                    </span>
+                                    {gameState !== 'START' && (
+                                        <span className={`px-2.5 py-0.5 rounded-full font-bold border ${isCapLocked ? 'bg-red-950/80 border-red-500 text-red-300 animate-pulse' : 'bg-stone-900/80 border-stone-700 text-stone-300'}`}>
+                                            {isCapLocked ? `🔨 CALLED: ${roundMaxRolls} ${roundMaxRolls === 1 ? 'SHAKE' : 'SHAKES'}` : `MAX SHAKES: ${roundMaxRolls}`}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
+
                         <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={toggleAudio}
+                                title={isMuted ? "Unmute Audio & SFX" : "Mute Audio & SFX"}
+                                className="p-2 text-amber-300/80 hover:text-amber-200 border border-amber-800/60 rounded-lg bg-black/40 transition-colors"
+                            >
+                                <Icon name={isMuted ? "VolumeOff" : "VolumeOn"} size={15} />
+                            </button>
+
                             <div className="relative cheat-sheet-container">
-                                <button className="flex items-center gap-1 text-xs text-slate-300 hover:text-white border border-slate-600 px-2 py-1 rounded bg-slate-800">
-                                    <Icon name="Help" size={12} /> Hand Ranks
+                                <button className="flex items-center gap-1 text-xs text-amber-200 hover:text-white border border-amber-700/60 px-2.5 py-1.5 rounded-lg bg-black/40 font-medium">
+                                    <Icon name="Help" size={13} /> Ranks
                                 </button>
-                                <div className="cheat-sheet hidden absolute right-0 top-8 w-64 bg-slate-900 border border-yellow-600 rounded p-3 shadow-xl text-xs">
-                                    <h3 className="font-bold text-yellow-500 mb-2 border-b border-slate-700 pb-1">Hand Rankings</h3>
-                                    <ul className="space-y-1 text-slate-300">
-                                        <li><span className="text-yellow-500">8.</span> Keg Stand (5-Kind)</li>
-                                        <li><span className="text-yellow-500">7.</span> Case (4-Kind)</li>
-                                        <li><span className="text-yellow-500">6.</span> Full Tab (Full House)</li>
-                                        <li><span className="text-yellow-500">5.</span> Flight (Straight)</li>
-                                        <li><span className="text-yellow-500">4.</span> Six Pack (3-Kind)</li>
-                                        <li><span className="text-yellow-500">3.</span> Double Fisted (2 Pair)</li>
-                                        <li><span className="text-yellow-500">2.</span> Solo Cup (Pair)</li>
-                                        <li><span className="text-yellow-500">1.</span> Spilled Drink (High)</li>
+                                <div className="cheat-sheet hidden absolute right-0 top-9 w-64 bg-stone-950 border-2 border-amber-600 rounded-xl p-3.5 shadow-2xl text-xs">
+                                    <h3 className="font-western text-amber-400 mb-2 border-b border-amber-900/60 pb-1 tracking-wide">
+                                        TAPROOM HAND RANKS
+                                    </h3>
+                                    <ul className="space-y-1.5 text-stone-300 font-medium">
+                                        <li className="flex justify-between"><span><b className="text-amber-400">8.</b> Keg Stand</span> <span className="text-stone-500">5-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">7.</b> Case of Beer</span> <span className="text-stone-500">4-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">6.</b> Full Tab</span> <span className="text-stone-500">Full House</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">5.</b> Flight</span> <span className="text-stone-500">Straight</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">4.</b> Six Pack</span> <span className="text-stone-500">3-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">3.</b> Double Fisted</span> <span className="text-stone-500">2 Pair</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">2.</b> Solo Cup</span> <span className="text-stone-500">1 Pair</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">1.</b> Spilled Drink</span> <span className="text-stone-500">High Die</span></li>
                                     </ul>
+                                    <div className="mt-2.5 pt-2 border-t border-amber-900/50 text-[11px] text-amber-300/90 flex items-center gap-1">
+                                        <Icon name="Star" size={12} className="text-amber-400"/> Stars (1s) are WILD!
+                                    </div>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <div className="text-[10px] text-slate-400 uppercase tracking-widest">Round</div>
-                                <div className="text-2xl font-western text-white">{round}</div>
+
+                            <div className="text-right bg-black/40 border border-amber-900/50 px-3 py-1 rounded-lg">
+                                <div className="text-[9px] text-amber-500/80 uppercase tracking-widest font-bold">Round</div>
+                                <div className="text-xl font-western text-white leading-tight">{round}</div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="w-full max-w-4xl mt-4 z-10 flex flex-col gap-4 px-3 pb-8">
-                        <div className="bg-slate-900/90 border-l-4 border-yellow-500 p-3 rounded text-center shadow-lg min-h-[3.5rem] flex items-center justify-center transition-all z-[10]">
-                            <span className="text-sm md:text-base font-medium animate-pulse message-box">{message}</span>
+                    {/* MAIN TABLE AREA */}
+                    <div className="w-full max-w-4xl mt-2.5 z-10 flex flex-col gap-3 px-3 pb-8">
+
+                        {/* ACTIVE CRAFT BEER MODIFIER BANNER */}
+                        {activeDrinkBuff && gameState !== 'START' && (
+                            <div className="bg-gradient-to-r from-amber-950/90 via-stone-900/95 to-amber-950/90 border border-amber-500/60 rounded-xl px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+                                <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-500 text-black rounded">
+                                        🍺 ON TAP: {activeDrinkBuff.name}
+                                    </span>
+                                    <span className="text-xs font-bold text-amber-300">
+                                        {activeDrinkBuff.buffTitle}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-stone-300 italic">
+                                    {activeDrinkBuff.buffRule}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CHALKBOARD MARQUEE */}
+                        <div className="chalkboard-banner p-3 rounded-xl text-center min-h-[3.75rem] flex items-center justify-center transition-all z-[10]">
+                            <span className="text-sm md:text-base font-medium text-amber-100 message-box tracking-wide">
+                                {message}
+                            </span>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {opponents.map((opp) => {
-                                const isMyTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === opp.id;
+                        {/* OPPONENT COASTER GRID */}
+                        {opponents.length > 0 && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                                {opponents.map((opp) => {
+                                    const isMyTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === opp.id;
+                                    const isHammer = turnOrder[0] === opp.id;
+                                    const effectiveRole = activeDrinkBuff?.id === 'blood' ? 'Aggressive (Buff)' : (activeDrinkBuff?.id === 'egret' ? 'Patient (Buff)' : opp.type);
 
-                                let reactionClass = '';
-                                if (gameState === 'ROLLING') {
-                                    if (isMyTurn) reactionClass = 'reaction-rolling';
-                                } else if (gameState === 'ROUND_END' || gameState === 'EVALUATION') {
-                                    if (lastRoundRankings.length > 0) {
-                                        const rankIndex = lastRoundRankings.findIndex(r => r.id === opp.id);
-                                        const isWinner = rankIndex === 0;
-                                        const isLoser = rankIndex === lastRoundRankings.length - 1;
-                                        const handStrength = opp.hand ? opp.hand.rank : 1;
+                                    let reactionClass = '';
+                                    let statusBadge = null;
 
-                                        if (isWinner) {
-                                            reactionClass = 'reaction-winner';
-                                        } else if (handStrength >= 5) {
-                                            reactionClass = 'reaction-angry';
-                                        } else if (isLoser) {
-                                            reactionClass = 'reaction-loser';
-                                        } else {
-                                            reactionClass = 'reaction-smug';
+                                    if (gameState === 'ROLLING') {
+                                        if (isMyTurn) {
+                                            reactionClass = 'reaction-rolling';
+                                            statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-amber-500 text-black rounded-full animate-pulse">Shaking...</span>;
+                                        }
+                                    } else if (gameState === 'ROUND_END' || gameState === 'EVALUATION') {
+                                        if (lastRoundRankings.length > 0) {
+                                            const rankIndex = lastRoundRankings.findIndex(r => r.id === opp.id);
+                                            const isWinner = rankIndex === 0;
+                                            const isLoser = rankIndex === lastRoundRankings.length - 1;
+                                            const handStrength = opp.hand ? opp.hand.rank : 1;
+
+                                            if (isWinner) {
+                                                reactionClass = 'reaction-winner';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-yellow-400 text-black rounded-full shadow">Pot Winner</span>;
+                                            } else if (handStrength >= 5) {
+                                                reactionClass = 'reaction-angry';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-red-600 text-white rounded-full">Salty</span>;
+                                            } else if (isLoser) {
+                                                reactionClass = 'reaction-loser';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-stone-700 text-stone-300 rounded-full">Buying Round</span>;
+                                            } else {
+                                                reactionClass = 'reaction-smug';
+                                            }
                                         }
                                     }
-                                }
 
-                                const AvatarComp = opp.Avatar;
-                                return (
-                                    <div key={opp.id} className={`glass-panel p-2 rounded-lg flex flex-col items-center gap-2 transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${reactionClass}`}>
-                                        <div className="flex flex-col md:flex-row items-center gap-2 mb-1 w-full justify-center">
-                                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden border-2 border-slate-500 transition-colors duration-300">
-                                                <AvatarComp />
-                                            </div>
-
-                                            <div className="text-center md:text-left overflow-hidden mt-1 md:mt-0">
-                                                <div className="text-[11px] md:text-sm font-bold text-slate-200 truncate w-full">{opp.name}</div>
-                                                <div className="flex items-center justify-center md:justify-start text-[10px] text-green-400 font-mono mt-0.5">
-                                                    <Icon name="DollarSign" size={12} className="text-green-400"/> {opp.money}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-1 justify-center flex-wrap scale-90 origin-top">
-                                            {opp.dice.map((d, i) => <Die key={i} value={d} size="small" />)}
-                                        </div>
-                                        <div className="text-[10px] font-bold text-yellow-500 uppercase text-center h-4 leading-none tracking-wider">
-                                            {opp.hand ? HAND_NAMES[opp.hand.rank].split('(')[0] : (d => {
-                                                if (opp.dice[0] === 0) return 'Waiting...';
-                                                return '...';
-                                            })()}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {gameState === 'START' || gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY ? (
-                            <div className="glass-panel p-6 rounded-xl flex flex-col items-center justify-center text-center gap-4 mt-2">
-                                {gameState === GAME_STATE_BAR_VICTORY ? (
-                                    <>
-                                        <div className="text-yellow-500"><Icon name="Party" size={48} /></div>
-                                        <h2 className="text-2xl font-western text-yellow-500">BAR CONQUERS ALL!</h2>
-                                        <p className="text-slate-300 text-sm">You successfully bankrupted every patron and secured the House's future!</p>
-                                        <div className="text-lg font-bold text-green-400 flex items-center gap-2 mt-4">
-                                            Final Funds: <Icon name="DollarSign" size={20} />${funds}
-                                        </div>
-                                    </>
-                                ) : gameState === 'GAME_OVER' ? (
-                                    <>
-                                        <div className="text-red-500"><Icon name="Skull" size={48} /></div>
-                                        <h2 className="text-2xl font-western text-red-500">BAR CLOSED</h2>
-                                        <p className="text-slate-300 text-sm">Womp. Womp. The House ran out of money.</p>
-                                    </>
-                                ) : (
-                    <>
-                        <div className="text-green-400"><Icon name="DollarSign" size={48} /></div>
-                        <h2 className="text-2xl font-western">High-Stakes Bar Dice</h2>
-                        {/* ... rules text ... */}
-                    </>
-                )}
-
-                {/* --- NEW: Physical Submit Button --- */}
-                {(gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY) && !hasSubmittedScore && (
-                    <button
-                        onClick={() => {
-                            submitBarDiceScore(sessionStats, round);
-                            setHasSubmittedScore(true);
-                        }}
-                        className="btn-pulse px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-full shadow-lg uppercase tracking-wider transition-colors text-sm mt-2"
-                    >
-                        Submit Score to Ledger
-                    </button>
-                )}
-                {/* --- END NEW BUTTON --- */}
-
-                <button onClick={initializeGame} className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded shadow-lg uppercase tracking-wider transition-colors text-sm mt-4">
-                    {gameState === 'START' ? 'Open Bar' : 'Start New Game'}
-                </button>
-            </div>
-        ) : (
-                            <div className={`glass-panel p-4 rounded-xl mt-2 border-t-4 transition-all duration-500 ${isPlayerTurn ? 'border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.2)]' : 'border-slate-700 opacity-80 grayscale-[0.5]'}`}>
-                                <div className="flex justify-between items-end mb-4">
-                                    <div>
-                                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                            Your Roll
-                                            {isPlayerTurn && <span className="text-[10px] bg-yellow-500 text-black px-2 py-0.5 rounded-full font-bold animate-pulse">YOUR TURN</span>}
-                                        </h2>
-                                        <div className="text-xs text-slate-400">
-                                            Result: <span className="text-yellow-400">{currentHandDisplay ? HAND_NAMES[currentHandDisplay.rank] : 'Roll to Reveal'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-center gap-2 mb-6 dice-tray">
-                                    {playerDice.map((val, idx) => <Die key={idx} value={val} held={heldDice[idx]} onClick={() => toggleDie(idx)} isRolling={isRollingDice} physics={dicePhysics[idx]} />)}
-                                </div>
-
-                                <div className="flex justify-center gap-3">
-                                    {gameState === 'ROLLING' && (
-                                        <>
-                                            {isPlayerTurn && rollsLeft > 0 ? (
-                                                <button onClick={rollDice} className="btn-pulse px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-full shadow-lg flex items-center gap-2 transition-transform transform active:scale-95">
-                                                    <Icon name="RefreshCw" size={18} /> ROLL ({rollsLeft})
-                                                </button>
-                                            ) : (
-                                                <div className="text-slate-500 font-bold italic py-2">
-                                                    {isPlayerTurn ? "Out of rolls..." : "Waiting for turn..."}
+                                    const AvatarComp = opp.Avatar;
+                                    return (
+                                        <div key={opp.id} className={`coaster-card p-2.5 rounded-xl flex flex-col items-center justify-between gap-1.5 transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${reactionClass}`}>
+                                            {isHammer && (
+                                                <div className="absolute -top-2 left-2 bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow uppercase tracking-wider">
+                                                    🔨 Lead
                                                 </div>
                                             )}
 
-                                            {isPlayerTurn && (rollsLeft < 3 || playerDice[0] !== 0) && (
-                                                <button onClick={forceFinish} className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-full shadow-lg flex items-center gap-2 border border-slate-500 text-sm">
-                                                    <Icon name="Check" size={18} /> FINISH
+                                            <div className="flex flex-col md:flex-row items-center gap-2 w-full justify-center mt-1">
+                                                <div className="w-13 h-13 md:w-14 md:h-14 rounded-full bg-stone-800 flex items-center justify-center shrink-0 overflow-hidden border-2 border-amber-700/70 shadow-inner">
+                                                    <AvatarComp />
+                                                </div>
+
+                                                <div className="text-center md:text-left overflow-hidden">
+                                                    <div className="text-xs md:text-sm font-bold text-amber-100 truncate w-full">{opp.name}</div>
+                                                    <div className="text-[9px] text-amber-500/80 uppercase tracking-wider font-semibold">{effectiveRole}</div>
+                                                    <div className="inline-flex items-center justify-center md:justify-start text-xs text-emerald-400 font-mono-num font-bold mt-0.5 bg-black/40 px-2 py-0.5 rounded border border-emerald-900/50">
+                                                        <Icon name="DollarSign" size={11} className="text-emerald-400"/> {opp.money}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Speech Bubble */}
+                                            {opp.quote && (
+                                                <div className="speech-bubble px-2 py-1 rounded-lg text-[10px] font-bold text-center leading-tight w-full my-0.5">
+                                                    "{opp.quote}"
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-1 justify-center flex-wrap scale-95 origin-top py-0.5">
+                                                {opp.dice.map((d, i) => (
+                                                    <Die key={i} value={d} size="small" isRolling={isMyTurn} />
+                                                ))}
+                                            </div>
+
+                                            <div className="flex items-center justify-between w-full px-1">
+                                                <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider truncate w-full text-center">
+                                                    {isMyTurn ? 'Rolling...' : (opp.hand ? HAND_NAMES[opp.hand.rank].split('(')[0] : (opp.dice[0] === 0 ? 'Waiting...' : '...'))}
+                                                </div>
+                                            </div>
+                                            {statusBadge && <div>{statusBadge}</div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* START / VICTORY / GAME OVER / ACTIVE PLAYER TRAY */}
+                        {gameState === 'START' || gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY ? (
+                            <div className="glass-panel p-6 md:p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-4 mt-1">
+                                {gameState === GAME_STATE_BAR_VICTORY ? (
+                                    <>
+                                        <div className="text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]"><Icon name="Party" size={56} /></div>
+                                        <h2 className="text-2xl md:text-3xl font-western neon-title">BAR CONQUERS ALL!</h2>
+                                        <p className="text-stone-300 text-sm max-w-md">
+                                            You cleaned out every patron in Dreadmoor and locked in the House's fortune!
+                                        </p>
+                                    </>
+                                ) : gameState === 'GAME_OVER' ? (
+                                    <>
+                                        <div className="text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]"><Icon name="Skull" size={56} /></div>
+                                        <h2 className="text-2xl md:text-3xl font-western text-red-500">BAR CLOSED</h2>
+                                        <p className="text-stone-300 text-sm">Womp. Womp. The House ran out of cash to cover the tab.</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 shadow-inner">
+                                            <Icon name="Beer" size={36} />
+                                        </div>
+                                        <h2 className="text-2xl md:text-3xl font-western text-amber-400 tracking-wide">
+                                            High-Stakes Taproom Dice
+                                        </h2>
+                                        <p className="text-stone-300 text-xs md:text-sm max-w-lg leading-relaxed">
+                                            Everyone antes <b className="text-emerald-400">$10</b>. Stars (<b className="text-amber-400">1s</b>) are wild! Whoever has <b className="text-amber-300">🔨 The Hammer (Lead)</b> sets the max shake limit for the table—stand in 1 or 2 shakes to cap everyone else! Best hand scoops the pot, worst hand buys a <b className="text-red-400">$20 round of Law Brewing beer</b> that buffs the next round.
+                                        </p>
+
+                                        <div className="mt-1 bg-black/40 border border-amber-900/50 p-3 rounded-xl flex flex-col items-center gap-2">
+                                            <span className="text-[11px] uppercase tracking-widest text-amber-400 font-bold">
+                                                Barstools Occupied (Opponents)
+                                            </span>
+                                            <div className="flex gap-2">
+                                                {[1, 2, 3, 4].map(cnt => (
+                                                    <button
+                                                        key={cnt}
+                                                        onClick={() => { SoundFX.holdClick(true); setNumOpponentsToPlay(cnt); }}
+                                                        className={`w-10 h-10 rounded-lg font-western text-sm transition-all border ${
+                                                            numOpponentsToPlay === cnt
+                                                                ? 'bg-amber-500 text-black border-yellow-200 shadow-[0_0_12px_rgba(234,179,8,0.5)] scale-105'
+                                                                : 'bg-stone-900 text-stone-400 border-stone-700 hover:border-amber-700'
+                                                        }`}
+                                                    >
+                                                        {cnt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {(gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY) && (
+                                    <div className="w-full max-w-xs bg-stone-950/90 border border-amber-800/60 rounded-xl p-4 my-1 font-mono-num text-xs text-stone-300 shadow-inner">
+                                        <div className="text-amber-400 font-bold uppercase tracking-widest border-b border-stone-800 pb-1.5 mb-2.5 text-center">
+                                            — Final House Ledger —
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between">
+                                                <span className="text-stone-400">Rounds Survived:</span>
+                                                <span className="text-white font-bold">{sessionStats.roundsSurvived}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-stone-400">Pots Scooped:</span>
+                                                <span className="text-amber-400 font-bold">{sessionStats.potsWon}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-stone-400">Best Hand:</span>
+                                                <span className="text-amber-300 font-bold">
+                                                    {sessionStats.highestHandRank ? HAND_NAMES[sessionStats.highestHandRank].split('(')[0] : 'None'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between pt-1.5 border-t border-stone-800 text-sm">
+                                                <span className="text-stone-300 font-bold">Total Earnings:</span>
+                                                <span className="text-emerald-400 font-bold">${sessionStats.totalEarnings}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY) && !hasSubmittedScore && (
+                                    <button
+                                        onClick={() => {
+                                            submitBarDiceScore(sessionStats, round);
+                                            setHasSubmittedScore(true);
+                                        }}
+                                        className="btn-pulse px-7 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-full shadow-lg uppercase tracking-wider transition-colors text-sm mt-1"
+                                    >
+                                        Submit Score to Ledger
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={initializeGame}
+                                    className="px-8 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-western rounded-xl shadow-xl uppercase tracking-wider transition-transform active:scale-95 text-base mt-2 border border-yellow-200"
+                                >
+                                    {gameState === 'START' ? 'Open the Taproom' : 'Pour Another Game'}
+                                </button>
+                            </div>
+                        ) : (
+                            /* PLAYER RECESSED FELT DICE TRAY */
+                            <div className={`glass-panel p-4 md:p-5 rounded-2xl mt-1 border-t-4 transition-all duration-500 ${isPlayerTurn ? 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.22)]' : 'border-stone-800 opacity-85'}`}>
+                                <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
+                                    <div>
+                                        <h2 className="text-base md:text-lg font-western text-amber-400 flex items-center gap-2 tracking-wide">
+                                            THE HOUSE TRAY
+                                            {isPlayerLead && (
+                                                <span className="text-[10px] font-sans bg-amber-500/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                                                    🔨 YOU HAVE THE HAMMER
+                                                </span>
+                                            )}
+                                            {isPlayerTurn && (
+                                                <span className="text-[10px] font-sans bg-yellow-500 text-black px-2.5 py-0.5 rounded-full font-black animate-pulse tracking-wider">
+                                                    YOUR ROLL
+                                                </span>
+                                            )}
+                                        </h2>
+                                        <div className="text-xs text-stone-400 mt-0.5">
+                                            Current Hand: <span className="text-amber-300 font-bold">{currentHandDisplay ? HAND_NAMES[currentHandDisplay.rank] : 'Shake & Roll to Reveal'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Dynamic Roll Counter Lights */}
+                                    <div className="flex items-center gap-1.5 bg-black/50 border border-amber-900/50 px-3 py-1.5 rounded-full">
+                                        <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mr-1">Shakes</span>
+                                        {Array.from({ length: roundMaxRolls }, (_, idx) => idx + 1).map(r => (
+                                            <span
+                                                key={r}
+                                                className={`w-3 h-3 rounded-full transition-all ${
+                                                    r <= rollsLeft
+                                                        ? 'bg-amber-400 shadow-[0_0_8px_#eab308] border border-yellow-100'
+                                                        : 'bg-stone-800 border border-stone-700'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Recessed Emerald Felt Pit */}
+                                <div className="felt-dice-pit rounded-2xl py-6 px-3 mb-4 flex justify-center items-center gap-2.5 md:gap-5 min-h-[7.25rem]">
+                                    <div className="brass-rivet top-2 left-2"></div>
+                                    <div className="brass-rivet top-2 right-2"></div>
+                                    <div className="brass-rivet bottom-2 left-2"></div>
+                                    <div className="brass-rivet bottom-2 right-2"></div>
+
+                                    {playerDice.map((val, idx) => (
+                                        <Die
+                                            key={idx}
+                                            value={val}
+                                            held={heldDice[idx]}
+                                            onClick={() => toggleDie(idx)}
+                                            isRolling={isRollingDice}
+                                            physics={dicePhysics[idx]}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-wrap justify-center gap-2.5">
+                                    {gameState === 'ROLLING' && (
+                                        <>
+                                            {isPlayerTurn && rollsLeft > 0 ? (
+                                                <button
+                                                    onClick={rollDice}
+                                                    className="btn-pulse px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-bold rounded-full shadow-xl flex items-center gap-2 transition-transform transform active:scale-95 border border-yellow-200 tracking-wide text-sm"
+                                                >
+                                                    <Icon name="RefreshCw" size={17} /> SHAKE & ROLL ({rollsLeft})
+                                                </button>
+                                            ) : (
+                                                <div className="text-amber-500/70 font-bold italic py-2 text-sm">
+                                                    {isPlayerTurn ? "Locking in hand..." : "Watching the bar..."}
+                                                </div>
+                                            )}
+
+                                            {isPlayerTurn && playerDice[0] !== 0 && rollsLeft > 0 && (
+                                                <button
+                                                    onClick={forceFinish}
+                                                    className="px-5 py-3 bg-stone-800 hover:bg-stone-700 text-amber-200 font-bold rounded-full shadow-lg flex items-center gap-2 border border-amber-700/60 text-sm transition-colors"
+                                                >
+                                                    <Icon name="Check" size={17} />
+                                                    {isPlayerLead && playerRollsUsed < roundMaxRolls
+                                                        ? `🔨 CALL IN ${playerRollsUsed}`
+                                                        : 'STAND'}
+                                                </button>
+                                            )}
+
+                                            {isPlayerTurn && playerDice[0] !== 0 && !doubleTapUsed && funds >= 10 && (
+                                                <button
+                                                    onClick={handleDoubleTap}
+                                                    title="Ring the bell! Force everyone to throw an extra $10 into the pot."
+                                                    className="px-4 py-3 bg-gradient-to-b from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white font-bold rounded-full shadow-lg flex items-center gap-1.5 border border-red-400 text-xs uppercase tracking-wider transition-transform active:scale-95"
+                                                >
+                                                    <Icon name="Bell" size={15} /> DOUBLE TAP (+$10)
                                                 </button>
                                             )}
                                         </>
                                     )}
                                     {gameState === 'ROUND_END' && (
-                                        <button onClick={() => { startRound(); }} className="btn-pulse px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-full shadow-lg flex items-center gap-2">
-                                            Next Round <Icon name="TrendingUp" size={18} />
+                                        <button
+                                            onClick={() => { startRound(); }}
+                                            className="btn-pulse px-8 py-3 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold rounded-full shadow-xl flex items-center gap-2 border border-emerald-300 tracking-wide"
+                                        >
+                                            NEXT ROUND <Icon name="TrendingUp" size={18} />
                                         </button>
                                     )}
                                 </div>
-                                <div className="text-center mt-3 text-[10px] text-slate-500">
-                                    {isPlayerTurn ? "Click dice to hold. Click FINISH to pass turn." : "Watch your opponents roll."}
+
+                                <div className="text-center mt-3 text-[11px] text-stone-400">
+                                    {isPlayerTurn
+                                        ? (isPlayerLead
+                                            ? "You have The Hammer! Tap dice to HOLD, or click CALL IN to cap the table's shakes."
+                                            : "Tap dice to HOLD between shakes, or ring DOUBLE TAP to press the pot.")
+                                        : "Keep an eye on your patrons' shakes and speech bubbles."}
                                 </div>
                             </div>
                         )}
