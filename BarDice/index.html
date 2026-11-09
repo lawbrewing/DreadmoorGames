@@ -200,7 +200,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        /* [SoundFX, Icons, Avatars, PATRON_QUOTES, AI Logic remain unchanged from previous build. Omitted for brevity in explanation but included in actual code] */
         const SoundFX = {
             ctx: null, muted: false,
             init() { if (!this.ctx) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) this.ctx = new AudioCtx(); } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
@@ -220,10 +219,42 @@
                 gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
                 osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.06);
             },
-            callTheBar() { /* simplified for space */ },
-            doubleTapBell() { /* simplified for space */ },
-            potWin() { /* simplified for space */ },
-            buyRound() { /* simplified for space */ }
+            callTheBar() {
+                if (this.muted) return; this.init(); if (!this.ctx) return; const now = this.ctx.currentTime;
+                [0, 0.14].forEach(offset => {
+                    const t = now + offset; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(160, t); osc.frequency.exponentialRampToValueAtTime(42, t + 0.09);
+                    gain.gain.setValueAtTime(0.4, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.095);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.1);
+                });
+            },
+            doubleTapBell() {
+                if (this.muted) return; this.init(); if (!this.ctx) return; const now = this.ctx.currentTime;
+                [880, 1320, 1760].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = idx === 0 ? 'triangle' : 'sine'; osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.18 / (idx + 1), now); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.66);
+                });
+            },
+            potWin() {
+                if (this.muted) return; this.init(); if (!this.ctx) return; const now = this.ctx.currentTime;
+                [987.77, 1318.51, 1567.98, 1975.53].forEach((freq, idx) => {
+                    const t = now + idx * 0.07; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(0.16, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.29);
+                });
+            },
+            buyRound() {
+                if (this.muted) return; this.init(); if (!this.ctx) return; const now = this.ctx.currentTime;
+                [1850, 2420].forEach((freq, i) => {
+                    const t = now + i * 0.05; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(0.12, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.23);
+                });
+            }
         };
 
         const Icons = {
@@ -429,7 +460,7 @@
             const initializeGame = () => {
                 SoundFX.init(); const bgm = document.getElementById('bgm'); if(bgm){ bgm.volume=0.4; bgm.play().catch(()=>{}); }
                 setFunds(50); setRound(1); setActiveDrinkBuff(null);
-                const initial = BASE_PATRON_TYPES.sort(()=>0.5-Math.random()).slice(0, numOpponentsToPlay).map((p,i)=>({...p, id:i, dice:[0,0,0,0,0], money:50, quote:null, Avatar:getAvatarComponent(p.name)}));
+                const initial = BASE_PATRON_TYPES.sort(()=>0.5-Math.random()).slice(0, numOpponentsToPlay).map((p,i)=>({...p, id:i, dice:[0,0,0,0,0], money:50, quote:null, Avatar: p.Avatar}));
                 setupRound([...initial.map(o=>o.id), 'player'], initial, 50, null);
             };
 
@@ -532,13 +563,15 @@
             const startRound = () => {
                 const incomingBuff = nextDrinkBuff; const ante = incomingBuff?.id === 'cabana' ? 15 : 10;
                 const alive = opponents.filter(o => o.money >= ante);
-                if (alive.length === 0) { SoundFX.potWin(); setGameState('GAME_OVER'); return; } // Simplified for compact build
+                if (alive.length === 0) { SoundFX.potWin(); setGameState('BAR_VICTORY'); return; }
                 setRound(r=>r+1);
                 setupRound([...alive.map(o=>o.id), 'player'], alive, funds, incomingBuff);
             };
 
             const currentHandDisplay = useMemo(() => evaluateHand(playerDice), [playerDice]);
             const isPlayerTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === 'player';
+            const isPlayerLead = turnOrder[0] === 'player';
+            const playerRollsUsed = roundMaxRolls - rollsLeft;
 
             return (
                 <div className="wood-texture w-full max-w-5xl mx-auto">
@@ -599,26 +632,43 @@
                         </div>
                     )}
 
-                    {/* START SCREEN */}
-                    {gameState === 'START' && (
+                    {/* START / GAME OVER SCREENS */}
+                    {(gameState === 'START' || gameState === 'GAME_OVER' || gameState === 'BAR_VICTORY') && (
                         <div className="glass-panel p-4 md:p-6 rounded-xl flex flex-col items-center text-center w-full max-w-lg mt-4 gap-3 z-10">
-                            <h2 className="text-xl font-western text-amber-400">High-Stakes Taproom Dice</h2>
-                            <p className="text-xs text-stone-300">Ante $10. Stars (1s) are wild. Lead roller sets the shake cap. Worst hand buys a $20 round that buffs the next hand.</p>
+                            {gameState === 'BAR_VICTORY' ? (
+                                <>
+                                    <div className="text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]"><Icon name="Party" size={48} /></div>
+                                    <h2 className="text-xl font-western neon-title">BAR CONQUERS ALL!</h2>
+                                    <p className="text-xs text-stone-300">You bankrupted every patron in Dreadmoor!</p>
+                                </>
+                            ) : gameState === 'GAME_OVER' ? (
+                                <>
+                                    <div className="text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]"><Icon name="Skull" size={48} /></div>
+                                    <h2 className="text-xl font-western text-red-500">BAR CLOSED</h2>
+                                    <p className="text-xs text-stone-300">The House ran out of cash to cover the tab.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h2 className="text-xl font-western text-amber-400">High-Stakes Taproom Dice</h2>
+                                    <p className="text-xs text-stone-300">Ante $10. Stars (1s) are wild. Lead roller sets the shake cap. Worst hand buys a $20 round that buffs the next hand.</p>
+                                </>
+                            )}
+
                             <div className="flex gap-2 mt-2">
                                 {[1, 2, 3, 4, 5].map(cnt => (
-                                    <button key={cnt} onClick={() => setNumOpponentsToPlay(cnt)} className={`w-8 h-8 rounded font-western text-sm border ${numOpponentsToPlay === cnt ? 'bg-amber-500 text-black border-yellow-200 scale-105' : 'bg-stone-900 text-stone-400 border-stone-700'}`}>{cnt}</button>
+                                    <button key={cnt} onClick={() => { SoundFX.holdClick(true); setNumOpponentsToPlay(cnt); }} className={`w-8 h-8 rounded font-western text-sm border ${numOpponentsToPlay === cnt ? 'bg-amber-500 text-black border-yellow-200 scale-105' : 'bg-stone-900 text-stone-400 border-stone-700'}`}>{cnt}</button>
                                 ))}
                             </div>
-                            <button onClick={initializeGame} className="mt-2 w-full py-2.5 bg-gradient-to-b from-amber-400 to-amber-600 text-black font-bold uppercase rounded-lg shadow-lg text-sm">Open the Taproom</button>
+                            <button onClick={initializeGame} className="mt-2 w-full py-2.5 bg-gradient-to-b from-amber-400 to-amber-600 text-black font-bold uppercase rounded-lg shadow-lg text-sm">{gameState === 'START' ? 'Open the Taproom' : 'Pour Another Game'}</button>
                         </div>
                     )}
 
                     {/* PLAYER TRAY */}
-                    {gameState !== 'START' && (
+                    {gameState !== 'START' && gameState !== 'GAME_OVER' && gameState !== 'BAR_VICTORY' && (
                         <div className={`glass-panel w-full p-2.5 rounded-xl border-t-2 transition-all ${isPlayerTurn ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-stone-800'} mt-auto mb-2`}>
                             <div className="flex justify-between items-center mb-1.5">
                                 <div className="text-xs font-western text-amber-400">
-                                    THE HOUSE TRAY {turnOrder[0]==='player' && <span className="ml-1 text-[8px] bg-amber-500/20 px-1.5 rounded">🔨 LEAD</span>}
+                                    THE HOUSE TRAY {isPlayerLead && <span className="ml-1 text-[8px] bg-amber-500/20 px-1.5 rounded">🔨 LEAD</span>}
                                 </div>
                                 <div className="flex gap-1">
                                     {Array.from({length: roundMaxRolls}, (_, i) => i+1).map(r => <span key={r} className={`w-2 h-2 rounded-full ${r<=rollsLeft ? 'bg-amber-400' : 'bg-stone-800'}`}/>)}
@@ -634,7 +684,7 @@
                                     <button onClick={rollDice} className="btn-pulse px-4 py-2 bg-gradient-to-b from-amber-400 to-amber-600 text-black font-bold rounded-lg text-xs flex items-center gap-1"><Icon name="RefreshCw" size={12}/> SHAKE</button>
                                 )}
                                 {gameState === 'ROLLING' && isPlayerTurn && playerDice[0] !== 0 && rollsLeft > 0 && (
-                                    <button onClick={forceFinish} className="px-4 py-2 bg-stone-800 text-amber-200 font-bold rounded-lg text-xs border border-amber-700/50"><Icon name="Check" size={12}/> STAND</button>
+                                    <button onClick={forceFinish} className="px-4 py-2 bg-stone-800 text-amber-200 font-bold rounded-lg text-xs border border-amber-700/50"><Icon name="Check" size={12}/> {isPlayerLead && playerRollsUsed < roundMaxRolls ? `🔨 CALL IN ${playerRollsUsed}` : 'STAND'}</button>
                                 )}
                                 {gameState === 'ROLLING' && isPlayerTurn && playerDice[0] !== 0 && !doubleTapUsed && funds >= 10 && (
                                     <button onClick={handleDoubleTap} className="px-3 py-2 bg-red-700 text-white font-bold rounded-lg text-[10px]"><Icon name="Bell" size={10}/> DOUBLE TAP</button>
