@@ -22,8 +22,22 @@ class BrewingPhase {
         const H = 720;
         const W = window.GAME_WIDTH || Math.max(1280, Math.round(H * aspect));
 
+        // Detect hardware camera cutout (iPhone Dynamic Island / Notch) and convert CSS px to 720p Canvas units
+        const scaleX = W / Math.max(1, window.innerWidth);
+        const rootStyle = getComputedStyle(document.documentElement);
+        const rawSafeLeft = parseFloat(rootStyle.getPropertyValue('--safe-left')) || 0;
+        const rawSafeRight = parseFloat(rootStyle.getPropertyValue('--safe-right')) || 0;
+
+        // 14px on flat screens; automatically indents past the camera cutout on notched phones
+        const leftPad = Math.max(14, Math.round(rawSafeLeft * scaleX) + 10);
+        const rightPad = Math.max(14, Math.round(rawSafeRight * scaleX) + 10);
+
+        // Keep Taproom's enlarged ammo crate aligned past the left notch too
+        if (typeof taproomPhase !== 'undefined' && taproomPhase.ammoBox) {
+            taproomPhase.ammoBox.x = leftPad;
+        }
+
         // 1. LEFT COLUMN: Native Menu Button + 6 Large Sacks + Floor Drain
-        const leftPad = 14;
         const leftColW = Math.round(Math.max(216, Math.min(284, W * 0.17)));
         const gap = 12;
         const sackW = Math.floor((leftColW - gap) / 2);
@@ -48,7 +62,6 @@ class BrewingPhase {
         this.drain = { x: leftPad, y: drainY, w: leftColW, h: H - drainY - 12 };
 
         // 2. RIGHT COLUMN: Large Shift Contracts Board (Top) + 3 Stacked Kettles (Bottom)
-        const rightPad = 14;
         this.boardW = Math.round(Math.max(310, Math.min(410, W * 0.24)));
         this.boardX = W - this.boardW - rightPad;
         this.boardY = 12;
@@ -87,7 +100,6 @@ class BrewingPhase {
         const gridTop = 52;
         const availableH = H - gridTop - 16;
 
-        // Calculate largest square tile that fits the center zone (accounting for 28px metal tray border)
         this.tileSize = Math.floor(Math.min((availableW - 28) / this.cols, (availableH - 28) / this.rows));
 
         const actualGridW = this.tileSize * this.cols;
@@ -173,8 +185,9 @@ class BrewingPhase {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
 
-            // 0. Check Native Canvas Menu Button
-            if (pos.x >= 0 && pos.x <= 280 && pos.y >= 0 && pos.y <= 70) {
+            // 0. Check Native Canvas Menu Button (Dynamically tracks safe-area leftPad)
+            const mBtn = this.menuBtn || { x: 14, y: 12, w: 280, h: 55 };
+            if (pos.x >= 0 && pos.x <= mBtn.x + mBtn.w && pos.y >= 0 && pos.y <= mBtn.y + mBtn.h + 5) {
                 const brewDrawer = document.getElementById('brewingHUD');
                 if (brewDrawer) {
                     brewDrawer.classList.add('open');

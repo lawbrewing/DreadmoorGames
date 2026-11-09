@@ -944,13 +944,14 @@ class GameRenderer {
         ctx.restore();
     }
 
-    // --- TAPROOM RENDERING (SEASON-LOCKED ARCHITECTURE + PROGRESSIVE SEASONAL ITEMS) ---
+    // --- TAPROOM RENDERING (SEASON-LOCKED ARCHITECTURE + ENLARGED AMMO HUD) ---
     drawTaproom(state) {
         if (typeof this.setupSlidingHud === 'function') {
             this.setupSlidingHud();
         }
 
         const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Lock 1:1 coordinate space
         const w = this.canvas.width;
         const h = this.canvas.height;
         const time = Date.now() / 1000;
@@ -1204,7 +1205,6 @@ class GameRenderer {
                     ctx.restore();
                 }
 
-                // PULSING PATIENCE BUBBLE 
                 if (!item.isLeaving && (item.currentState === 'ENTER' || item.currentState === 'IDLE')) {
                     const bubbleY = drawY - (14 * scale);
                     const isImpatient = item.maxWaitTime && (item.timeWaiting / item.maxWaitTime) > 0.70;
@@ -1213,15 +1213,15 @@ class GameRenderer {
                     if (patronConfig && patronConfig.favoriteStyle) styleLookup = patronConfig.favoriteStyle.toLowerCase();
                     else if (patronConfig && patronConfig.craves) styleLookup = patronConfig.craves.join(' ').toLowerCase();
 
-                    let bubbleColor = '#d97706'; let hintIcon = '⭐';
-                    if (styleLookup.includes('ipa')) { bubbleColor = '#22c55e'; hintIcon = '🌿'; }
-                    else if (styleLookup.includes('stout') || styleLookup.includes('imperial')) { bubbleColor = '#451a03'; hintIcon = '☕'; }
-                    else if (styleLookup.includes('porter') || styleLookup.includes('ale') || styleLookup.includes('mild')) { bubbleColor = '#b45309'; hintIcon = '🍺'; }
-                    else if (styleLookup.includes('sour')) { bubbleColor = '#f43f5e'; hintIcon = '🍒'; }
-                    else if (styleLookup.includes('lager') || styleLookup.includes('pilsner') || styleLookup.includes('oktoberfest')) { bubbleColor = '#facc15'; hintIcon = '🍻'; }
-                    else if (styleLookup.includes('saison')) { bubbleColor = '#fb923c'; hintIcon = '🌾'; }
-                    else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { bubbleColor = '#38bdf8'; hintIcon = '🥤'; }
-                    else if (styleLookup.includes('cocktail')) { bubbleColor = '#c084fc'; hintIcon = '🍸'; }
+                    let hintIcon = '⭐';
+                    if (styleLookup.includes('ipa')) { hintIcon = '🌿'; }
+                    else if (styleLookup.includes('stout') || styleLookup.includes('imperial')) { hintIcon = '☕'; }
+                    else if (styleLookup.includes('porter') || styleLookup.includes('ale') || styleLookup.includes('mild')) { hintIcon = '🍺'; }
+                    else if (styleLookup.includes('sour')) { hintIcon = '🍒'; }
+                    else if (styleLookup.includes('lager') || styleLookup.includes('pilsner') || styleLookup.includes('oktoberfest')) { hintIcon = '🍻'; }
+                    else if (styleLookup.includes('saison')) { hintIcon = '🌾'; }
+                    else if (styleLookup.includes('soda') || styleLookup.includes('mocktail')) { hintIcon = '🥤'; }
+                    else if (styleLookup.includes('cocktail')) { hintIcon = '🍸'; }
 
                     const bubbleSize = Math.max(28, 18 * scale);
                     ctx.globalAlpha = patronAlpha;
@@ -1257,39 +1257,56 @@ class GameRenderer {
         ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
         ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
 
+        // --- NATIVE CANVAS MENU BUTTON (TOP-LEFT IN TAPROOM) ---
+        const mBtn = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn)
+            ? brewingPhase.menuBtn
+            : { x: 16, y: 12, w: 180, h: 48 };
+        ctx.save();
+        const menuGrad = ctx.createLinearGradient(mBtn.x, mBtn.y, mBtn.x, mBtn.y + mBtn.h);
+        menuGrad.addColorStop(0, '#6366f1');
+        menuGrad.addColorStop(1, '#4f46e5');
+        ctx.fillStyle = menuGrad;
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(mBtn.x, mBtn.y, mBtn.w, mBtn.h, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Oswald';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('☰ MENU', mBtn.x + (mBtn.w / 2), mBtn.y + (mBtn.h / 2) + 1);
+        ctx.restore();
+
         // --- DYNAMIC SHIFT NOTIFICATIONS ---
         const served = state.patronsServed || 0;
         const quota = state.shiftQuota || 10;
-        
+
         ctx.save();
         ctx.textAlign = 'center';
 
         if (timeLeft <= 0) {
-            // 1. Shift Complete Banner
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.shadowColor = '#3b82f6';
             ctx.shadowBlur = 15;
             ctx.font = 'bold 22px Oswald';
             ctx.fillText("⏳ SHIFT ENDED! CLOSING TABS...", w / 2, 80);
-
         } else if (served >= quota) {
-            // 2. Quota Met (Bonus Time)
             const pulse = 0.5 + 0.5 * Math.sin(time * 6);
             ctx.fillStyle = `rgba(34, 197, 94, ${0.85 + (pulse * 0.15)})`;
             ctx.shadowColor = '#4ade80';
             ctx.shadowBlur = 10 * pulse;
             ctx.font = 'bold 18px Oswald';
             ctx.fillText(`🔥 QUOTA MET! (${served}/${quota}) - BONUS TIME! 🔥`, w / 2, 80);
-
         } else if (timeLeft <= 10) {
-            // 3. 10 Second Panic (Quota NOT met)
             const pulse = 0.5 + 0.5 * Math.sin(time * 15);
             ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + (pulse * 0.15)})`;
             ctx.shadowColor = '#ef4444';
             ctx.shadowBlur = 12 * pulse;
             ctx.font = 'bold 20px Oswald';
 
-            // Adds a violent screen-shake effect just to the text
             const shakeX = (Math.random() - 0.5) * 6;
             const shakeY = (Math.random() - 0.5) * 6;
             ctx.fillText(`⚠️ HURRY! ${quota - served} MORE TO MEET QUOTA! ⚠️`, (w / 2) + shakeX, 80 + shakeY);
@@ -1360,65 +1377,82 @@ class GameRenderer {
         });
 
         // ==========================================
-        // 9. DRAW AMMO QUICK-SWAP BUTTON (HUD)
+        // 9. ENLARGED AMMO QUICK-SWAP CRATE (160x145)
         // ==========================================
-        // Only draw the ammo box if the shift is actively running (not game over)
         if (typeof playerState !== 'undefined' && typeof taproomPhase !== 'undefined' && playerState.ammo && !state.isGameOver) {
             const activeIdx = taproomPhase.selectedAmmoIndex || 0;
             const currentAmmo = playerState.ammo[activeIdx];
 
             if (currentAmmo) {
-                const btnX = 20;
-                const btnY = h - 80;
-                const btnW = 80;
-                const btnH = 70;
+                const ab = taproomPhase.ammoBox || { x: 16, y: 560, w: 160, h: 145 };
+                const btnX = ab.x;
+                const btnY = ab.y;
+                const btnW = ab.w;
+                const btnH = ab.h;
+                const centerX = btnX + (btnW / 2);
+
+                const safeCount = Math.max(0, Math.floor(Number(currentAmmo.count) || 0));
 
                 ctx.save();
 
-                // Pulsing glow to indicate it is a tappable button
                 const pulse = 0.6 + 0.4 * Math.sin(time * 4);
-                ctx.shadowColor = `rgba(16, 185, 129, ${pulse})`;
-                ctx.shadowBlur = 12 * pulse;
+                ctx.shadowColor = safeCount > 0 ? `rgba(16, 185, 129, ${pulse})` : 'rgba(239, 68, 68, 0.6)';
+                ctx.shadowBlur = 14 * pulse;
 
-                // Box Background
-                ctx.fillStyle = 'rgba(24, 24, 27, 0.92)';
-                ctx.strokeStyle = '#10b981'; // Active Green Border
-                ctx.lineWidth = 2.5;
+                const boxGrad = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnH);
+                boxGrad.addColorStop(0, 'rgba(39, 39, 42, 0.96)');
+                boxGrad.addColorStop(1, 'rgba(9, 9, 11, 0.96)');
+                ctx.fillStyle = boxGrad;
+                ctx.strokeStyle = safeCount > 0 ? '#10b981' : '#ef4444';
+                ctx.lineWidth = 3;
 
                 ctx.beginPath();
-                ctx.roundRect(btnX, btnY, btnW, btnH, 10);
+                ctx.roundRect(btnX, btnY, btnW, btnH, 14);
                 ctx.fill();
                 ctx.stroke();
 
-                ctx.shadowColor = 'transparent'; // Turn off shadow for the text
+                ctx.shadowColor = 'transparent';
 
-                // Dynamic Icon based on ammo type
-                let ammoIcon = '🛢️';
+                // Top Instruction Pill
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
+                ctx.beginPath();
+                ctx.roundRect(btnX + 8, btnY + 6, btnW - 16, 20, 6);
+                ctx.fill();
+
+                ctx.fillStyle = '#a7f3d0';
+                ctx.font = 'bold 11px Oswald';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🔄 TAP TO SWAP BREW', centerX, btnY + 16);
+
+                // Large Drink Icon
+                let ammoIcon = '🍺';
                 if (currentAmmo.type === 'premium') ammoIcon = '⭐';
                 if (currentAmmo.type === 'cocktail') ammoIcon = '🍸';
                 if (currentAmmo.type === 'soda') ammoIcon = '🥤';
+                if (currentAmmo.type === 'Swill') ammoIcon = '🛢️';
 
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '18px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(ammoIcon, btnX + btnW / 2, btnY + 20);
+                ctx.font = '40px Arial';
+                ctx.fillText(ammoIcon, centerX, btnY + 54);
 
-                // Ammo Name (Truncated to fit)
+                // Drink Name
                 ctx.fillStyle = '#4ade80';
-                ctx.font = 'bold 11px Inter';
-                ctx.fillText(currentAmmo.name.substring(0, 11), btnX + btnW / 2, btnY + 40);
+                ctx.font = 'bold 14px Inter';
+                const displayName = currentAmmo.name.length > 16
+                    ? currentAmmo.name.substring(0, 15) + '…'
+                    : currentAmmo.name;
+                ctx.fillText(displayName, centerX, btnY + 90);
 
-                // Ammo Count
-                const countText = currentAmmo.count === 'Infinite' || currentAmmo.count === Infinity ? '∞' : `x${currentAmmo.count}`;
-                ctx.fillStyle = '#facc15';
-                ctx.font = 'bold 16px Oswald';
-                ctx.fillText(countText, btnX + btnW / 2, btnY + 58);
+                // Strictly Clamped Brewed Stock Counter
+                ctx.fillStyle = safeCount > 0 ? '#facc15' : '#ef4444';
+                ctx.font = 'bold 28px Oswald';
+                ctx.fillText(`x${safeCount}`, centerX, btnY + 123);
 
                 ctx.restore();
             }
         }
-    } // <-- This is the existing end of drawTaproom(state)
+    }
 
     // --- BREWING RENDERING (DEEP VISUAL & MERGE OVERHAUL) ---
     drawBrewing(state) {
@@ -2401,12 +2435,11 @@ class GameRenderer {
         ctx.restore();
     }
 
-    // --- HIGH-DETAIL, HIGH-READABILITY INGREDIENT TILES ---
+    // --- HIGH-DETAIL, HIGH-READABILITY INGREDIENT TILES (SACK-LOCKED BORDERS) ---
     drawIngredientTile(x, y, size, item, isMini = false, opts = {}) {
         const ctx = this.ctx;
         const time = opts.time || (Date.now() / 1000);
 
-        // REDUCED PADDING: from 4.5 down to 2 for massive space gains
         const pad = isMini ? 1.5 : 2.0;
         const tx = x + pad;
         const ty = y + pad;
@@ -2415,6 +2448,17 @@ class GameRenderer {
         const level = this.getIngredientLevel(item);
         const isMaxTier = level === 5;
         const isSpecialty = item.category === 'Specialty';
+
+        // Strict 1:1 border color mapping to the 6 Generator Sacks
+        const sackBorderColors = {
+            'Water': '#3b82f6',     // Water Blue
+            'Grain': '#eab308',     // Grain Gold
+            'Hops': '#22c55e',      // Hop Green
+            'Yeast': '#d9f99d',     // Yeast Lime
+            'Adjunct': '#f97316',   // Adjunct Orange
+            'Specialty': '#a855f7'  // Specialty Purple
+        };
+        const sackBorder = sackBorderColors[item.category] || '#a1a1aa';
 
         const tierPalettes = {
             'Water': [
@@ -2469,7 +2513,7 @@ class GameRenderer {
             'Galaxy Hop': { bgTop: '#3b0764', bgBot: '#09090b', border: '#38bdf8', icon: '#a855f7', accent: '#c084fc' }
         };
 
-        let pal = { bgTop: '#3f3f46', bgBot: '#18181b', border: '#a1a1aa', icon: '#e4e4e7', accent: '#71717a' };
+        let pal = { bgTop: '#3f3f46', bgBot: '#18181b', border: sackBorder, icon: '#e4e4e7', accent: '#71717a' };
         if (level > 0 && tierPalettes[item.category]) {
             pal = tierPalettes[item.category][level - 1];
         } else if (isSpecialty && specialtyPalettes[item.name]) {
@@ -2489,15 +2533,16 @@ class GameRenderer {
             ctx.shadowColor = opts.isHoveredTarget ? '#fde047' : '#4ade80';
             ctx.shadowBlur = opts.isHoveredTarget ? 22 : (12 + Math.sin(time * 10) * 5);
         } else if (isMaxTier && !isMini) {
-            ctx.shadowColor = pal.border;
-            ctx.shadowBlur = 10;
+            ctx.shadowColor = sackBorder;
+            ctx.shadowBlur = 12;
         }
 
+        // Outer border strictly uses the Sack Color (unless actively highlighting a merge target)
         ctx.fillStyle = grad;
         ctx.strokeStyle = opts.isMergeTarget
             ? (opts.isHoveredTarget ? '#fde047' : '#4ade80')
-            : (isMaxTier ? '#fde047' : pal.border);
-        ctx.lineWidth = isMini ? 2 : (opts.isMergeTarget ? 3.2 : (level >= 4 ? 2.8 : 2.2));
+            : sackBorder;
+        ctx.lineWidth = isMini ? 2.2 : (opts.isMergeTarget ? 3.8 : 3.2);
         ctx.beginPath();
         ctx.roundRect(tx, ty, s, s, isMini ? 6 : 10);
         ctx.fill();
@@ -2538,14 +2583,13 @@ class GameRenderer {
         }
 
         if (!isMini) {
-            ctx.strokeStyle = isMaxTier ? 'rgba(254, 240, 138, 0.4)' : 'rgba(255, 255, 255, 0.16)';
+            ctx.strokeStyle = isMaxTier ? 'rgba(254, 240, 138, 0.45)' : 'rgba(255, 255, 255, 0.16)';
             ctx.lineWidth = 1.2;
             ctx.beginPath();
-            ctx.roundRect(tx + 2.5, ty + 2.5, s - 5, s - 5, 8);
+            ctx.roundRect(tx + 3, ty + 3, s - 6, s - 6, 8);
             ctx.stroke();
         }
 
-        // INCREASED ICON SCALE: from 1.1 up to 1.35
         const iconY = isMini ? ty + (s / 2) - 2 : ty + (s * 0.42);
         const iconScale = isMini ? 0.75 : 1.35;
         this.drawCustomIcon(tx + (s / 2), iconY, item.category, item.name, pal.icon, iconScale, level || 1);
@@ -2553,9 +2597,9 @@ class GameRenderer {
         if (!isMini) {
             const badgeText = isSpecialty ? 'SPEC' : (isMaxTier ? '★MAX' : `L${level}`);
             const badgeW = isSpecialty || isMaxTier ? 38 : 28;
-            ctx.fillStyle = isMaxTier ? '#facc15' : (isSpecialty ? '#c084fc' : 'rgba(9, 9, 11, 0.78)');
-            ctx.strokeStyle = pal.border;
-            ctx.lineWidth = 1;
+            ctx.fillStyle = isMaxTier ? '#facc15' : (isSpecialty ? '#a855f7' : 'rgba(9, 9, 11, 0.85)');
+            ctx.strokeStyle = sackBorder;
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.roundRect(tx + 4, ty + 4, badgeW, 18, 4);
             ctx.fill();
@@ -2570,15 +2614,15 @@ class GameRenderer {
                 const startPipX = tx + s - 38;
                 for (let i = 0; i < 5; i++) {
                     const activePip = i < level;
-                    ctx.fillStyle = activePip ? (isMaxTier ? '#fde047' : pal.border) : 'rgba(255, 255, 255, 0.15)';
+                    ctx.fillStyle = activePip ? sackBorder : 'rgba(255, 255, 255, 0.18)';
                     ctx.beginPath();
-                    ctx.arc(startPipX + (i * 7.5), ty + 10.5, activePip ? 2.7 : 2.0, 0, Math.PI * 2);
+                    ctx.arc(startPipX + (i * 7.5), ty + 10.5, activePip ? 2.8 : 2.0, 0, Math.PI * 2);
                     ctx.fill();
                 }
             } else {
-                ctx.fillStyle = '#e0f2fe';
-                ctx.strokeStyle = pal.border;
-                ctx.lineWidth = 1.5;
+                ctx.fillStyle = sackBorder;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
                 ctx.beginPath();
                 ctx.moveTo(tx + s - 11, ty + 4);
                 ctx.lineTo(tx + s - 5, ty + 10);
@@ -2593,28 +2637,28 @@ class GameRenderer {
         const bannerH = isMini ? 14 : 32;
         const bannerY = ty + s - bannerH - 2;
 
-        ctx.fillStyle = 'rgba(9, 9, 11, 0.90)';
+        ctx.fillStyle = 'rgba(9, 9, 11, 0.92)';
         ctx.beginPath();
         ctx.roundRect(tx + 2, bannerY, s - 4, bannerH, isMini ? 4 : [2, 2, 7, 7]);
         ctx.fill();
 
         if (!isMini) {
-            ctx.fillStyle = isMaxTier ? '#facc15' : pal.border;
-            ctx.fillRect(tx + 4, bannerY, s - 8, 2.5);
+            ctx.fillStyle = sackBorder;
+            ctx.fillRect(tx + 3, bannerY, s - 6, 3);
         }
 
         ctx.fillStyle = isMaxTier ? '#fef08a' : '#f8fafc';
         ctx.textAlign = 'center';
         if (isMini) {
-            ctx.font = 'bold 10px Inter'; // Bumped from 8px
+            ctx.font = 'bold 10px Inter';
             ctx.fillText(item.name.substring(0, 7), tx + (s / 2), ty + s - 5.5);
         } else {
-            ctx.font = 'bold 15px Inter'; // Bumped from 13.5px
+            ctx.font = 'bold 15px Inter';
             const words = item.name.split(' ');
             if (words.length > 1) {
                 ctx.fillText(words[0], tx + (s / 2), bannerY + 14);
                 ctx.fillStyle = '#e4e4e7';
-                ctx.font = 'bold 14px Inter'; // Bumped from 12px
+                ctx.font = 'bold 14px Inter';
                 ctx.fillText(words.slice(1).join(' '), tx + (s / 2), bannerY + 28);
             } else {
                 ctx.fillText(item.name, tx + (s / 2), bannerY + 22);

@@ -17,6 +17,10 @@
 
     <!-- Mobile-First Viewport & Unified Sliding Drawer Styling -->
     <style>
+        :root {
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
         html, body {
             margin: 0;
             padding: 0;
@@ -34,7 +38,7 @@
             -webkit-touch-callout: none;
             user-select: none;
         }
-
+        
         #gameContainer {
             position: fixed;
             inset: 0;

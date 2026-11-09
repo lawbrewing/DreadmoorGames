@@ -23,7 +23,6 @@ class TaproomTelemetry {
     bindEvents() {
         if (typeof gameEvents === 'undefined') return;
 
-        // Track consecutive merge combos (can be emitted from brewing.js or auto-detected)
         gameEvents.on('MERGE_COMBO', (chainCount) => {
             const val = typeof chainCount === 'number' ? chainCount : 1;
             if (val > this.stats.highestComboMerges) {
@@ -31,7 +30,6 @@ class TaproomTelemetry {
             }
         });
 
-        // Fallback: if brewing phase emits INGREDIENT_MERGED, chain merges within a 4s window
         gameEvents.on('INGREDIENT_MERGED', () => {
             const now = Date.now();
             if (now - this.lastMergeTimestamp <= 4000) {
@@ -68,22 +66,21 @@ class TaproomTelemetry {
         const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
         const currentShift = prog.shift || prog.currentShift || (typeof taproomPhase !== 'undefined' ? taproomPhase.shift : 1) || 1;
 
-        // Cumulative career tips/score accumulated (falls back to currentRunScore if not tracked separately)
         const totalTipsEarned = (typeof playerState !== 'undefined' && playerState.lifetimeScore !== undefined)
             ? playerState.lifetimeScore
             : currentRunScore;
 
         const payload = {
             player_name: playerName,
-            score: currentRunScore,        // Score for this specific run
-            level_reached: currentShift,   // Shift reached
+            score: currentRunScore,
+            level_reached: currentShift,
             stats: {
                 shiftsCleared: this.stats.shiftsCleared,
                 highestComboMerges: this.stats.highestComboMerges,
                 perfectServes: this.stats.perfectServes,
                 glassesSmashed: this.stats.glassesSmashed,
                 kiddieHordesTriggered: this.stats.kiddieHordesTriggered,
-                lifetimeScore: totalTipsEarned // Cumulative career tips/score accumulated
+                lifetimeScore: totalTipsEarned
             }
         };
 
@@ -128,14 +125,65 @@ class TaproomPhase {
         this.aimStart = { x: 0, y: 0 };
         this.aimCurrent = { x: 0, y: 0 };
 
+        // Enlarged Bottom-Left Ammo Selector Hitbox
+        this.ammoBox = { x: 16, y: 560, w: 160, h: 145 };
+
         this.gravity = 1500;
         this.setupEventListeners();
+    }
+
+    // Finds the first ammo slot with a strictly positive brewed count
+    findValidAmmoIndex(preferredIdx = this.selectedAmmoIndex) {
+        const list = (typeof playerState !== 'undefined' && playerState.ammo) ? playerState.ammo : this.availableAmmo;
+        if (!list || list.length === 0) return -1;
+
+        const pref = list[preferredIdx];
+        if (pref && Number(pref.count) > 0) {
+            return preferredIdx;
+        }
+
+        for (let i = 0; i < list.length; i++) {
+            const idx = (preferredIdx + 1 + i) % list.length;
+            if (list[idx] && Number(list[idx].count) > 0) {
+                return idx;
+            }
+        }
+        return -1;
+    }
+
+    cycleNextValidAmmo() {
+        const list = (typeof playerState !== 'undefined' && playerState.ammo) ? playerState.ammo : this.availableAmmo;
+        if (!list || list.length === 0) return;
+
+        for (let i = 1; i <= list.length; i++) {
+            const idx = (this.selectedAmmoIndex + i) % list.length;
+            if (list[idx] && Number(list[idx].count) > 0) {
+                this.selectedAmmoIndex = idx;
+                if (window.audioManager) window.audioManager.playSFX('swap');
+                return;
+            }
+        }
     }
 
     setupEventListeners() {
         gameEvents.on('DRAG_START', (pos) => {
             if (!this.isActive) return;
-            if (pos.y > 250) {
+
+            // 0. Native Canvas Menu Button (Top-Left)
+            if (pos.x >= 0 && pos.x <= 280 && pos.y >= 0 && pos.y <= 70) {
+                const tapDrawer = document.getElementById('taproomHUD');
+                if (tapDrawer) tapDrawer.classList.add('open');
+                return;
+            }
+
+            // 1. Enlarged Bottom-Left Ammo Quick-Cycle Button
+            const ab = this.ammoBox;
+            if (pos.x >= ab.x && pos.x <= ab.x + ab.w && pos.y >= ab.y && pos.y <= ab.y + ab.h) {
+                this.cycleNextValidAmmo();
+                return;
+            }
+
+            if (pos.y > 220) {
                 this.isAiming = true;
                 this.aimStart = { x: pos.x, y: pos.y };
                 this.aimCurrent = { x: pos.x, y: pos.y };
@@ -147,7 +195,6 @@ class TaproomPhase {
             this.aimCurrent = { x: pos.x, y: pos.y };
         });
 
-        // INSIDE setupEventListeners() -> DRAG_END
         gameEvents.on('DRAG_END', (pos) => {
             if (!this.isAiming) return;
             this.isAiming = false;
@@ -155,18 +202,13 @@ class TaproomPhase {
             const swipeDx = pos.x - this.aimStart.x;
             const swipeDy = pos.y - this.aimStart.y;
 
-            if (Math.abs(swipeDx) < 10 && Math.abs(swipeDy) < 10 && pos.y > 600) {
-                if (this.availableAmmo && this.availableAmmo.length > 0) {
-                    const sackWidth = 1280 / this.availableAmmo.length;
-                    this.selectedAmmoIndex = Math.max(0, Math.min(this.availableAmmo.length - 1, Math.floor(pos.x / sackWidth)));
-                }
+            if (Math.abs(swipeDx) < 12 && Math.abs(swipeDy) < 12 && pos.y > 555) {
+                this.cycleNextValidAmmo();
                 return;
             }
 
             if (swipeDy < -20) {
                 const swipeDistance = Math.hypot(swipeDx, swipeDy);
-
-                // FIXED 1:1 AIMING! The beer now spawns exactly where you started your swipe on the X-axis
                 const spawnX = this.aimStart.x;
                 const spawnY = 585;
 
@@ -192,7 +234,6 @@ class TaproomPhase {
         gameEvents.on('GLASS_SMASHED', (data) => {
             if (!this.isActive) return;
 
-            // Track broken glasses for /api/scores/taproom_chaos
             if (window.taproomTelemetry) {
                 window.taproomTelemetry.stats.glassesSmashed++;
             }
@@ -208,7 +249,7 @@ class TaproomPhase {
                 if (distance <= splashRadius && (patron.currentState === 'ENTER' || patron.currentState === 'IDLE')) {
                     patron.y -= pushbackForce * 0.6;
                     patron.x += (patron.x > data.x) ? pushbackForce / 3 : -pushbackForce / 3;
-                    patron.y = Math.max(210, Math.min(700, patron.y));
+                    patron.y = Math.max(210, Math.min(640, patron.y));
                     if (typeof patron.resolveObstacleCollisions === 'function') {
                         patron.resolveObstacleCollisions(this.obstacles || []);
                     }
@@ -218,12 +259,32 @@ class TaproomPhase {
     }
 
     fireProjectile(x, y, vx, vy, vz) {
-        const currentAmmo = playerState.ammo[this.selectedAmmoIndex];
-        if (!currentAmmo) return;
+        if (typeof playerState === 'undefined' || !playerState.ammo || playerState.ammo.length === 0) return;
 
-        if (currentAmmo.count !== 'Infinite') {
-            currentAmmo.count--;
-            if (currentAmmo.count <= 0) this.selectedAmmoIndex = 0;
+        // Strictly require a positive brewed count before firing
+        const validIdx = this.findValidAmmoIndex(this.selectedAmmoIndex);
+        if (validIdx === -1) {
+            this.floatingTexts.push(new FloatingTitle(x, y - 40, "OUT OF BREWED AMMO!", "#ef4444"));
+            return;
+        }
+        this.selectedAmmoIndex = validIdx;
+
+        const currentAmmo = playerState.ammo[this.selectedAmmoIndex];
+        const countNum = Number(currentAmmo.count);
+
+        if (!currentAmmo || isNaN(countNum) || countNum <= 0) {
+            return;
+        }
+
+        // Strictly decrement and clamp at 0 so ammo can NEVER go negative
+        currentAmmo.count = Math.max(0, countNum - 1);
+
+        // If this batch just hit 0, immediately advance selector to the next available brew
+        if (currentAmmo.count === 0) {
+            const nextIdx = this.findValidAmmoIndex(this.selectedAmmoIndex);
+            if (nextIdx !== -1) {
+                this.selectedAmmoIndex = nextIdx;
+            }
         }
 
         this.projectiles.push({
@@ -243,7 +304,21 @@ class TaproomPhase {
         this.darts = [];
         this.particles = [];
         this.isAiming = false;
-        this.availableAmmo = playerState.ammo;
+
+        // Sanitize any legacy 'Infinite' or negative counts so ammo strictly reflects brewed stock
+        if (typeof playerState !== 'undefined' && Array.isArray(playerState.ammo)) {
+            playerState.ammo = playerState.ammo.filter(a => a && a.count !== 'Infinite' && a.count !== Infinity);
+            playerState.ammo.forEach(a => {
+                a.count = Math.max(0, Math.floor(Number(a.count) || 0));
+            });
+            this.availableAmmo = playerState.ammo;
+        } else {
+            this.availableAmmo = [];
+        }
+
+        const startIdx = this.findValidAmmoIndex(0);
+        this.selectedAmmoIndex = startIdx !== -1 ? startIdx : 0;
+
         this.floatingTexts = [];
         this.timeRemaining = this.shiftDuration;
         this.shiftCount++;
@@ -251,12 +326,10 @@ class TaproomPhase {
         const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
         this.shift = prog.shift || prog.currentShift || prog.day || this.shiftCount;
 
-        // Auto-reset telemetry at the start of Shift 1
         if (this.shift === 1 && window.taproomTelemetry) {
             window.taproomTelemetry.reset();
         }
 
-        // Auto-hook hud.showGameOver once so score submits automatically on bankruptcy
         if (typeof hud !== 'undefined' && hud.showGameOver && !hud._telemetryWrapped) {
             const origShowGameOver = hud.showGameOver.bind(hud);
             hud.showGameOver = (...args) => {
@@ -278,87 +351,75 @@ class TaproomPhase {
 
         const mod = prog.forecast ? prog.forecast.modifier : 'none';
 
-        // 1. DYNAMIC CROWD SIZE
-        // Starts at 7, grows by 1 every 2 shifts, caps at 25 for massive chaos
         this.maxPatrons = Math.min(25, 7 + Math.floor(this.shift / 2));
-
-        // 2. DYNAMIC SPAWN RATE
-        // Starts at 3.5s, gets 0.15s faster every shift, caps at a brutal 1.5s
         let baseSpawn = Math.max(1.5, 3.5 - (this.shift * 0.15));
         this.spawnInterval = (mod === 'crowd_spike') ? Math.max(1.0, baseSpawn * 0.6) : baseSpawn;
-
-        // 3. DYNAMIC PATIENCE
-        // Starts at 45s, loses 1 second per shift, caps at a frantic 15s
         this.basePatience = Math.max(15, 45 - this.shift);
     }
 
-    // Checks if a candidate (x, y) landing spot is safely outside all furniture hitboxes
-    isSpotClear(x, y, buffer = 34) {
+    // Checks both dynamic obstacles AND hardcoded furniture keep-out zones (Pool Table, Centerpiece, Bars)
+    isSpotClear(x, y, buffer = 46) {
+        // Keep clear of Center Pool Table
+        if (x > 485 - buffer && x < 795 + buffer && y > 335 - buffer && y < 485 + buffer) return false;
+        // Keep clear of Foyer Seasonal Centerpiece
+        if (x > 565 - buffer && x < 715 + buffer && y > 195 - buffer && y < 290 + buffer) return false;
+        // Keep clear of Front Beer/Coffee Bars & Stools
+        if (y > 635) return false;
+        // Keep clear of Left Booths & Right Bistro Tables
+        if (x < 210 && y > 350 && y < 560) return false;
+        if (x > 920 && x < 1060 && y > 360 && y < 480) return false;
+
         const obstacles = this.obstacles || [];
         for (const obs of obstacles) {
             const rx = (obs.rx || obs.r || 55) + buffer;
-            const ry = (obs.ry || (obs.r ? obs.r * 0.65 : 38)) + (buffer * 0.75);
+            const ry = (obs.ry || (obs.r ? obs.r * 0.65 : 38)) + (buffer * 0.8);
             const dx = x - obs.x;
             const dy = y - obs.y;
-            if (Math.hypot(dx / rx, dy / ry) < 1.05) {
+            if (Math.hypot(dx / rx, dy / ry) < 1.08) {
                 return false;
             }
         }
         return true;
     }
 
-    // Picks a randomized, obstacle-safe destination anywhere across the taproom scene
+    // Picks an obstacle-safe hangout coordinate in the open aisles and floor zones
     pickRandomSceneDestination() {
-        const w = 1280;
-
-        // 18 scenic hangout spots distributed throughout the entire room
         const scenicPool = [
-            // Mid-Left Lounge & Booth Front
-            { x: 165, y: 525 }, { x: 245, y: 535 }, { x: 335, y: 505 },
-            // Upper-Left Jukebox & Stage Groove Area
-            { x: 375, y: 345 }, { x: 445, y: 330 },
-            // Center Pool Table Perimeter (North, West, East, South)
-            { x: 565, y: 318 }, { x: 715, y: 318 },
-            { x: 460, y: 415 }, { x: 820, y: 415 },
-            { x: 565, y: 495 }, { x: 715, y: 495 },
-            // Center Open Taproom Floor
-            { x: 515, y: 575 }, { x: 640, y: 560 }, { x: 765, y: 575 },
-            // Mid-Right Bistro & Darts Lounge
-            { x: 865, y: 345 }, { x: 885, y: 495 }, { x: 1095, y: 490 },
-            // Front-Left Beer Bar & Front-Right Coffee Bar (Outside the stools & corners)
-            { x: 245, y: 702 }, { x: 355, y: 702 }, { x: 475, y: 635 },
-            { x: w - 475, y: 635 }, { x: w - 355, y: 702 }, { x: w - 245, y: 702 }
+            // Open Left Main Aisle
+            { x: 445, y: 325 }, { x: 440, y: 415 }, { x: 445, y: 515 },
+            // Open Right Main Aisle
+            { x: 835, y: 325 }, { x: 840, y: 415 }, { x: 835, y: 515 },
+            // Mid-Left Open Floor (Clear of booths)
+            { x: 285, y: 525 }, { x: 355, y: 495 }, { x: 350, y: 345 },
+            // Center North & South Corridors (Clear of Pool Table)
+            { x: 555, y: 312 }, { x: 725, y: 312 },
+            { x: 545, y: 535 }, { x: 640, y: 545 }, { x: 735, y: 535 },
+            // Lower Open Floor (In front of bar stools, never behind them)
+            { x: 380, y: 595 }, { x: 510, y: 600 }, { x: 640, y: 605 }, { x: 770, y: 600 }, { x: 900, y: 595 },
+            // Mid-Right Open Floor
+            { x: 885, y: 335 }, { x: 915, y: 525 }, { x: 1065, y: 510 }
         ];
 
-        // Generate 6 additional completely random floor coordinates per spawn
-        for (let i = 0; i < 6; i++) {
-            scenicPool.push({
-                x: 155 + Math.random() * (w - 310),
-                y: 295 + Math.random() * 395
-            });
-        }
-
-        // Shuffle candidates so every patron picks a fresh area of the room
         const shuffled = scenicPool
             .map(pt => ({
-                x: pt.x + (Math.random() * 28 - 14),
-                y: pt.y + (Math.random() * 22 - 11),
+                x: pt.x + (Math.random() * 20 - 10),
+                y: pt.y + (Math.random() * 16 - 8),
                 sortKey: Math.random()
             }))
             .sort((a, b) => a.sortKey - b.sortKey);
 
-        let bestSpot = { x: 640 + (Math.random() * 140 - 70), y: 540 };
+        let bestSpot = { x: 445, y: 515 };
         let bestCrowding = Infinity;
 
         for (const candidate of shuffled) {
-            if (!this.isSpotClear(candidate.x, candidate.y, 34)) continue;
+            if (!this.isSpotClear(candidate.x, candidate.y, 42)) continue;
 
             let crowding = 0;
             for (const other of this.patrons) {
                 const ox = other.targetX || other.x;
                 const oy = other.targetY || other.y;
                 const d = Math.hypot(ox - candidate.x, oy - candidate.y);
-                if (d < 70) crowding += (70 - d);
+                if (d < 75) crowding += (75 - d);
             }
 
             if (crowding < bestCrowding) {
@@ -371,39 +432,59 @@ class TaproomPhase {
         return bestSpot;
     }
 
-    // Builds an obstacle-safe path from the rear entrance door to any (destX, destY) in the scene
+    // Routes strictly along the Left Aisle (x=445) or Right Aisle (x=835) to avoid the Pool Table
     buildEntryPath(destX, destY) {
         const w = 1280;
         const isRightSide = destX >= (w / 2);
+        const aisleX = isRightSide ? 835 : 445;
         const path = [];
 
-        // Step 1: Step south into the foyer clear of the rear wall & seasonal centerpiece
+        // 1. Step out of doorway and around the foyer centerpiece
         path.push({
-            x: (w / 2) + (isRightSide ? 48 : -48) + (Math.random() * 14 - 7),
-            y: 205
+            x: (w / 2) + (isRightSide ? 90 : -90),
+            y: 215
         });
 
-        // Step 2: If heading deeper into the room, route through the wide left or right main aisle
-        if (destY > 345) {
-            const aisleX = isRightSide ? 825 : 455;
-            path.push({
-                x: aisleX + (Math.random() * 18 - 9),
-                y: 335
-            });
+        // 2. Align with the main left or right vertical aisle at the north cross-corridor
+        path.push({
+            x: aisleX,
+            y: 315
+        });
 
-            // Step 3: If heading to the lower half of the room, walk down the open aisle first
-            // so the patron never cuts diagonally across the pool table or bar counter corners
-            if (destY > 515) {
-                path.push({
-                    x: aisleX + (Math.random() * 18 - 9),
-                    y: Math.min(545, destY - 20)
-                });
-            }
+        // 3. Walk straight down the open vertical aisle to match destination Y before turning inward
+        if (destY > 340) {
+            const safeStopY = (destY > 340 && destY < 515 && destX > 480 && destX < 800)
+                ? 535 // If heading south of the pool table, stay in the aisle until y=535
+                : Math.min(595, destY);
+
+            path.push({
+                x: aisleX,
+                y: safeStopY
+            });
         }
 
-        // Final Step: Arrive at the randomized scene destination
+        // 4. Final step to destination
         path.push({ x: destX, y: destY });
         return path;
+    }
+
+    // Builds an obstacle-safe exit path from anywhere on the floor back to the rear door
+    buildSafeExitPath(fromX, fromY) {
+        const isRightSide = fromX >= 640;
+        const aisleX = isRightSide ? 835 : 445;
+        const route = [];
+
+        // If in the lower half of the room, first step out to the nearest vertical aisle
+        if (fromY > 340) {
+            const entryY = (fromY > 340 && fromY < 515 && fromX > 470 && fromX < 810) ? 535 : fromY;
+            route.push({ x: aisleX, y: entryY });
+        }
+
+        // Walk up the vertical aisle to the north corridor, then to the rear exit door
+        route.push({ x: aisleX, y: 310 });
+        route.push({ x: 640 + (isRightSide ? 75 : -75), y: 205 });
+        route.push({ x: 640, y: 130 });
+        return route;
     }
 
     spawnPatron(forcedKey = null, groupId = null) {
@@ -426,7 +507,6 @@ class TaproomPhase {
         const dest = this.pickRandomSceneDestination();
         const path = this.buildEntryPath(dest.x, dest.y);
 
-        // Inject the dynamically shrinking wait time into the config
         const finalWaitTime = config.maxWaitTime
             ? Math.min(config.maxWaitTime, this.basePatience)
             : this.basePatience;
@@ -443,7 +523,6 @@ class TaproomPhase {
     }
 
     triggerKidHorde() {
-        // Track kiddieHordesTriggered for /api/scores/taproom_chaos
         if (window.taproomTelemetry) {
             window.taproomTelemetry.stats.kiddieHordesTriggered++;
         }
@@ -457,14 +536,16 @@ class TaproomPhase {
     update(dt) {
         if (!this.isActive) return;
 
-        // FIXED: OUT OF AMMO = INSTANT SHIFT SURVIVAL (No negative penalties!)
+        // Strictly sum positive brewed ammo
         let totalAmmo = 0;
         if (typeof playerState !== 'undefined' && playerState.ammo) {
-            playerState.ammo.forEach(a => totalAmmo += (a.count === 'Infinite' ? 999 : a.count));
+            playerState.ammo.forEach(a => {
+                totalAmmo += Math.max(0, Number(a.count) || 0);
+            });
         }
         if (totalAmmo <= 0 && this.projectiles.length === 0 && this.timeRemaining > 0) {
             this.floatingTexts.push(new FloatingTitle(640, 360, "OUT OF AMMO! SHIFT OVER!", "#facc15"));
-            this.timeRemaining = 0; // Force immediate shift end
+            this.timeRemaining = 0;
         }
 
         this.timeRemaining -= dt;
@@ -472,13 +553,11 @@ class TaproomPhase {
             if (!this.isTransitioning) {
                 this.isTransitioning = true;
 
-                // --- NEW SHIFT GOAL CHECK ---
                 const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
                 const currentShift = prog.shift || prog.currentShift || this.shift;
                 const shiftGoal = currentShift * 40;
 
                 if (typeof playerState !== 'undefined' && playerState.tips < shiftGoal) {
-                    // Failed to meet the quota!
                     this.floatingTexts.push(new FloatingTitle(640, 360, "MISSED SHIFT QUOTA!", "#ef4444"));
                     setTimeout(() => {
                         this.shutdown();
@@ -487,7 +566,6 @@ class TaproomPhase {
                     return;
                 }
 
-                // Success! Advance normally.
                 if (window.taproomTelemetry) window.taproomTelemetry.stats.shiftsCleared++;
                 if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
                     progressionState.advanceShift();
@@ -495,7 +573,6 @@ class TaproomPhase {
 
                 this.shutdown();
 
-                // --- CONTINUOUS SAVE INJECTED HERE ---
                 if (typeof window.savePlayerStateToPi === 'function') {
                     console.log("[Progression] Shift complete. Saving ledger to Pi...");
                     window.savePlayerStateToPi();
@@ -516,7 +593,51 @@ class TaproomPhase {
 
         this.patrons = this.patrons.filter(patron => {
             if (!patron.active) return false;
+
+            const prevX = patron.x;
+            const prevY = patron.y;
+
             patron.update(dt, this.patrons, obstacles);
+
+            // Route ANGRY or EXIT patrons safely around the pool table to the rear door
+            if ((patron.currentState === 'ANGRY' || patron.currentState === 'EXIT') && !patron._hasSafeExitRoute) {
+                patron._hasSafeExitRoute = true;
+                const exitRoute = this.buildSafeExitPath(patron.x, patron.y);
+                if (typeof patron.setPath === 'function' && patron.currentState === 'ENTER') {
+                    patron.setPath(exitRoute);
+                } else {
+                    patron.waypoints = exitRoute;
+                    patron.targetX = exitRoute[0].x;
+                    patron.targetY = exitRoute[0].y;
+                }
+            }
+
+            // REAL-TIME ANTI-STUCK RECOVERY: If a walking patron stalls against furniture for > 0.45s, slide them to the nearest open aisle
+            const isMovingState = patron.currentState === 'ENTER' ||
+                patron.currentState === 'EXIT' ||
+                patron.currentState === 'ANGRY' ||
+                (patron.waypoints && patron.waypoints.length > 0);
+
+            if (isMovingState) {
+                const movedDist = Math.hypot(patron.x - prevX, patron.y - prevY);
+                if (movedDist < 12 * dt) {
+                    patron._stuckTimer = (patron._stuckTimer || 0) + dt;
+                    if (patron._stuckTimer > 0.45) {
+                        patron._stuckTimer = 0;
+                        const safeAisleX = patron.x < 640 ? 445 : 835;
+                        // Slide patron horizontally toward the clear aisle and skip blocked waypoint
+                        patron.x += Math.sign(safeAisleX - patron.x) * 28;
+                        patron.y += (patron.y > 410 ? 18 : -18);
+                        if (patron.waypoints && patron.waypoints.length > 1) {
+                            patron.waypoints.shift();
+                            patron.targetX = patron.waypoints[0].x;
+                            patron.targetY = patron.waypoints[0].y;
+                        }
+                    }
+                } else {
+                    patron._stuckTimer = 0;
+                }
+            }
 
             if (patron.currentState === 'ANGRY' && !patron.penaltyApplied) {
                 patron.penaltyApplied = true;
@@ -527,7 +648,7 @@ class TaproomPhase {
                 }
 
                 gameEvents.emit('SPEND_TIPS', penalty);
-                gameEvents.emit('PATRON_ANGRY'); // <-- Triggers angry.mp3
+                gameEvents.emit('PATRON_ANGRY');
                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `-$${penalty} (Left Angry!)`, "#ef4444"));
             }
             return true;
@@ -584,38 +705,36 @@ class TaproomPhase {
                     const assignActivity = (pt) => {
                         const roll = Math.random();
                         const isLeftSide = pt.x < 640;
-                        const safeAisleX = isLeftSide ? 455 : 825;
+                        const safeAisleX = isLeftSide ? 445 : 835;
 
                         if (roll > 0.60) {
                             pt.activity = 'DANCE';
                             const route = [];
-                            if (pt.y > 500) route.push({ x: safeAisleX, y: 515 });
-                            if (!isLeftSide) route.push({ x: 640, y: 315 });
-                            route.push({ x: 435, y: 325 });
-                            route.push({ x: 245 + (Math.random() * 48 - 24), y: 292 + (Math.random() * 18 - 9) });
+                            route.push({ x: safeAisleX, y: pt.y > 480 ? 530 : 315 });
+                            if (!isLeftSide) route.push({ x: 835, y: 310 }, { x: 445, y: 310 });
+                            route.push({ x: 435, y: 315 });
+                            route.push({ x: 250 + (Math.random() * 40 - 20), y: 292 + (Math.random() * 16 - 8) });
                             pt.waypoints = route;
                         } else if (roll > 0.28) {
                             pt.activity = 'DARTS';
                             const route = [];
-                            if (pt.y > 500) route.push({ x: safeAisleX, y: 515 });
-                            if (isLeftSide) route.push({ x: 640, y: 315 });
-                            route.push({ x: 845, y: 340 });
-                            route.push({ x: 1055 + (Math.random() * 22 - 11), y: 345 + (Math.random() * 20 - 10) });
+                            route.push({ x: safeAisleX, y: pt.y > 480 ? 530 : 315 });
+                            if (isLeftSide) route.push({ x: 445, y: 310 }, { x: 835, y: 310 });
+                            route.push({ x: 845, y: 330 });
+                            route.push({ x: 1055 + (Math.random() * 20 - 10), y: 345 + (Math.random() * 18 - 9) });
                             pt.waypoints = route;
                         } else {
                             pt.activity = 'EXIT';
+                            pt.waypoints = this.buildSafeExitPath(pt.x, pt.y);
                         }
                     };
 
-                    // 1. SWILL SAFETY NET INTERCEPT
                     if (p.name === 'Swill' || p.type === 'Swill') {
                         gameEvents.emit('EARN_TIPS', 1.00);
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, "+$1.00 (Swill)", "#94a3b8"));
                         patron.setState('CHEER');
                         assignActivity(patron);
-                    }
-                    // 2. EXACT RECIPE MATCH (3x Payout)
-                    else if (isExactMatch) {
+                    } else if (isExactMatch) {
                         if (window.taproomTelemetry) {
                             window.taproomTelemetry.stats.perfectServes++;
                         }
@@ -625,23 +744,17 @@ class TaproomPhase {
                         patron.setState('CHEER');
                         assignActivity(patron);
                         this.spawnCoinBurst(patron.x, patron.y - 80);
-                    }
-                    // 3. STYLE MATCH (2x Payout)
-                    else if (isStyleMatch) {
+                    } else if (isStyleMatch) {
                         gameEvents.emit('EARN_TIPS', baseTip * 2);
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${(baseTip * 2).toFixed(2)} (Great Style!)`, "#38bdf8"));
                         patron.setState('CHEER');
                         assignActivity(patron);
-                    }
-                    // 4. CRAVING MATCH (1x Payout)
-                    else if (isCraved) {
+                    } else if (isCraved) {
                         gameEvents.emit('EARN_TIPS', baseTip);
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${baseTip.toFixed(2)}`, "#10b981"));
                         patron.setState('CHEER');
                         assignActivity(patron);
-                    }
-                    // 5. TRASH BATCH / WRONG DRINK (Angry Penalty)
-                    else {
+                    } else {
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, "Gross!", "#ef4444"));
                         patron.setState('ANGRY');
                         if (patron.rosterKey === 'kid' && p.type !== 'soda') {
@@ -661,7 +774,8 @@ class TaproomPhase {
                             groupMembers.forEach((pt, idx) => {
                                 pt.activity = 'DARTS';
                                 pt.waypoints = [
-                                    { x: 845, y: 340 },
+                                    { x: pt.x < 640 ? 445 : 835, y: 310 },
+                                    { x: 845, y: 330 },
                                     { x: 1045 + ((idx % 3) * 26), y: 335 + (idx * 12) }
                                 ];
                             });

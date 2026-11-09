@@ -50,19 +50,9 @@ class InputManager {
             // TAPROOM AMMO QUICK-CYCLE INTERCEPT
             // ==========================================
             if (typeof currentState !== 'undefined' && currentState === 'TAPROOM') {
-                if (pos.x >= 20 && pos.x <= 100 && pos.y >= 640 && pos.y <= 720) {
-                    if (typeof taproomPhase !== 'undefined' && typeof playerState !== 'undefined' && playerState.ammo) {
-                        let currentIdx = taproomPhase.selectedAmmoIndex || 0;
-                        let nextIdx = (currentIdx + 1) % playerState.ammo.length;
-
-                        while (nextIdx !== currentIdx && playerState.ammo[nextIdx].count !== 'Infinite' && playerState.ammo[nextIdx].count <= 0) {
-                            nextIdx = (nextIdx + 1) % playerState.ammo.length;
-                        }
-
-                        taproomPhase.selectedAmmoIndex = nextIdx;
-                        if (window.audioManager) {
-                            window.audioManager.playSFX('swap');
-                        }
+                if (pos.x >= 16 && pos.x <= 176 && pos.y >= 560 && pos.y <= 705) {
+                    if (typeof taproomPhase !== 'undefined' && typeof taproomPhase.cycleNextValidAmmo === 'function') {
+                        taproomPhase.cycleNextValidAmmo();
                         return;
                     }
                 }
