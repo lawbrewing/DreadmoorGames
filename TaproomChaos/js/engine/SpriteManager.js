@@ -182,6 +182,33 @@ class SpriteManager {
         setTimeout(() => banner.remove(), 8000);
     }
 
+    // --- METHOD 1: DYNAMIC PINK TRACKING MARKER ERASER ---
+    removePinkMarkerFilter(ctx, x, y, width, height) {
+        try {
+            const imgData = ctx.getImageData(x, y, width, height);
+            const data = imgData.data;
+            let modified = false;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Target bright magenta/pink tracking markers (e.g. RGB near 255, 0, 255 with low green)
+                if (r > 220 && g < 50 && b > 220) {
+                    data[i + 3] = 0; // Make transparent
+                    modified = true;
+                }
+            }
+
+            if (modified) {
+                ctx.putImageData(imgData, x, y);
+            }
+        } catch (e) {
+            // Suppress cross-origin security warnings if images load from external static storage
+        }
+    }
+
     drawSprite(ctx, rosterKey, state, dirText, frameIndex, x, y) {
         if (!this.isLoaded) return;
 
@@ -216,6 +243,9 @@ class SpriteManager {
             64,
             64
         );
+
+        // Scrub out any pink tracking marker balls on the fly
+        this.removePinkMarkerFilter(ctx, x, y, 64, 64);
     }
 }
 

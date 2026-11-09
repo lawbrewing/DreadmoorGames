@@ -88,7 +88,11 @@ class GameHUD {
 
                 if (!ingredients || !Array.isArray(ingredients)) return;
 
-                if (!currentOrder.revealedIngredients) currentOrder.revealedIngredients = [];
+                // Ensure initial 2 shown ingredients are pre-tracked as revealed
+                if (!currentOrder.revealedIngredients) {
+                    currentOrder.revealedIngredients = ingredients.slice(0, 2);
+                }
+
                 const unknown = ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
                 const hintCost = 1.00;
 
@@ -98,15 +102,14 @@ class GameHUD {
                     const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
                     currentOrder.revealedIngredients.push(randomIng);
 
-                    // --- VISUAL FEEDBACK FIX ---
-                    // 1. Append the discovered ingredients to the order's text on the canvas
+                    // Update hint display with newly unlocked ingredient
                     if (!currentOrder.originalHint) currentOrder.originalHint = currentOrder.hint;
-                    currentOrder.hint = currentOrder.originalHint + " | Revealed: " + currentOrder.revealedIngredients.join(", ");
+                    const extraRevealed = currentOrder.revealedIngredients.slice(2);
+                    currentOrder.hint = currentOrder.originalHint + (extraRevealed.length > 0 ? " | Unlocked: " + extraRevealed.join(", ") : "");
 
-                    // 2. Spawn a green floating text popup in the middle of the brewing grid
                     if (typeof brewingPhase !== 'undefined' && brewingPhase.floatingTexts) {
                         brewingPhase.floatingTexts.push({
-                            text: `💡 Discovered: ${randomIng.toUpperCase()}!`,
+                            text: `💡 Unlocked: ${randomIng.toUpperCase()}!`,
                             x: window.innerWidth ? window.innerWidth / 2 : 640,
                             y: 300,
                             life: 2.5,
@@ -334,14 +337,15 @@ class GameHUD {
             const currentOrder = activeOrders && activeOrders.length > 0 ? activeOrders[0] : null;
 
             if (currentOrder && currentOrder.name) {
-                // Look up the exact recipe in the configuration file
                 const masterList = typeof gameRecipes !== 'undefined' ? gameRecipes.recipeList : [];
                 const recipeDef = masterList.find(r => r.name === currentOrder.name);
                 const ingredients = recipeDef ? recipeDef.ingredients : null;
 
                 if (ingredients && Array.isArray(ingredients)) {
-                    const revealed = currentOrder.revealedIngredients || [];
-                    const unknown = ingredients.filter(ing => !revealed.includes(ing));
+                    if (!currentOrder.revealedIngredients) {
+                        currentOrder.revealedIngredients = ingredients.slice(0, 2);
+                    }
+                    const unknown = ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
 
                     if (unknown.length === 0) {
                         this.btnBuyHint.innerText = "💡 FULLY SOLVED";
@@ -356,10 +360,6 @@ class GameHUD {
                         this.btnBuyHint.style.background = "#ef4444";
                         this.btnBuyHint.style.cursor = "not-allowed";
                     }
-                } else {
-                    this.btnBuyHint.style.background = "#52525b";
-                    this.btnBuyHint.innerText = "💡 HINT ($1.00)";
-                    this.btnBuyHint.style.cursor = "not-allowed";
                 }
             } else {
                 this.btnBuyHint.style.background = "#52525b";

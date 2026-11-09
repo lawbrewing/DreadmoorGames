@@ -2157,6 +2157,7 @@ class GameRenderer {
         if (state.activeOrders && state.activeOrders.length > 0) {
             state.activeOrders.forEach((order, i) => {
                 const oy = boardY + 76 + (i * 112);
+                const isUnlocked = (typeof playerState !== 'undefined') && playerState.unlockedRecipes && playerState.unlockedRecipes.includes(order.name);
 
                 ctx.fillStyle = '#4ade80';
                 ctx.font = 'bold 20px Inter';
@@ -2166,12 +2167,18 @@ class GameRenderer {
                 ctx.font = 'bold 18px Inter';
                 ctx.fillText(order.name, boardMid, oy + 24, boardW - 20);
 
+                if (isUnlocked) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.font = 'bold 12px Oswald';
+                    ctx.fillText('📖 [ALREADY UNLOCKED - CHECK LOG]', boardMid, oy + 46);
+                }
+
                 ctx.fillStyle = '#38bdf8';
                 ctx.font = '15px Inter';
 
                 const words = order.hint.split(' ');
                 let line = '';
-                let hintY = oy + 46;
+                let hintY = oy + (isUnlocked ? 66 : 46);
 
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
@@ -2187,7 +2194,7 @@ class GameRenderer {
 
                 if (i === 0 && state.activeOrders.length > 1) {
                     ctx.fillStyle = '#3f3f46';
-                    ctx.fillRect(boardX + 24, oy + 82, boardW - 48, 2);
+                    ctx.fillRect(boardX + 24, oy + 92, boardW - 48, 2);
                 }
             });
         } else {
