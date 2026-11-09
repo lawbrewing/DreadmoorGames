@@ -536,51 +536,57 @@ class TaproomPhase {
     update(dt) {
         if (!this.isActive) return;
 
-        // Strictly sum positive brewed ammo
+        // 1. STRICT AMMO CHECK (Instantly end shift if empty)
         let totalAmmo = 0;
         if (typeof playerState !== 'undefined' && playerState.ammo) {
             playerState.ammo.forEach(a => {
                 totalAmmo += Math.max(0, Number(a.count) || 0);
             });
         }
-        if (totalAmmo <= 0 && this.projectiles.length === 0 && this.timeRemaining > 0) {
-            this.floatingTexts.push(new FloatingTitle(640, 360, "OUT OF AMMO! SHIFT OVER!", "#facc15"));
-            this.timeRemaining = 0;
+
+        const isOutOfAmmo = (totalAmmo <= 0 && this.projectiles.length === 0);
+        if (isOutOfAmmo && this.timeRemaining > 0) {
+            this.timeRemaining = 0; // Force instant transition
         }
 
         this.timeRemaining -= dt;
+
+        // 2. END OF SHIFT LOGIC (Overlay Trigger)
         if (this.timeRemaining <= 0) {
             if (!this.isTransitioning) {
                 this.isTransitioning = true;
 
+                // Halt the game loop for this phase immediately
+                this.shutdown();
+
                 const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
                 const currentShift = prog.shift || prog.currentShift || this.shift;
                 const shiftGoal = currentShift * 40;
+                const currentTips = typeof playerState !== 'undefined' ? playerState.tips : 0;
 
-                if (typeof playerState !== 'undefined' && playerState.tips < shiftGoal) {
-                    this.floatingTexts.push(new FloatingTitle(640, 360, "MISSED SHIFT QUOTA!", "#ef4444"));
-                    setTimeout(() => {
-                        this.shutdown();
-                        gameEvents.emit('BANKRUPT');
-                    }, 1500);
-                    return;
+                const isSuccess = currentTips >= shiftGoal;
+
+                // Process successful progression silently in the background
+                if (isSuccess) {
+                    if (window.taproomTelemetry) window.taproomTelemetry.stats.shiftsCleared++;
+                    if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
+                        progressionState.advanceShift();
+                    }
+                    if (typeof window.savePlayerStateToPi === 'function') {
+                        window.savePlayerStateToPi();
+                    }
                 }
 
-                if (window.taproomTelemetry) window.taproomTelemetry.stats.shiftsCleared++;
-                if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
-                    progressionState.advanceShift();
+                // Pop the new HTML Overlay and let the player choose when to proceed
+                if (typeof hud !== 'undefined' && typeof hud.showShiftResult === 'function') {
+                    hud.showShiftResult(isSuccess, currentTips, shiftGoal, isOutOfAmmo);
+                } else {
+                    // Fallback if hud fails
+                    if (isSuccess) gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
+                    else gameEvents.emit('BANKRUPT');
                 }
-
-                this.shutdown();
-
-                if (typeof window.savePlayerStateToPi === 'function') {
-                    console.log("[Progression] Shift complete. Saving ledger to Pi...");
-                    window.savePlayerStateToPi();
-                }
-
-                gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
             }
-            return;
+            return; // Stop processing patrons/physics if shift is over
         }
 
         this.spawnTimer -= dt;
@@ -599,7 +605,6 @@ class TaproomPhase {
 
             patron.update(dt, this.patrons, obstacles);
 
-            // Route ANGRY or EXIT patrons safely around the pool table to the rear door
             if ((patron.currentState === 'ANGRY' || patron.currentState === 'EXIT') && !patron._hasSafeExitRoute) {
                 patron._hasSafeExitRoute = true;
                 const exitRoute = this.buildSafeExitPath(patron.x, patron.y);
@@ -612,7 +617,6 @@ class TaproomPhase {
                 }
             }
 
-            // REAL-TIME ANTI-STUCK RECOVERY: If a walking patron stalls against furniture for > 0.45s, slide them to the nearest open aisle
             const isMovingState = patron.currentState === 'ENTER' ||
                 patron.currentState === 'EXIT' ||
                 patron.currentState === 'ANGRY' ||
@@ -625,7 +629,6 @@ class TaproomPhase {
                     if (patron._stuckTimer > 0.45) {
                         patron._stuckTimer = 0;
                         const safeAisleX = patron.x < 640 ? 445 : 835;
-                        // Slide patron horizontally toward the clear aisle and skip blocked waypoint
                         patron.x += Math.sign(safeAisleX - patron.x) * 28;
                         patron.y += (patron.y > 410 ? 18 : -18);
                         if (patron.waypoints && patron.waypoints.length > 1) {
@@ -641,12 +644,10 @@ class TaproomPhase {
 
             if (patron.currentState === 'ANGRY' && !patron.penaltyApplied) {
                 patron.penaltyApplied = true;
-
                 let penalty = 10;
                 if (typeof gameEconomy !== 'undefined' && typeof gameEconomy.escapePenalty === 'number') {
                     penalty = gameEconomy.escapePenalty;
                 }
-
                 gameEvents.emit('SPEND_TIPS', penalty);
                 gameEvents.emit('PATRON_ANGRY');
                 this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `-$${penalty} (Left Angry!)`, "#ef4444"));
@@ -677,7 +678,6 @@ class TaproomPhase {
 
         this.projectiles.forEach(p => {
             if (!p.active) return;
-
             p.vz -= this.gravity * dt;
             p.x += p.vx * dt;
             p.y += p.vy * dt;
@@ -694,10 +694,8 @@ class TaproomPhase {
 
                 if (withinX && withinY && withinZ) {
                     p.active = false;
-
                     const config = PATRON_ROSTER[patron.rosterKey] || {};
                     const baseTip = (patron.tipBase) ? patron.tipBase : (config.tipBase ? config.tipBase : 12);
-
                     const isExactMatch = config.favoriteDrink && p.name === config.favoriteDrink;
                     const isStyleMatch = config.favoriteStyle && (p.name.includes(config.favoriteStyle) || p.type === config.favoriteStyle.toLowerCase());
                     const isCraved = config.craves && config.craves.includes(p.type);
@@ -735,9 +733,7 @@ class TaproomPhase {
                         patron.setState('CHEER');
                         assignActivity(patron);
                     } else if (isExactMatch) {
-                        if (window.taproomTelemetry) {
-                            window.taproomTelemetry.stats.perfectServes++;
-                        }
+                        if (window.taproomTelemetry) window.taproomTelemetry.stats.perfectServes++;
                         gameEvents.emit('EARN_TIPS', baseTip * 3);
                         this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 100, `+$${(baseTip * 3).toFixed(2)} (Favorite!)`, "#f59e0b"));
                         patron.receivedPreferredDrink = true;
@@ -760,25 +756,6 @@ class TaproomPhase {
                         if (patron.rosterKey === 'kid' && p.type !== 'soda') {
                             this.triggerKidHorde();
                             this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 130, "YAY BEER! (Horde Incoming)", "#ef4444"));
-                        }
-                    }
-
-                    if (patron.groupId) {
-                        const groupMembers = this.patrons.filter(pt => pt.groupId === patron.groupId);
-                        const allServed = groupMembers.every(pt => pt.currentState === 'CHEER' || pt.currentState === 'ANGRY' || pt.currentState === 'EXIT');
-                        if (allServed && groupMembers.every(pt => pt.receivedPreferredDrink)) {
-                            gameEvents.emit('EARN_TIPS', 75);
-                            this.floatingTexts.push(new FloatingTitle(patron.x, patron.y - 150, "PARTY COMBO! +$75", "#c084fc"));
-                            this.spawnCoinBurst(patron.x, patron.y - 120);
-
-                            groupMembers.forEach((pt, idx) => {
-                                pt.activity = 'DARTS';
-                                pt.waypoints = [
-                                    { x: pt.x < 640 ? 445 : 835, y: 310 },
-                                    { x: 845, y: 330 },
-                                    { x: 1045 + ((idx % 3) * 26), y: 335 + (idx * 12) }
-                                ];
-                            });
                         }
                     }
                     break;

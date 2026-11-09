@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dreadmoor-v68';
+const CACHE_NAME = 'dreadmoor-v69';
 
 const ASSETS_TO_CACHE = [
     './',

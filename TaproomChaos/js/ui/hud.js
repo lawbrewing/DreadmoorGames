@@ -24,6 +24,11 @@ class GameHUD {
         this.btnSubmitScore = document.getElementById('btnSubmitScore');
         this.btnRestart = document.getElementById('btnRestart');
         this.btnStartShift = document.getElementById('btnStartShift');
+        this.shiftResultScreen = document.getElementById('shiftResultScreen');
+        this.shiftResultTitle = document.getElementById('shiftResultTitle');
+        this.shiftResultSubtitle = document.getElementById('shiftResultSubtitle');
+        this.shiftResultStats = document.getElementById('shiftResultStats');
+        this.btnContinueShift = document.getElementById('btnContinueShift');
 
         // Recipe Book & Forecast Elements
         this.forecastTicker = document.getElementById('forecastTicker');
@@ -65,6 +70,19 @@ class GameHUD {
 
         if (this.btnRestart) {
             this.btnRestart.addEventListener('click', () => location.reload());
+        }
+
+        if (this.btnContinueShift) {
+            this.btnContinueShift.addEventListener('click', () => {
+                if (this.shiftResultScreen) this.shiftResultScreen.style.display = 'none';
+
+                // Route the player based on if they passed the shift quota
+                if (this._lastShiftSuccess) {
+                    gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
+                } else {
+                    gameEvents.emit('BANKRUPT');
+                }
+            });
         }
 
         if (this.btnStartShift) {
@@ -476,5 +494,44 @@ class GameHUD {
         if (this.gameOverScreen) {
             this.gameOverScreen.style.display = 'flex';
         }
+    }
+    showShiftResult(isSuccess, tips, goal, outOfAmmo) {
+        this._lastShiftSuccess = isSuccess;
+        if (!this.shiftResultScreen) return;
+
+        if (isSuccess) {
+            this.shiftResultTitle.innerText = "SHIFT COMPLETE";
+            this.shiftResultTitle.style.color = "#4ade80";
+            this.shiftResultTitle.style.textShadow = "2px 2px 15px rgba(74, 222, 128, 0.4)";
+            this.shiftResultSubtitle.innerText = outOfAmmo ? "You ran out of ammo, but met the quota!" : "Great work tonight. Time to brew.";
+            this.btnContinueShift.innerText = "RETURN TO BREWERY";
+            this.btnContinueShift.style.background = "#10b981";
+            this.btnContinueShift.style.borderColor = "#34d399";
+        } else {
+            this.shiftResultTitle.innerText = "SHIFT FAILED";
+            this.shiftResultTitle.style.color = "#ef4444";
+            this.shiftResultTitle.style.textShadow = "2px 2px 15px rgba(239, 68, 68, 0.4)";
+            this.shiftResultSubtitle.innerText = "You missed the nightly quota.";
+            this.btnContinueShift.innerText = "VIEW FINAL STATS";
+            this.btnContinueShift.style.background = "#dc2626";
+            this.btnContinueShift.style.borderColor = "#f87171";
+        }
+
+        this.shiftResultStats.innerHTML = `
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #3f3f46; margin-bottom: 8px; padding-bottom: 8px;">
+                <span style="color: #a1a1aa;">Shift Goal:</span> 
+                <b style="color: #facc15;">$${goal.toFixed(2)}</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #3f3f46; margin-bottom: 8px; padding-bottom: 8px;">
+                <span style="color: #a1a1aa;">Total Bank:</span> 
+                <b style="color: ${isSuccess ? '#4ade80' : '#ef4444'}; font-size: 18px;">$${tips.toFixed(2)}</b>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #a1a1aa;">Ammo Status:</span> 
+                <b style="color: ${outOfAmmo ? '#ef4444' : '#38bdf8'};">${outOfAmmo ? 'DEPLETED' : 'IN STOCK'}</b>
+            </div>
+        `;
+
+        this.shiftResultScreen.style.display = 'flex';
     }
 }

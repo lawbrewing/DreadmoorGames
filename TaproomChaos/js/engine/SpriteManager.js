@@ -146,13 +146,27 @@ class SpriteManager {
                 }
             };
 
-            // 3. Load each asset with automatic fallback retry on 404
+            // 3. Load each asset and scrub pink markers ONCE during boot
             loadQueue.forEach(job => {
                 const img = new Image();
-                this.images[job.cacheKey] = img;
                 let attemptIndex = 0;
 
-                img.onload = checkDone;
+                img.onload = () => {
+                    // Caching Filter: Draw the raw image to an offscreen canvas
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = img.width;
+                    offCanvas.height = img.height;
+                    const octx = offCanvas.getContext('2d', { willReadFrequently: true });
+                    octx.drawImage(img, 0, 0);
+
+                    // Run the pink marker eraser exactly once
+                    this.removePinkMarkerFilter(octx, 0, 0, img.width, img.height);
+
+                    // Save the pre-scrubbed canvas directly to memory instead of the raw Image object
+                    this.images[job.cacheKey] = offCanvas;
+                    checkDone();
+                };
+
                 img.onerror = () => {
                     attemptIndex++;
                     if (attemptIndex < job.urls.length) {
@@ -166,6 +180,69 @@ class SpriteManager {
                 img.src = job.urls[0];
             });
         });
+    }
+
+    // --- ON-LOAD PINK TRACKING MARKER ERASER ---
+    removePinkMarkerFilter(ctx, x, y, width, height) {
+        try {
+            const imgData = ctx.getImageData(x, y, width, height);
+            const data = imgData.data;
+            let modified = false;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                if (r > 220 && g < 50 && b > 220) {
+                    data[i + 3] = 0; // Make transparent
+                    modified = true;
+                }
+            }
+
+            if (modified) {
+                ctx.putImageData(imgData, x, y);
+            }
+        } catch (e) {
+            // Suppress cross-origin security warnings
+        }
+    }
+
+    drawSprite(ctx, rosterKey, state, dirText, frameIndex, x, y) {
+        if (!this.isLoaded) return;
+
+        let safeState = state;
+        const patronConfig = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[rosterKey] : null;
+        if (state === 'emote' && patronConfig && !patronConfig.hasFullAnimations) {
+            safeState = 'shoot';
+        }
+
+        const cacheKey = `${rosterKey}_${safeState}`;
+        const imgCanvas = this.images[cacheKey]; // Now pulls the pre-scrubbed canvas
+
+        if (!imgCanvas || imgCanvas.width === 0) {
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillRect(x, y, 64, 64);
+            return;
+        }
+
+        const animData = this.animations[safeState] || this.animations['walk'];
+        const row = this.dirs[dirText] !== undefined ? this.dirs[dirText] : 2;
+        const safeRow = Math.min(row, animData.rows - 1);
+        const safeCol = Math.floor(frameIndex) % animData.frames;
+
+        // Draws the pre-scrubbed canvas blazingly fast
+        ctx.drawImage(
+            imgCanvas,
+            safeCol * 64,
+            safeRow * 64,
+            64,
+            64,
+            x,
+            y,
+            64,
+            64
+        );
     }
 
     showMobileDiagnostic(msg) {
