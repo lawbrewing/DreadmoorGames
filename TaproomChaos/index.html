@@ -162,16 +162,18 @@
             pointer-events: none !important;
         }
 
-        /* Explicitly reactivate clicks ONLY on the canvas and interactive UI */
+        /* 3. Explicitly reactivate clicks ONLY on the canvas and interactive UI */
         canvas#gameCanvas,
         #brewingHUD.open,
         #taproomHUD.open,
         #recipeBookOverlay,
         #gameOverScreen,
+        #shiftResultScreen,
+        #shiftResultScreen *,
         #startScreen,
         #startScreen * {
             pointer-events: auto !important;
-        }
+        }}
     </style>
 </head>
 <body>
@@ -249,15 +251,15 @@
         </div>
 
         <!-- SHIFT RESULT OVERLAY -->
-        <div id="shiftResultScreen" style="position: absolute; z-index: 180; display: none; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.96); flex-direction: column; justify-content: center; align-items: center; color: #f4f4f5; backdrop-filter: blur(4px);">
-            <h1 id="shiftResultTitle" style="font-family: 'Oswald'; margin: 0; font-size: clamp(44px, 6vw, 76px); letter-spacing: 2px;">SHIFT COMPLETE</h1>
-            <p id="shiftResultSubtitle" style="font-family: 'Inter'; color: #a1a1aa; margin: 10px 0 24px 0; font-size: clamp(16px, 2vw, 22px);">You survived another night.</p>
-
-            <div id="shiftResultStats" style="background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 24px 36px; min-width: 320px; margin-bottom: 24px; font-family: 'Inter'; font-size: 17px; line-height: 1.9; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div id="shiftResultScreen" style="position: fixed; z-index: 180; display: none; inset: 0; width: 100dvw; height: 100dvh; background: rgba(9, 9, 11, 0.96); flex-direction: column; justify-content: center; align-items: center; color: #f4f4f5; backdrop-filter: blur(4px);">
+            <h1 id="shiftResultTitle" style="font-family: 'Oswald'; margin: 0; font-size: clamp(28px, 8vh, 56px); letter-spacing: 2px;">SHIFT COMPLETE</h1>
+            <p id="shiftResultSubtitle" style="font-family: 'Inter'; color: #a1a1aa; margin: 4px 0 12px 0; font-size: clamp(14px, 4vh, 20px);">You survived another night.</p>
+            
+            <div id="shiftResultStats" style="background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 12px 24px; min-width: 280px; margin-bottom: 16px; font-family: 'Inter'; font-size: clamp(14px, 3.5vh, 17px); line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <!-- Injected via hud.js -->
             </div>
-
-            <button id="btnContinueShift" style="padding: 16px 36px; font-family: 'Oswald'; font-size: clamp(18px, 2vw, 24px); letter-spacing: 1px; font-weight: bold; cursor: pointer; background: #10b981; color: white; border: 2px solid #34d399; border-radius: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.2s;">RETURN TO BREWERY</button>
+            
+            <button id="btnContinueShift" style="padding: 10px 24px; font-family: 'Oswald'; font-size: clamp(16px, 4vh, 22px); letter-spacing: 1px; font-weight: bold; cursor: pointer; background: #10b981; color: white; border: 2px solid #34d399; border-radius: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.2s;">RETURN TO BREWERY</button>
         </div>
 
         <!-- GAME OVER OVERLAY -->

@@ -152,7 +152,7 @@
   },
   "selectedAnimation": "walk",
   "showTransparencyGrid": true,
-  "applyTransparencyMask": false,
+  "applyTransparencyMask": true,
   "matchBodyColorEnabled": true,
   "compactDisplay": false,
   "enabledLicenses": {

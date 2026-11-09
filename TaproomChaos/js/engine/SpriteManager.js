@@ -19,55 +19,32 @@ class SpriteManager {
 
         this.dirs = { UP: 0, LEFT: 1, DOWN: 2, RIGHT: 3 };
 
-        // Only preload the MegaPack tiles actually used by the Taproom to save mobile GPU memory & bandwidth
         this.requiredMegaPackTiles = new Set([
-            'floor_wood_restaurant',
-            'floor_tile_cafe_pattern',
-            'floor_dark_bar',
-            'wall_wainscot_restaurant',
-            'wall_cream_cafe',
-            'wall_brick_bar',
-            'door_entrance_glass_wood_frame',
-            'stage_small_lights',
-            'jukebox',
-            'bookshelf_wall_cafe',
-            'pizza_oven_brick',
-            'lamp_floor_rattan',
-            'booth_sofa_double',
-            'booth_leather',
-            'pool_table',
-            'bar_counter_straight',
-            'bar_counter_corner',
-            'beer_tap_tower',
-            'beer_mugs_group',
-            'stool_bar_metal_row',
-            'espresso_machine_commercial',
-            'macaron_tower',
-            'grinder_coffee',
-            'stool_wood_high',
-            'plant_hanging_rope_pot',
-            'dartboard_mounted',
-            'table_family_long',
-            'cake_display_case_curved',
-            'table_high_round',
-            'coat_hook_stand'
+            'floor_wood_restaurant', 'floor_tile_cafe_pattern', 'floor_dark_bar',
+            'wall_wainscot_restaurant', 'wall_cream_cafe', 'wall_brick_bar',
+            'door_entrance_glass_wood_frame', 'stage_small_lights', 'jukebox',
+            'bookshelf_wall_cafe', 'pizza_oven_brick', 'lamp_floor_rattan',
+            'booth_sofa_double', 'booth_leather', 'pool_table', 'bar_counter_straight',
+            'bar_counter_corner', 'beer_tap_tower', 'beer_mugs_group',
+            'stool_bar_metal_row', 'espresso_machine_commercial', 'macaron_tower',
+            'grinder_coffee', 'stool_wood_high', 'plant_hanging_rope_pot',
+            'dartboard_mounted', 'table_family_long', 'cake_display_case_curved',
+            'table_high_round', 'coat_hook_stand'
         ]);
     }
 
-    // Builds fallback URL candidates in case Linux server folder casing or "Tiles/" nesting differs from Windows
     buildCandidateUrls(rawFile) {
         const clean = String(rawFile).replace(/\\/g, '/').replace(/^\/+/, '');
         const withoutTiles = clean.replace(/^tiles\//i, '');
         const fileNameOnly = withoutTiles.split('/').pop();
 
         const candidates = [
-            `assets/sprites/${withoutTiles}`,                  // 1. Standard: assets/sprites/CafeFixtures/file.png
-            `assets/sprites/${clean}`,                         // 2. Unstripped: assets/sprites/Tiles/CafeFixtures/file.png
-            `assets/sprites/${withoutTiles.toLowerCase()}`,    // 3. Lowercase folders: assets/sprites/cafefixtures/file.png
-            `assets/sprites/${clean.toLowerCase()}`,           // 4. Lowercase with tiles: assets/sprites/tiles/cafefixtures/file.png
-            `assets/sprites/${fileNameOnly}`                   // 5. Flat directory: assets/sprites/file.png
+            `assets/sprites/${withoutTiles}`,
+            `assets/sprites/${clean}`,
+            `assets/sprites/${withoutTiles.toLowerCase()}`,
+            `assets/sprites/${clean.toLowerCase()}`,
+            `assets/sprites/${fileNameOnly}`
         ];
-
         return [...new Set(candidates)];
     }
 
@@ -83,12 +60,10 @@ class SpriteManager {
                 this.showMobileDiagnostic('megaPackData not found! Check <script src="js/data/megaPack.js"> casing.');
             }
 
-            // Filter to active taproom tiles (or all if set is empty)
             const packTiles = allPackTiles.filter(t => t && this.requiredMegaPackTiles.has(t.name));
-
             const loadQueue = [];
 
-            // 1. Queue Patron Sprite Sheets
+            // Queue Patrons
             keys.forEach(key => {
                 const p = safeRoster[key];
                 if (!p) return;
@@ -104,10 +79,9 @@ class SpriteManager {
                 });
             });
 
-            // 2. Queue Required Mega Pack Props with Automatic Path Fallbacks
+            // Queue Pack Tiles & Fix Anchor Syntax
             packTiles.forEach(tile => {
                 if (!tile || !tile.file || !tile.name) return;
-
                 loadQueue.push({
                     cacheKey: tile.name,
                     urls: this.buildCandidateUrls(tile.file)
@@ -140,33 +114,18 @@ class SpriteManager {
                     this.isLoaded = true;
                     if (this.failedAssets.length > 0) {
                         console.warn('[SpriteManager] Failed assets:', this.failedAssets);
-                        this.showMobileDiagnostic(`Missing ${this.failedAssets.length} sprites (e.g. ${this.failedAssets[0]})`);
                     }
                     resolve();
                 }
             };
 
-            // 3. Load each asset and scrub pink markers ONCE during boot
+            // Fast, Standard Image Loading (No CORS canvas caching)
             loadQueue.forEach(job => {
                 const img = new Image();
+                this.images[job.cacheKey] = img;
                 let attemptIndex = 0;
 
-                img.onload = () => {
-                    // Caching Filter: Draw the raw image to an offscreen canvas
-                    const offCanvas = document.createElement('canvas');
-                    offCanvas.width = img.width;
-                    offCanvas.height = img.height;
-                    const octx = offCanvas.getContext('2d', { willReadFrequently: true });
-                    octx.drawImage(img, 0, 0);
-
-                    // Run the pink marker eraser exactly once
-                    this.removePinkMarkerFilter(octx, 0, 0, img.width, img.height);
-
-                    // Save the pre-scrubbed canvas directly to memory instead of the raw Image object
-                    this.images[job.cacheKey] = offCanvas;
-                    checkDone();
-                };
-
+                img.onload = checkDone;
                 img.onerror = () => {
                     attemptIndex++;
                     if (attemptIndex < job.urls.length) {
@@ -182,108 +141,8 @@ class SpriteManager {
         });
     }
 
-    // --- ON-LOAD PINK TRACKING MARKER ERASER ---
-    removePinkMarkerFilter(ctx, x, y, width, height) {
-        try {
-            const imgData = ctx.getImageData(x, y, width, height);
-            const data = imgData.data;
-            let modified = false;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-
-                if (r > 220 && g < 50 && b > 220) {
-                    data[i + 3] = 0; // Make transparent
-                    modified = true;
-                }
-            }
-
-            if (modified) {
-                ctx.putImageData(imgData, x, y);
-            }
-        } catch (e) {
-            // Suppress cross-origin security warnings
-        }
-    }
-
-    drawSprite(ctx, rosterKey, state, dirText, frameIndex, x, y) {
-        if (!this.isLoaded) return;
-
-        let safeState = state;
-        const patronConfig = typeof PATRON_ROSTER !== 'undefined' ? PATRON_ROSTER[rosterKey] : null;
-        if (state === 'emote' && patronConfig && !patronConfig.hasFullAnimations) {
-            safeState = 'shoot';
-        }
-
-        const cacheKey = `${rosterKey}_${safeState}`;
-        const imgCanvas = this.images[cacheKey]; // Now pulls the pre-scrubbed canvas
-
-        if (!imgCanvas || imgCanvas.width === 0) {
-            ctx.fillStyle = '#ff00ff';
-            ctx.fillRect(x, y, 64, 64);
-            return;
-        }
-
-        const animData = this.animations[safeState] || this.animations['walk'];
-        const row = this.dirs[dirText] !== undefined ? this.dirs[dirText] : 2;
-        const safeRow = Math.min(row, animData.rows - 1);
-        const safeCol = Math.floor(frameIndex) % animData.frames;
-
-        // Draws the pre-scrubbed canvas blazingly fast
-        ctx.drawImage(
-            imgCanvas,
-            safeCol * 64,
-            safeRow * 64,
-            64,
-            64,
-            x,
-            y,
-            64,
-            64
-        );
-    }
-
     showMobileDiagnostic(msg) {
         console.error('[SpriteManager Diagnostic]', msg);
-        const banner = document.createElement('div');
-        banner.style.cssText = `
-            position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
-            background: rgba(127, 29, 29, 0.95); color: #fef08a; border: 1px solid #ef4444;
-            padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 11px;
-            z-index: 9999; pointer-events: none;
-        `;
-        banner.innerText = `⚠️ ${msg}`;
-        document.body.appendChild(banner);
-        setTimeout(() => banner.remove(), 8000);
-    }
-
-    // --- METHOD 1: DYNAMIC PINK TRACKING MARKER ERASER ---
-    removePinkMarkerFilter(ctx, x, y, width, height) {
-        try {
-            const imgData = ctx.getImageData(x, y, width, height);
-            const data = imgData.data;
-            let modified = false;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-
-                // Target bright magenta/pink tracking markers (e.g. RGB near 255, 0, 255 with low green)
-                if (r > 220 && g < 50 && b > 220) {
-                    data[i + 3] = 0; // Make transparent
-                    modified = true;
-                }
-            }
-
-            if (modified) {
-                ctx.putImageData(imgData, x, y);
-            }
-        } catch (e) {
-            // Suppress cross-origin security warnings if images load from external static storage
-        }
     }
 
     drawSprite(ctx, rosterKey, state, dirText, frameIndex, x, y) {
@@ -306,6 +165,8 @@ class SpriteManager {
 
         const animData = this.animations[safeState] || this.animations['walk'];
         const row = this.dirs[dirText] !== undefined ? this.dirs[dirText] : 2;
+
+        // Fixed syntax operators
         const safeRow = Math.min(row, animData.rows - 1);
         const safeCol = Math.floor(frameIndex) % animData.frames;
 
@@ -320,9 +181,6 @@ class SpriteManager {
             64,
             64
         );
-
-        // Scrub out any pink tracking marker balls on the fly
-        this.removePinkMarkerFilter(ctx, x, y, 64, 64);
     }
 }
 
