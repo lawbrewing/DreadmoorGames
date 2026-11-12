@@ -91,7 +91,7 @@
         .coaster-card {
             background: radial-gradient(circle at 50% 25%, #2f201a 0%, #19110d 75%, #120c09 100%);
             border: 2px solid #4a3020;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.08);
             position: relative;
             overflow: hidden;
         }
@@ -99,7 +99,7 @@
         .chalkboard-banner {
             background: radial-gradient(circle at center, #1e2421 0%, #111513 100%);
             border: 2px solid #78350f;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(0, 0, 0, 0.85);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(0, 0, 0, 0.85);
             position: relative;
         }
 
@@ -122,30 +122,30 @@
             box-shadow: 0 12px 30px rgba(0,0,0,0.9), inset 0 0 15px rgba(234,179,8,0.4), 0 0 25px rgba(234,179,8,0.3) !important;
         }
 
-        @keyframes bubble-pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes bubble-pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .speech-pill {
             animation: bubble-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             background: linear-gradient(180deg, #fef9c3 0%, #fde047 100%); color: #1c1917;
-            border: 1.5px solid #b45309; box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+            border: 1px solid #b45309; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
         }
 
         .felt-dice-pit {
             background: radial-gradient(ellipse at center, #184533 0%, #0b241a 70%, #05130d 100%);
             border: 3px solid #78350f;
-            box-shadow: inset 0 8px 20px rgba(0, 0, 0, 0.9), inset 0 0 35px rgba(0, 0, 0, 0.65), 0 2px 0 rgba(251, 191, 36, 0.2);
+            box-shadow: inset 0 6px 18px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 0, 0, 0.65), 0 2px 0 rgba(251, 191, 36, 0.2);
             position: relative;
         }
         .brass-rivet {
-            width: 7px; height: 7px; border-radius: 50%;
+            width: 6px; height: 6px; border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #fde047, #b45309 70%, #451a03 100%);
             box-shadow: 0 1px 2px rgba(0,0,0,0.8); position: absolute;
         }
 
         .dice-face { transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275); user-select: none; position: relative; }
         .dice-face:active { transform: scale(0.92); }
-        .die-ivory { background: linear-gradient(145deg, #fffbeb 0%, #f3e8d2 55%, #d6c3a5 100%); border: 1px solid #a89070; box-shadow: 0 5px 10px rgba(0, 0, 0, 0.75), 0 3px 0 #8c7355, inset 0 2px 3px rgba(255, 255, 255, 0.9), inset 0 -2px 4px rgba(138, 112, 80, 0.45); }
+        .die-ivory { background: linear-gradient(145deg, #fffbeb 0%, #f3e8d2 55%, #d6c3a5 100%); border: 1px solid #a89070; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.75), 0 2px 0 #8c7355, inset 0 1px 2px rgba(255, 255, 255, 0.9), inset 0 -1px 3px rgba(138, 112, 80, 0.45); }
         .die-ivory:hover { filter: brightness(1.05); }
-        .die-wild-ace { background: linear-gradient(145deg, #fef9c3 0%, #fde047 45%, #ca8a04 100%); border: 1px solid #fef08a; box-shadow: 0 5px 12px rgba(234, 179, 8, 0.4), 0 3px 0 #854d0e, inset 0 2px 4px rgba(255, 255, 255, 0.95), inset 0 -2px 5px rgba(133, 77, 14, 0.6); }
+        .die-wild-ace { background: linear-gradient(145deg, #fef9c3 0%, #fde047 45%, #ca8a04 100%); border: 1px solid #fef08a; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.4), 0 2px 0 #854d0e, inset 0 1px 3px rgba(255, 255, 255, 0.95), inset 0 -1px 4px rgba(133, 77, 14, 0.6); }
         .die-held { transform: translateY(-6px) scale(1.05) !important; border: 2px solid #facc15 !important; box-shadow: 0 10px 15px -4px rgba(0, 0, 0, 0.85), 0 0 14px rgba(234, 179, 8, 0.75), 0 3px 0 #b45309, inset 0 2px 3px rgba(255, 255, 255, 0.9) !important; }
         .die-held-small { border: 1.5px solid #facc15 !important; box-shadow: 0 0 8px rgba(234, 179, 8, 0.75) !important; transform: translateY(-2px); }
 
@@ -158,17 +158,17 @@
         @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7), 0 4px 12px rgba(0, 0, 0, 0.6); } 50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 4px 16px rgba(239, 68, 68, 0.5); } }
         .btn-pulse-red { animation: pulse-red 1.5s infinite; }
 
-        .active-turn { border-color: #eab308 !important; box-shadow: 0 0 22px rgba(234, 179, 8, 0.35), inset 0 0 15px rgba(234, 179, 8, 0.12) !important; }
-        .inactive-turn { opacity: 0.92; }
+        .active-turn { border-color: #eab308 !important; box-shadow: 0 0 18px rgba(234, 179, 8, 0.35), inset 0 0 12px rgba(234, 179, 8, 0.12) !important; }
+        .inactive-turn { opacity: 0.94; }
 
         .cheat-sheet-container:hover .cheat-sheet { display: block; }
         .cheat-sheet { z-index: 9999; }
 
         @keyframes dice-roll {
             0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-            20% { transform: translate3d(-4px, -8px, 0) rotate(-35deg) scale(1.08); }
-            45% { transform: translate3d(6px, 4px, 0) rotate(40deg) scale(0.94); }
-            70% { transform: translate3d(-3px, -4px, 0) rotate(-18deg) scale(1.04); }
+            20% { transform: translate3d(-4px, -6px, 0) rotate(-35deg) scale(1.08); }
+            45% { transform: translate3d(5px, 3px, 0) rotate(40deg) scale(0.94); }
+            70% { transform: translate3d(-3px, -3px, 0) rotate(-18deg) scale(1.04); }
             100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
         }
         .rolling-animation { animation: dice-roll 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
@@ -187,11 +187,11 @@
         .anim-smoke-1 { animation: cigar-smoke 2.6s infinite ease-out; }
         .anim-smoke-2 { animation: cigar-smoke 2.6s infinite 1.3s ease-out; }
 
-        @keyframes react-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.02); background-color: #422006; } }
+        @keyframes react-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.015); background-color: #422006; } }
         .reaction-rolling { border-color: #eab308 !important; }
-        .reaction-winner { animation: react-bounce 0.75s infinite cubic-bezier(0.28, 0.84, 0.42, 1); border-color: #eab308 !important; box-shadow: 0 0 24px rgba(234, 179, 8, 0.85) !important; z-index: 20; }
+        .reaction-winner { animation: react-bounce 0.75s infinite cubic-bezier(0.28, 0.84, 0.42, 1); border-color: #eab308 !important; box-shadow: 0 0 20px rgba(234, 179, 8, 0.85) !important; z-index: 20; }
         .reaction-loser { filter: grayscale(0.8) brightness(0.65); border-color: #1e293b !important; }
-        .reaction-angry { border-color: #ef4444 !important; background: radial-gradient(circle at 50% 30%, #450a0a 0%, #1f0505 100%) !important; box-shadow: 0 0 18px rgba(239, 68, 68, 0.4) !important; }
+        .reaction-angry { border-color: #ef4444 !important; background: radial-gradient(circle at 50% 30%, #450a0a 0%, #1f0505 100%) !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important; }
         .reaction-smug { border-color: #3b82f6 !important; }
 
         .avatar-part { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease; transform-box: fill-box; transform-origin: center; }
@@ -355,6 +355,59 @@
         };
 
         const Avatars = {
+            /* MILO: Love child of Michael & Laura — wavy dark espresso hair, lavender sunglasses perched on head, slate-blue crew neck + bright magenta jacket collar, blue-hazel eyes & warm smile */
+            Milo: () => (
+                <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+                    <defs>
+                        <linearGradient id="miloBg" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#1e3a8a"/>
+                            <stop offset="100%" stopColor="#831843"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="100" height="100" fill="url(#miloBg)"/>
+                    {/* Wavy dark brown back hair locks (Laura's waves) */}
+                    <path d="M18 52 Q12 75 22 95 L78 95 Q88 75 82 52 Z" fill="#261610"/>
+                    {/* Shoulders: Michael's slate-blue tee + Laura's bright magenta jacket collar */}
+                    <path d="M12 100 Q50 78 88 100 Z" fill="#475569"/>
+                    <path d="M12 100 L34 83 L42 100 Z" fill="#ec4899"/>
+                    <path d="M88 100 L66 83 L58 100 Z" fill="#ec4899"/>
+                    {/* Gold hoop earring */}
+                    <circle cx="22" cy="60" r="3.5" fill="none" stroke="#facc15" strokeWidth="2"/>
+                    {/* Head & warm sun-kissed skin */}
+                    <ellipse cx="50" cy="54" rx="26" ry="29" fill="#f5cba7"/>
+                    {/* Light jawline stubble/dimple */}
+                    <path d="M35 72 Q50 83 65 72" fill="none" stroke="#d59f78" strokeWidth="1.5" strokeDasharray="1.5 2"/>
+                    {/* Wavy dark espresso top hair */}
+                    <path d="M22 48 Q24 20 50 20 Q76 20 78 48 Q65 32 50 35 Q35 32 22 48 Z" fill="#2d1a12"/>
+                    {/* Signature Lavender-Purple Sunglasses perched on top of head! */}
+                    <g>
+                        <path d="M25 32 L32 24 M75 32 L68 24" stroke="#c084fc" strokeWidth="2.5" strokeLinecap="round"/>
+                        <rect x="27" y="17" width="20" height="12" rx="5" fill="#065f46" stroke="#c084fc" strokeWidth="2.5"/>
+                        <rect x="53" y="17" width="20" height="12" rx="5" fill="#065f46" stroke="#c084fc" strokeWidth="2.5"/>
+                        <line x1="47" y1="22" x2="53" y2="22" stroke="#c084fc" strokeWidth="2.5"/>
+                        <path d="M30 20 L35 26" stroke="#a7f3d0" strokeWidth="1.8" strokeLinecap="round" className="anim-glint"/>
+                    </g>
+                    {/* Expressive Blue-Hazel Eyes */}
+                    <g className="avatar-eyes avatar-part">
+                        <circle cx="39" cy="52" r="4.5" fill="#1e40af" className="anim-blink"/>
+                        <circle cx="39" cy="52" r="2.2" fill="#451a03" className="anim-blink"/>
+                        <circle cx="40.5" cy="50.5" r="1" fill="white" className="anim-blink"/>
+                        <circle cx="61" cy="52" r="4.5" fill="#1e40af" className="anim-blink"/>
+                        <circle cx="61" cy="52" r="2.2" fill="#451a03" className="anim-blink"/>
+                        <circle cx="62.5" cy="50.5" r="1" fill="white" className="anim-blink"/>
+                    </g>
+                    {/* Eyebrows */}
+                    <path d="M32 45 Q39 42 45 45" stroke="#261610" strokeWidth="2.4" fill="none" className="avatar-eyebrow-l avatar-part"/>
+                    <path d="M55 45 Q61 42 68 45" stroke="#261610" strokeWidth="2.4" fill="none" className="avatar-eyebrow-r avatar-part"/>
+                    {/* Warm Smile with Dimples */}
+                    <g className="avatar-mouth avatar-part">
+                        <path d="M40 66 Q50 75 60 66 Z" fill="white" stroke="#be123c" strokeWidth="2"/>
+                        <path d="M37 64 Q38 67 40 68" stroke="#c28562" strokeWidth="1.5" fill="none"/>
+                        <path d="M63 64 Q62 67 60 68" stroke="#c28562" strokeWidth="1.5" fill="none"/>
+                    </g>
+                    <path d="M 76 42 Q 76 47 79 47 Q 82 47 82 42 L 79 35 Z" fill="#38bdf8" className="avatar-part avatar-sweat" style={{opacity: 0}} />
+                </svg>
+            ),
             Pete: () => <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible"><rect width="100" height="100" fill="#2d3748"/><path d="M20 60 Q50 95 80 60 L80 40 L20 40 Z" fill="#e2e8f0"/><circle cx="50" cy="45" r="25" fill="#fbd38d"/><path d="M10 40 L90 40 L80 15 L20 15 Z" fill="#1a202c"/><rect x="15" y="35" width="70" height="5" fill="#c53030"/><g className="avatar-eyes avatar-part"><circle cx="38" cy="45" r="4" fill="#1a202c" className="anim-blink"/><circle cx="62" cy="45" r="4" fill="#1a202c" className="anim-blink"/></g><path d="M34 40 Q38 38 42 40" stroke="#1a202c" strokeWidth="2" fill="none" className="avatar-eyebrow-l avatar-part" /><path d="M58 40 Q62 38 66 40" stroke="#1a202c" strokeWidth="2" fill="none" className="avatar-eyebrow-r avatar-part" /><path d="M45 55 Q50 58 55 55" stroke="#1a202c" strokeWidth="2" fill="none" className="avatar-mouth avatar-part"/><path d="M 72 38 Q 72 43 75 43 Q 78 43 78 38 L 75 31 Z" fill="#38bdf8" className="avatar-part avatar-sweat" style={{opacity: 0}} /></svg>,
             Rick: () => <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible"><rect width="100" height="100" fill="#2c5282"/><rect x="25" y="20" width="50" height="65" rx="15" fill="#ed8936"/><path d="M25 25 L35 5 L65 5 L75 25 Z" fill="#1a202c"/><g className="avatar-eyes avatar-part"><rect x="30" y="40" width="15" height="8" fill="white"/><rect x="55" y="40" width="15" height="8" fill="white"/><circle cx="37" cy="44" r="3" fill="black" className="anim-blink"/><circle cx="62" cy="44" r="3" fill="black" className="anim-blink"/><line x1="45" y1="44" x2="55" y2="44" stroke="black" strokeWidth="3"/></g><path d="M30 37 L45 39" stroke="black" strokeWidth="3" className="avatar-eyebrow-l avatar-part"/><path d="M55 39 L70 37" stroke="black" strokeWidth="3" className="avatar-eyebrow-r avatar-part"/><path d="M40 70 Q50 78 60 68" stroke="black" strokeWidth="4" fill="none" className="avatar-mouth avatar-part"/><path d="M 78 30 Q 78 35 81 35 Q 84 35 84 30 L 81 23 Z" fill="#38bdf8" className="avatar-part avatar-sweat" style={{opacity: 0}} /></svg>,
             Mara: () => <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible"><rect width="100" height="100" fill="#97266d"/><path d="M15 25 Q50 -10 85 25 L95 95 L5 95 Z" fill="#4a3028"/><circle cx="50" cy="50" r="28" fill="#faf089"/><g className="avatar-eyes avatar-part"><circle cx="40" cy="48" r="4" fill="#2d3748" className="anim-blink"/><circle cx="60" cy="48" r="4" fill="#2d3748" className="anim-blink"/></g><path d="M35 42 Q40 38 45 42" stroke="#2d3748" strokeWidth="2" fill="none" className="avatar-eyebrow-l avatar-part"/><path d="M55 42 Q60 38 65 42" stroke="#2d3748" strokeWidth="2" fill="none" className="avatar-eyebrow-r avatar-part"/><path d="M42 65 Q50 75 58 65" stroke="#c53030" strokeWidth="3" fill="none" className="avatar-mouth avatar-part"/><path d="M 75 45 Q 75 50 78 50 Q 81 50 81 45 L 78 38 Z" fill="#38bdf8" className="avatar-part avatar-sweat" style={{opacity: 0}} /></svg>,
@@ -373,6 +426,14 @@
         ];
 
         const PATRON_QUOTES = {
+            "Milo": {
+                idle: "Shades up. Born for this bar.",
+                rolling: "Mom's charm, Dad's dice math...",
+                call: "House heir calling it! Top that!",
+                winner: "Runs in the bloodline! Pay up!",
+                salty: "Hey! The family dice are rigged!",
+                loser: "Put this round on my inheritance..."
+            },
             "Pinecone Pete": { idle: "Steady tab.", rolling: "Need a safe pair.", call: "Knockin' early!", winner: "Slow and steady!", salty: "Robbery!", loser: "Aw pinecones..." },
             "Rick the Prick": { idle: "Hurry up.", rolling: "Rolling five Aces!", call: "Boom! Called!", winner: "Pay up!", salty: "Total garbage!", loser: "Whatever!" },
             "Mara Lawson": { idle: "Foghorn calling.", rolling: "Tides guide the cup...", call: "Beam stops here.", winner: "Fog clears.", salty: "A rogue wave...", loser: "Pour something dark." },
@@ -385,6 +446,7 @@
         const HAND_NAMES = { 8: "Keg Stand (5x)", 7: "Case of Beer (4x)", 6: "Full Tab (Full House)", 5: "Flight (Straight)", 4: "Six Pack (3x)", 3: "Double Fisted (2 Pair)", 2: "Solo Cup (Pair)", 1: "Spilled Drink (High Card)" };
 
         const BASE_PATRON_TYPES = [
+            { name: "Milo", type: "Heir", Avatar: Avatars.Milo },
             { name: "Pinecone Pete", type: "Conservative", Avatar: Avatars.Pete },
             { name: "Rick the Prick", type: "Aggressive", Avatar: Avatars.Rick },
             { name: "Mara Lawson", type: "Random", Avatar: Avatars.Mara },
@@ -434,11 +496,11 @@
 
         const PipMap = { 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
         const renderPips = (val, size) => {
-            if (val === 1) return <div className="flex flex-col items-center justify-center"><Icon name="Star" size={size === "large" ? 32 : 16} className="text-amber-600 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" /></div>;
-            const activeIndices = PipMap[val] || []; const pipSize = size === "large" ? "w-2.5 h-2.5 md:w-3 md:h-3" : "w-1.5 h-1.5";
+            if (val === 1) return <div className="flex flex-col items-center justify-center"><Icon name="Star" size={size === "large" ? 28 : 13} className="text-amber-600 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" /></div>;
+            const activeIndices = PipMap[val] || []; const pipSize = size === "large" ? "w-2 h-2 sm:w-2.5 sm:h-2.5" : "w-1 h-1 sm:w-1.5 sm:h-1.5";
             const pipColorClass = val === 6 ? "pip-six-red" : "pip-dot";
             return (
-                <div className={`grid grid-cols-3 grid-rows-3 w-full h-full ${size === "large" ? "p-2 gap-1" : "p-1 gap-0.5"} place-items-center`}>
+                <div className={`grid grid-cols-3 grid-rows-3 w-full h-full ${size === "large" ? "p-1.5 sm:p-2 gap-0.5 sm:gap-1" : "p-0.5 sm:p-1 gap-0.5"} place-items-center`}>
                     {Array(9).fill(null).map((_, i) => <div key={i} className={`rounded-full ${activeIndices.includes(i) ? pipColorClass : 'bg-transparent'} ${pipSize}`}></div>)}
                 </div>
             );
@@ -446,18 +508,18 @@
 
         const Die = ({ value, held, onClick, size = "large", isRolling = false, physics = {x: 0, y: 0, rot: 0} }) => {
             const isZero = value === 0 && !isRolling;
-            const sizeClass = size === "large" ? "w-14 h-14 md:w-16 md:h-16" : "w-7 h-7 md:w-8 md:h-8";
-            if (isZero) return <div className={`${sizeClass} flex items-center justify-center rounded-xl border border-amber-900/40 bg-black/40 text-amber-800/50 shadow-inner`}><Icon name="Mug" size={size === "large" ? 22 : 13} /></div>;
+            const sizeClass = size === "large" ? "w-11 h-11 sm:w-14 sm:h-14 md:w-15 md:h-15" : "w-6 h-6 sm:w-7 sm:h-7";
+            if (isZero) return <div className={`${sizeClass} flex items-center justify-center rounded-lg sm:rounded-xl border border-amber-900/40 bg-black/40 text-amber-800/50 shadow-inner`}><Icon name="Mug" size={size === "large" ? 20 : 11} /></div>;
             const displayVal = isRolling && value === 0 ? ((Math.floor(Math.random() * 6)) + 1) : value;
             const style = isRolling ? {} : { transform: `translate3d(${physics.x}px, ${physics.y}px, 0) rotate(${physics.rot}deg)` };
             const heldClass = held ? (size === "large" ? "die-held" : "die-held-small") : "";
 
             return (
                 <div className="relative flex flex-col items-center">
-                    <div onClick={onClick} className={`${sizeClass} flex items-center justify-center rounded-xl cursor-pointer dice-face ${displayVal === 1 ? 'die-wild-ace' : 'die-ivory'} ${heldClass} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`} style={held ? {} : style}>
+                    <div onClick={onClick} className={`${sizeClass} flex items-center justify-center rounded-lg sm:rounded-xl cursor-pointer dice-face ${displayVal === 1 ? 'die-wild-ace' : 'die-ivory'} ${heldClass} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`} style={held ? {} : style}>
                         {renderPips(displayVal, size)}
                     </div>
-                    {size === "large" && held && <span className="absolute -bottom-2 px-1.5 py-0.5 text-[8px] font-black tracking-widest uppercase bg-yellow-500 text-black rounded shadow border border-yellow-200 leading-none z-20">HELD</span>}
+                    {size === "large" && held && <span className="absolute -bottom-2 px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black tracking-widest uppercase bg-yellow-500 text-black rounded shadow border border-yellow-200 leading-none z-20">HELD</span>}
                 </div>
             );
         };
@@ -485,7 +547,7 @@
             };
 
             const [gameState, setGameState] = useState('START');
-            const [numOpponentsToPlay, setNumOpponentsToPlay] = useState(3);
+            const [numOpponentsToPlay, setNumOpponentsToPlay] = useState(6);
             const [funds, setFunds] = useState(HOUSE_START_MONEY);
             const [pot, setPot] = useState(0);
             const [round, setRound] = useState(1);
@@ -562,7 +624,7 @@
                 }, 1000);
             };
 
-            // Step-by-step visible AI rolling so you can watch each patron shake and hold dice
+            // Step-by-step visible AI rolling
             useEffect(() => {
                 if (gameState !== 'ROLLING') return;
                 const activeId = turnOrder[currentTurnIndex];
@@ -578,7 +640,6 @@
 
                     SoundFX.shakeAndRoll();
 
-                    // Shake 1
                     timers.push(setTimeout(() => {
                         if (isCancelled) return;
                         let currentDice = [1,1,1,1,1].map(() => Math.ceil(Math.random() * 6));
@@ -599,11 +660,10 @@
                             timers.push(setTimeout(() => {
                                 if (isCancelled) return;
                                 finalizeAITurn(activeId, currentDice, 1, isLeadRoller && !isLastCall && maxAllowedRolls > 1);
-                            }, 650));
+                            }, 600));
                             return;
                         }
 
-                        // Trigger Shake 2
                         timers.push(setTimeout(() => {
                             if (isCancelled) return;
                             SoundFX.shakeAndRoll();
@@ -630,11 +690,10 @@
                                     timers.push(setTimeout(() => {
                                         if (isCancelled) return;
                                         finalizeAITurn(activeId, currentDice, 2, isLeadRoller && !isLastCall && maxAllowedRolls > 2);
-                                    }, 650));
+                                    }, 600));
                                     return;
                                 }
 
-                                // Trigger Final Shake 3
                                 timers.push(setTimeout(() => {
                                     if (isCancelled) return;
                                     SoundFX.shakeAndRoll();
@@ -649,13 +708,12 @@
                                         currentDice = currentDice.map((d, i) => keeps2.includes(i) ? d : Math.ceil(Math.random() * 6));
                                         finalizeAITurn(activeId, currentDice, 3, false);
                                     }, 450));
-                                }, 500));
+                                }, 450));
                             }, 450));
-                        }, 550));
-                    }, 500));
+                        }, 500));
+                    }, 450));
                 };
 
-                // Mark opponent as rolling at start of turn
                 const startRollingOpps = opponentsRef.current.map(o =>
                     o.id === activeId ? { ...o, isRollingNow: true, heldIndices: [] } : o
                 );
@@ -769,7 +827,11 @@
                     totalEarnings: 0
                 });
 
-                const initialTypes = [...BASE_PATRON_TYPES].sort(() => 0.5 - Math.random()).slice(0, numOpponentsToPlay);
+                // Guarantee Milo gets a seat at the table, then shuffle the remaining regulars
+                const miloPatron = BASE_PATRON_TYPES.find(p => p.name === "Milo");
+                const otherPatrons = BASE_PATRON_TYPES.filter(p => p.name !== "Milo").sort(() => 0.5 - Math.random());
+                const initialTypes = [miloPatron, ...otherPatrons].slice(0, numOpponentsToPlay);
+
                 const newOpponents = initialTypes.map((pType, i) => ({
                     ...pType,
                     id: i,
@@ -831,8 +893,6 @@
                                 Avatar: getAvatarComponent(replacementType.name)
                             });
                             eliminationMsg += `${replacementType.name} pulled up a stool! `;
-                        } else {
-                            eliminationMsg += `No more regulars left in the taproom! `;
                         }
                     }
                 }
@@ -874,7 +934,7 @@
 
                 if (msg) {
                     setMessage(msg.trim());
-                    setTimeout(() => setupRound(order, nextOpponents, fundsRef.current, incomingDrink), 1800);
+                    setTimeout(() => setupRound(order, nextOpponents, fundsRef.current, incomingDrink), 1700);
                 } else {
                     setupRound(order, nextOpponents, fundsRef.current, incomingDrink);
                 }
@@ -956,7 +1016,7 @@
             const rollDice = () => {
                 if (rollsLeft <= 0 || turnOrder[currentTurnIndex] !== 'player') return;
                 SoundFX.shakeAndRoll(); setIsRollingDice(true); setTimeout(() => setIsRollingDice(false), 450);
-                setDicePhysics(dicePhysics.map((p, idx) => heldDice[idx] ? {x:0,y:0,rot:0} : { x: Math.floor(Math.random() * 14 - 7), y: Math.floor(Math.random() * 10 - 5), rot: Math.floor(Math.random() * 22 - 11) }));
+                setDicePhysics(dicePhysics.map((p, idx) => heldDice[idx] ? {x:0,y:0,rot:0} : { x: Math.floor(Math.random() * 12 - 6), y: Math.floor(Math.random() * 8 - 4), rot: Math.floor(Math.random() * 20 - 10) }));
                 setPlayerDice(playerDice.map((val, idx) => (heldDice[idx] && val !== 0) ? val : Math.ceil(Math.random() * 6)));
                 setRollsLeft(rollsLeft - 1);
             };
@@ -1040,12 +1100,15 @@
                     const seen = new Set(); dice.forEach((d, idx) => { if (d !== 1 && [2,3,4,5,6].includes(d) && !seen.has(d)) { keeps.push(idx); seen.add(d); } });
                     return keeps;
                 }
-                if (effectiveType === "Calculator") {
+                // Milo ("Heir") & James ("Calculator") use sharp EV & Full-House/Multi-Kind targeting
+                if (effectiveType === "Heir" || effectiveType === "Calculator") {
                     let bestVal = 0, maxCount = 0;
                     for (let [val, count] of Object.entries(counts)) { if (Number(val) !== 1 && (count > maxCount || (count === maxCount && Number(val) > bestVal))) { maxCount = count; bestVal = Number(val); } }
                     if (maxCount >= 2 || (maxCount === 1 && keeps.length >= 1)) { dice.forEach((d, i) => { if (d === bestVal && !keeps.includes(i)) keeps.push(i); }); return keeps; }
                     const unique = [...new Set(dice.filter(d => d !== 1))].sort();
                     if (unique.length >= 3) { unique.forEach(val => { const idx = dice.indexOf(val); if (idx !== -1 && !keeps.includes(idx)) keeps.push(idx); }); return keeps; }
+                    const highIdx = dice.findIndex(d => d === 6);
+                    if (highIdx !== -1 && !keeps.includes(highIdx)) keeps.push(highIdx);
                     return keeps;
                 }
                 if (effectiveType === "Aggressive") {
@@ -1154,55 +1217,49 @@
             const isPlayerLead = turnOrder[0] === 'player';
             const playerRollsUsed = roundMaxRolls - rollsLeft;
 
+            // Symmetrical 2-column mobile / 3-column desktop grid so 6 patrons fill the screen with zero empty slots
             const opponentGridClass = useMemo(() => {
                 const c = opponents.length;
                 if (c === 1) return "grid-cols-1 max-w-md mx-auto w-full";
                 if (c === 2) return "grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto w-full";
                 if (c === 3) return "grid-cols-1 sm:grid-cols-3";
                 if (c === 4) return "grid-cols-2 lg:grid-cols-4";
-                return "grid-cols-2 lg:grid-cols-5";
+                return "grid-cols-2 lg:grid-cols-3";
             }, [opponents.length]);
 
-            let coasterClass = "border-stone-800 opacity-90";
+            let coasterClass = "border-stone-800 opacity-95";
             let coasterLabel = "THE HOUSE TRAY";
-            if (localSave.lifetimeEarnings >= 10000) { coasterClass = "coaster-gold"; coasterLabel = "👑 VIP MUG CLUB TRAY"; }
-            else if (localSave.lifetimeEarnings >= 2500) { coasterClass = "coaster-copper"; coasterLabel = "🏅 COPPER RING TRAY"; }
-            else if (localSave.lifetimeEarnings >= 500) { coasterClass = "coaster-leather"; coasterLabel = "📜 LEATHER COASTER TRAY"; }
+            if (localSave.lifetimeEarnings >= 10000) { coasterClass = "coaster-gold"; coasterLabel = "👑 VIP MUG CLUB"; }
+            else if (localSave.lifetimeEarnings >= 2500) { coasterClass = "coaster-copper"; coasterLabel = "🏅 COPPER TRAY"; }
+            else if (localSave.lifetimeEarnings >= 500) { coasterClass = "coaster-leather"; coasterLabel = "📜 LEATHER TRAY"; }
 
             const todayStr = new Date().toDateString();
             const canShakeToday = localSave.lastShakeDate !== todayStr;
 
             return (
-                <div className="wood-texture flex flex-col justify-between items-center p-2 md:p-3.5 gap-2">
+                <div className="wood-texture flex flex-col justify-between items-center p-1.5 sm:p-3 gap-1.5 sm:gap-2">
                     <div className="absolute inset-0 bg-black/30 pointer-events-none"></div>
 
-                    {/* TOP NEON & BRASS HEADER */}
-                    <div className="w-full max-w-6xl px-3 py-2 z-30 flex justify-between items-center glass-panel rounded-xl shadow-xl shrink-0">
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <h1 className="text-base md:text-xl font-western neon-title tracking-wider leading-none">LAW BREWING</h1>
-                            <div className="flex items-center gap-2 text-xs font-mono-num">
-                                <span className="flex items-center gap-1 bg-black/60 border border-emerald-700/60 px-2.5 py-0.5 rounded-full text-emerald-400 font-bold"><Icon name="DollarSign" size={12} className="text-emerald-400"/> {funds}</span>
-                                <span className="flex items-center gap-1 bg-black/60 border border-amber-600/60 px-2.5 py-0.5 rounded-full text-amber-400 font-bold"><Icon name="Beer" size={12} className="text-amber-400"/> ${pot}</span>
+                    {/* 1. TOP NEON & BRASS HEADER */}
+                    <div className="w-full max-w-6xl px-2.5 py-1.5 sm:px-3 sm:py-2 z-30 flex justify-between items-center glass-panel rounded-xl shadow-xl shrink-0">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                            <h1 className="text-sm sm:text-lg md:text-xl font-western neon-title tracking-wider leading-none">LAW BREWING</h1>
+                            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-mono-num">
+                                <span className="flex items-center gap-0.5 bg-black/60 border border-emerald-700/60 px-2 py-0.5 rounded-full text-emerald-400 font-bold"><Icon name="DollarSign" size={11} className="text-emerald-400"/> {funds}</span>
+                                <span className="flex items-center gap-1 bg-black/60 border border-amber-600/60 px-2 py-0.5 rounded-full text-amber-400 font-bold"><Icon name="Beer" size={11} className="text-amber-400"/> ${pot}</span>
                                 {gameState !== 'START' && !isLastCall && (
-                                    <span className={`hidden sm:inline-block px-2.5 py-0.5 rounded-full font-bold border text-[11px] ${isCapLocked ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse' : 'bg-stone-900/80 border-stone-700 text-stone-300'}`}>
+                                    <span className={`hidden sm:inline-block px-2 py-0.5 rounded-full font-bold border text-[10px] ${isCapLocked ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse' : 'bg-stone-900/80 border-stone-700 text-stone-300'}`}>
                                         {isCapLocked ? `🔨 CAP: ${roundMaxRolls}` : `MAX: ${roundMaxRolls}`}
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            {activeDrinkBuff && gameState !== 'START' && (
-                                <div title={activeDrinkBuff.buffRule} className="hidden lg:flex items-center gap-1.5 bg-amber-950/90 border border-amber-500/60 px-2.5 py-1 rounded-lg text-[11px]">
-                                    <span className="font-black text-amber-400 uppercase">🍺 {activeDrinkBuff.name}:</span>
-                                    <span className="text-amber-100">{activeDrinkBuff.buffRule}</span>
-                                </div>
-                            )}
-
-                            <button onClick={toggleAudio} className="p-1.5 text-amber-300/80 border border-amber-800/60 rounded-lg bg-black/40"><Icon name={isMuted ? "VolumeOff" : "VolumeOn"} size={14} /></button>
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <button onClick={toggleAudio} className="p-1.5 text-amber-300/80 border border-amber-800/60 rounded-lg bg-black/40"><Icon name={isMuted ? "VolumeOff" : "VolumeOn"} size={13} /></button>
 
                             <div className="relative cheat-sheet-container">
-                                <button className="flex items-center gap-1 text-xs text-amber-200 hover:text-white border border-amber-700/60 px-2.5 py-1 rounded-lg bg-black/40 font-medium">
-                                    <Icon name="Help" size={13} /> Ranks
+                                <button className="flex items-center gap-1 text-[11px] sm:text-xs text-amber-200 hover:text-white border border-amber-700/60 px-2 py-1 rounded-lg bg-black/40 font-medium">
+                                    <Icon name="Help" size={12} /> Ranks
                                 </button>
                                 <div className="cheat-sheet hidden absolute right-0 top-8 w-64 bg-stone-950 border-2 border-amber-600 rounded-xl p-3.5 shadow-2xl text-xs">
                                     <h3 className="font-western text-amber-400 mb-2 border-b border-amber-900/60 pb-1 tracking-wide">
@@ -1221,29 +1278,29 @@
                                 </div>
                             </div>
 
-                            <div className="text-right bg-black/40 border border-amber-900/50 px-2.5 py-0.5 rounded-lg">
-                                <div className="text-[8px] text-amber-500/80 uppercase tracking-widest font-bold">Round</div>
-                                <div className="text-base font-western text-white leading-tight">{round}</div>
+                            <div className="text-right bg-black/40 border border-amber-900/50 px-2 py-0.5 rounded-lg">
+                                <div className="text-[7px] text-amber-500/80 uppercase tracking-widest font-bold leading-none">Round</div>
+                                <div className="text-sm sm:text-base font-western text-white leading-tight">{round}</div>
                             </div>
                         </div>
                     </div>
 
-                    {/* MARQUEE */}
+                    {/* 2. UNIFIED MARQUEE & TAP BANNER */}
                     {gameState !== 'START' && gameState !== 'DAILY_SHAKE' && (
-                        <div className="w-full max-w-6xl z-20 flex flex-col gap-1.5 shrink-0">
+                        <div className={`w-full max-w-6xl z-20 chalkboard-banner px-3 py-1.5 rounded-xl flex flex-col items-center justify-center shadow-lg shrink-0 ${isLastCall ? 'border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : ''}`}>
                             {activeDrinkBuff && (
-                                <div className="lg:hidden bg-amber-950/90 border border-amber-500/60 rounded-lg px-3 py-1 flex items-center justify-between text-[11px]">
-                                    <span className="font-black text-amber-400 uppercase">🍺 ON TAP: {activeDrinkBuff.name}</span>
-                                    <span className="text-amber-100 truncate ml-2">{activeDrinkBuff.buffRule}</span>
+                                <div className="w-full flex items-center justify-between text-[10px] sm:text-[11px] border-b border-amber-900/50 pb-0.5 mb-0.5">
+                                    <span className="font-black text-amber-400 uppercase shrink-0">🍺 ON TAP: {activeDrinkBuff.name}</span>
+                                    <span className="text-amber-200/90 truncate ml-2">{activeDrinkBuff.buffRule}</span>
                                 </div>
                             )}
-                            <div className={`chalkboard-banner px-4 py-2 rounded-xl text-center flex items-center justify-center shadow-lg ${isLastCall ? 'border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : ''}`}>
-                                <span className={`text-xs md:text-sm font-medium tracking-wide truncate ${isLastCall ? 'text-red-400 font-bold' : 'text-amber-100'}`}>{message}</span>
-                            </div>
+                            <span className={`text-[11px] sm:text-sm font-medium tracking-wide truncate w-full text-center ${isLastCall ? 'text-red-400 font-bold' : 'text-amber-100'}`}>
+                                {message}
+                            </span>
                         </div>
                     )}
 
-                    {/* CENTER TABLE AREA */}
+                    {/* 3. CENTER TABLE AREA */}
                     <div className="w-full max-w-6xl flex-1 min-h-0 z-10 flex flex-col justify-center">
                         {gameState === 'START' || gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY || gameState === 'DAILY_SHAKE' ? (
                             <div className="glass-panel p-5 md:p-7 rounded-2xl flex flex-col items-center justify-center text-center gap-3.5 max-w-xl mx-auto w-full my-auto shadow-2xl">
@@ -1276,7 +1333,7 @@
                                                 <div className="bg-black/40 border border-amber-900/50 px-4 py-2.5 rounded-xl flex flex-col items-center gap-1.5">
                                                     <span className="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Barstools Occupied (Opponents)</span>
                                                     <div className="flex gap-2">
-                                                        {[1, 2, 3, 4, 5].map(cnt => (
+                                                        {[1, 2, 3, 4, 5, 6].map(cnt => (
                                                             <button key={cnt} onClick={() => { SoundFX.holdClick(true); setNumOpponentsToPlay(cnt); }} className={`w-9 h-9 rounded-lg font-western text-sm transition-all border ${numOpponentsToPlay === cnt ? 'bg-amber-500 text-black border-yellow-200 scale-105 shadow' : 'bg-stone-900 text-stone-400 border-stone-700'}`}>{cnt}</button>
                                                         ))}
                                                     </div>
@@ -1318,8 +1375,8 @@
                                 )}
                             </div>
                         ) : (
-                            /* COLLISION-PROOF OPPONENT COASTER GRID */
-                            <div className={`grid ${opponentGridClass} gap-2.5 h-full items-stretch auto-rows-fr min-h-0`}>
+                            /* ZERO-OVERLAP 6-PATRON COASTER GRID */
+                            <div className={`grid ${opponentGridClass} gap-1.5 sm:gap-2.5 h-full items-stretch auto-rows-fr min-h-0`}>
                                 {opponents.map((opp) => {
                                     const isMyTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === opp.id;
                                     const isHammer = turnOrder[0] === opp.id;
@@ -1331,7 +1388,7 @@
 
                                     if (gameState === 'ROLLING' && isMyTurn) {
                                         reactionClass = 'reaction-rolling';
-                                        statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-amber-500 text-black rounded-full animate-pulse">Rolling</span>;
+                                        statusBadge = <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-amber-500 text-black rounded-full animate-pulse">Rolling</span>;
                                     } else if (gameState === 'ROUND_END' || gameState === 'EVALUATION') {
                                         if (lastRoundRankings.length > 0) {
                                             const rankIndex = lastRoundRankings.findIndex(r => r.id === opp.id);
@@ -1341,13 +1398,13 @@
 
                                             if (isWinner) {
                                                 reactionClass = 'reaction-winner';
-                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-yellow-400 text-black rounded-full shadow">🏆 Winner</span>;
+                                                statusBadge = <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-yellow-400 text-black rounded-full shadow">🏆 Win</span>;
                                             } else if (handStrength >= 5) {
                                                 reactionClass = 'reaction-angry';
-                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-red-600 text-white rounded-full">😤 Salty</span>;
+                                                statusBadge = <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-red-600 text-white rounded-full">😤 Salty</span>;
                                             } else if (isLoser) {
                                                 reactionClass = 'reaction-loser';
-                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-stone-700 text-stone-300 rounded-full">🍺 Buying</span>;
+                                                statusBadge = <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-stone-700 text-stone-300 rounded-full">🍺 Tab</span>;
                                             } else {
                                                 reactionClass = 'reaction-smug';
                                             }
@@ -1355,39 +1412,37 @@
                                     }
 
                                     return (
-                                        <div key={opp.id} className={`coaster-card p-2.5 md:p-3 rounded-2xl flex flex-col justify-between h-full min-h-0 transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${reactionClass} ${isLastCall ? 'border-red-900/50' : ''}`}>
+                                        <div key={opp.id} className={`coaster-card p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl flex flex-col justify-between h-full min-h-0 transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${reactionClass} ${isLastCall ? 'border-red-900/50' : ''}`}>
 
-                                            {/* Top Identity Row: Side-by-Side Avatar + Name/Money/Badges (Never collides with dice) */}
-                                            <div className="flex items-center gap-2.5 w-full shrink-0">
-                                                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full bg-stone-800 flex items-center justify-center shrink-0 overflow-hidden border-2 shadow-lg ${isLastCall ? 'border-red-600/80' : 'border-amber-600/80'}`}>
+                                            {/* Top Section: Avatar on Left + Name/Cash/Badge & Speech Quote Stacked on Right */}
+                                            <div className="flex items-center gap-2 w-full min-h-0">
+                                                <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-stone-800 flex items-center justify-center shrink-0 overflow-hidden border-2 shadow-md ${isLastCall ? 'border-red-600/80' : 'border-amber-600/80'}`}>
                                                     <AvatarComp />
                                                 </div>
-                                                <div className="flex flex-col items-start min-w-0 flex-1">
+                                                <div className="flex flex-col justify-center min-w-0 flex-1 gap-0.5">
                                                     <div className="flex items-center justify-between w-full gap-1">
-                                                        <span className="text-xs md:text-sm font-bold text-amber-100 truncate">{opp.name}</span>
-                                                        {isHammer && !isLastCall && (
-                                                            <span className="bg-amber-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded shadow uppercase shrink-0">🔨 Lead</span>
-                                                        )}
+                                                        <span className="text-[11px] sm:text-xs md:text-sm font-bold text-amber-100 truncate">{opp.name}</span>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            {isHammer && !isLastCall && (
+                                                                <span className="bg-amber-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded shadow uppercase">🔨 Lead</span>
+                                                            )}
+                                                            {statusBadge}
+                                                            <span className={`inline-flex items-center text-[10px] sm:text-xs font-mono-num font-bold bg-black/50 px-1.5 py-0.5 rounded-full border ${opp.money === 0 ? 'text-red-400 border-red-900/60' : 'text-emerald-400 border-emerald-800/60'}`}>
+                                                                ${opp.money}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                                        <span className={`inline-flex items-center text-[11px] md:text-xs font-mono-num font-bold bg-black/50 px-2 py-0.5 rounded-full border ${opp.money === 0 ? 'text-red-400 border-red-900/60' : 'text-emerald-400 border-emerald-800/60'}`}>
-                                                            <Icon name="DollarSign" size={10}/> {opp.money}
-                                                        </span>
-                                                        {statusBadge}
+
+                                                    {/* Compact Speech Pill tucked right under Name/Cash */}
+                                                    <div className={`${opp.quote && opp.quote.includes("Last Call") ? 'bg-red-900 text-white font-bold border-red-500' : (opp.quote ? 'speech-pill font-bold' : 'bg-black/35 text-stone-400 border border-stone-800/80 italic')} px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] truncate w-full`}>
+                                                        "{displayQuote}"
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Middle Speech / Chatter Pill */}
-                                            <div className="w-full my-auto py-1 shrink-0">
-                                                <div className={`${opp.quote && opp.quote.includes("Last Call") ? 'bg-red-900 text-white font-bold border-red-500' : (opp.quote ? 'speech-pill font-bold' : 'bg-black/35 text-stone-400 border border-stone-800/80 italic')} px-2.5 py-1 rounded-lg text-[10px] md:text-xs text-center truncate w-full`}>
-                                                    "{displayQuote}"
-                                                </div>
-                                            </div>
-
-                                            {/* Bottom Dedicated Coaster Dice Tray */}
-                                            <div className="w-full bg-black/45 border border-amber-950/70 rounded-xl p-2 flex flex-col items-center gap-1 shrink-0">
-                                                <div className="flex gap-1 md:gap-1.5 justify-center items-center w-full">
+                                            {/* Bottom Section: Dedicated Coaster Dice Tray (100% visible, never clipped) */}
+                                            <div className="w-full bg-black/45 border border-amber-950/70 rounded-lg sm:rounded-xl px-1.5 py-1 sm:p-1.5 flex flex-col items-center justify-center gap-0.5 shrink-0 mt-1">
+                                                <div className="flex gap-1 sm:gap-1.5 justify-center items-center w-full">
                                                     {opp.dice.map((d, i) => (
                                                         <Die
                                                             key={i}
@@ -1398,7 +1453,7 @@
                                                         />
                                                     ))}
                                                 </div>
-                                                <div className="text-[10px] md:text-xs font-bold text-amber-400 uppercase tracking-wider truncate w-full text-center">
+                                                <div className="text-[9px] sm:text-[10px] font-bold text-amber-400 uppercase tracking-wider truncate w-full text-center leading-tight">
                                                     {opp.isRollingNow ? 'Shaking Cup...' : (opp.hand ? HAND_NAMES[opp.hand.rank] : 'Waiting for turn...')}
                                                 </div>
                                             </div>
@@ -1410,73 +1465,75 @@
                         )}
                     </div>
 
-                    {/* PLAYER TRAY */}
+                    {/* 4. STREAMLINED PLAYER TRAY */}
                     {gameState !== 'START' && gameState !== 'GAME_OVER' && gameState !== GAME_STATE_BAR_VICTORY && gameState !== 'DAILY_SHAKE' && (
-                        <div className={`w-full max-w-6xl glass-panel p-3 md:p-4 rounded-2xl border-t-4 transition-all duration-500 z-20 shrink-0 ${isPlayerTurn ? (isLastCall ? 'border-red-500 shadow-[0_0_25px_rgba(220,38,38,0.3)]' : 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.25)]') : coasterClass} ${coasterClass}`}>
-                            <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
-                                <div className="flex items-center gap-3 flex-wrap">
-                                    <h2 className={`text-sm md:text-lg font-western flex items-center gap-2 tracking-wide ${localSave.lifetimeEarnings >= 10000 ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-amber-400'}`}>
+                        <div className={`w-full max-w-6xl glass-panel p-2 sm:p-3.5 rounded-2xl border-t-4 transition-all duration-500 z-20 shrink-0 ${isPlayerTurn ? (isLastCall ? 'border-red-500 shadow-[0_0_25px_rgba(220,38,38,0.3)]' : 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.25)]') : coasterClass} ${coasterClass}`}>
+                            {/* Single-Row Tray Header */}
+                            <div className="flex justify-between items-center gap-1.5 mb-1.5">
+                                <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                                    <h2 className={`text-xs sm:text-base font-western flex items-center gap-1.5 tracking-wide shrink-0 ${localSave.lifetimeEarnings >= 10000 ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-amber-400'}`}>
                                         {coasterLabel}
-                                        {isPlayerLead && !isLastCall && <span className="text-[10px] font-sans bg-amber-500/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-full font-bold">🔨 YOU HAVE THE HAMMER</span>}
-                                        {isPlayerTurn && <span className={`text-[10px] font-sans px-2.5 py-0.5 rounded-full font-black animate-pulse tracking-wider ${isLastCall ? 'bg-red-600 text-white' : 'bg-yellow-500 text-black'}`}>YOUR ROLL</span>}
                                     </h2>
-                                    <div className="text-xs md:text-sm text-stone-300 bg-black/40 px-3 py-0.5 rounded-full border border-stone-800">
-                                        Hand: <span className="text-amber-300 font-bold">{currentHandDisplay ? HAND_NAMES[currentHandDisplay.rank] : 'Shake to Reveal'}</span>
+                                    {isPlayerLead && !isLastCall && <span className="text-[9px] font-sans bg-amber-500/20 border border-amber-400 text-amber-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔨 HAMMER</span>}
+                                    {isPlayerTurn && <span className={`text-[9px] font-sans px-2 py-0.5 rounded-full font-black animate-pulse tracking-wider shrink-0 ${isLastCall ? 'bg-red-600 text-white' : 'bg-yellow-500 text-black'}`}>YOUR ROLL</span>}
+                                    <div className="text-[10px] sm:text-xs text-stone-300 bg-black/40 px-2 py-0.5 rounded-full border border-stone-800 truncate">
+                                        <span className="text-amber-300 font-bold">{currentHandDisplay ? HAND_NAMES[currentHandDisplay.rank] : 'Shake to Reveal'}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-black/50 border border-amber-900/50 px-3 py-1 rounded-full">
-                                    <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mr-1">Shakes</span>
+
+                                <div className="flex items-center gap-1 bg-black/50 border border-amber-900/50 px-2 py-0.5 rounded-full shrink-0">
+                                    <span className="text-[9px] uppercase tracking-wider text-stone-400 font-bold mr-0.5">Shakes</span>
                                     {Array.from({ length: roundMaxRolls }, (_, idx) => idx + 1).map(r => (
-                                        <span key={r} className={`w-3 h-3 rounded-full transition-all ${r <= rollsLeft ? (isLastCall ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-amber-400 shadow-[0_0_8px_#eab308]') : 'bg-stone-800 border border-stone-700'}`} />
+                                        <span key={r} className={`w-2.5 h-2.5 rounded-full transition-all ${r <= rollsLeft ? (isLastCall ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-amber-400 shadow-[0_0_8px_#eab308]') : 'bg-stone-800 border border-stone-700'}`} />
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
-                                <div className={`lg:col-span-8 felt-dice-pit rounded-2xl py-4 md:py-5 px-3 flex justify-center items-center gap-3 sm:gap-5 md:gap-7 min-h-[5.75rem] md:min-h-[6.75rem] ${isLastCall ? 'shadow-[inset_0_0_40px_rgba(220,38,38,0.3)]' : ''}`}>
-                                    <div className="brass-rivet top-2 left-2"></div><div className="brass-rivet top-2 right-2"></div><div className="brass-rivet bottom-2 left-2"></div><div className="brass-rivet bottom-2 right-2"></div>
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 items-center">
+                                <div className={`lg:col-span-8 felt-dice-pit rounded-xl sm:rounded-2xl py-2.5 sm:py-4 px-2 flex justify-center items-center gap-2.5 sm:gap-5 md:gap-7 min-h-[4.25rem] sm:min-h-[5.75rem] ${isLastCall ? 'shadow-[inset_0_0_40px_rgba(220,38,38,0.3)]' : ''}`}>
+                                    <div className="brass-rivet top-1.5 left-1.5"></div><div className="brass-rivet top-1.5 right-1.5"></div><div className="brass-rivet bottom-1.5 left-1.5"></div><div className="brass-rivet bottom-1.5 right-1.5"></div>
                                     {playerDice.map((val, idx) => <Die key={idx} value={val} held={heldDice[idx]} onClick={() => toggleDie(idx)} isRolling={isRollingDice} physics={dicePhysics[idx]} />)}
                                 </div>
 
-                                <div className="lg:col-span-4 flex flex-col justify-center items-center gap-2">
-                                    <div className="flex flex-wrap justify-center gap-2 w-full">
+                                <div className="lg:col-span-4 flex flex-col justify-center items-center gap-1">
+                                    <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 w-full">
                                         {gameState === 'LAST_CALL_PROMPT' && (
-                                            <button onClick={triggerLastCall} className="btn-pulse-red w-full px-5 py-3.5 bg-gradient-to-b from-red-600 to-red-800 text-white font-black rounded-xl shadow-xl flex items-center justify-center gap-2 tracking-wide uppercase border border-red-400 text-sm">
+                                            <button onClick={triggerLastCall} className="btn-pulse-red w-full px-4 py-2.5 bg-gradient-to-b from-red-600 to-red-800 text-white font-black rounded-xl shadow-xl flex items-center justify-center gap-2 tracking-wide uppercase border border-red-400 text-xs sm:text-sm">
                                                 🚨 LAST CALL (ALL-IN)
                                             </button>
                                         )}
                                         {gameState === 'ROLLING' && (
                                             <>
                                                 {isPlayerTurn && rollsLeft > 0 ? (
-                                                    <button onClick={rollDice} className={`btn-pulse flex-1 min-w-[140px] px-5 py-3 text-black font-bold rounded-xl shadow-xl flex items-center justify-center gap-2 transition-transform transform active:scale-95 border tracking-wide text-xs md:text-sm ${isLastCall ? 'bg-gradient-to-b from-red-500 to-red-700 border-red-300 text-white btn-pulse-red' : 'bg-gradient-to-b from-amber-400 to-amber-600 border-yellow-200'}`}>
-                                                        <Icon name="RefreshCw" size={16} /> {isLastCall ? 'LAST SHAKE!' : `SHAKE (${rollsLeft})`}
+                                                    <button onClick={rollDice} className={`btn-pulse flex-1 min-w-[120px] px-4 py-2.5 text-black font-bold rounded-xl shadow-xl flex items-center justify-center gap-1.5 transition-transform transform active:scale-95 border tracking-wide text-xs sm:text-sm ${isLastCall ? 'bg-gradient-to-b from-red-500 to-red-700 border-red-300 text-white btn-pulse-red' : 'bg-gradient-to-b from-amber-400 to-amber-600 border-yellow-200'}`}>
+                                                        <Icon name="RefreshCw" size={15} /> {isLastCall ? 'LAST SHAKE!' : `SHAKE (${rollsLeft})`}
                                                     </button>
                                                 ) : (
-                                                    <div className="text-amber-500/80 font-bold italic py-2 text-xs md:text-sm">
+                                                    <div className="text-amber-500/80 font-bold italic py-1.5 text-xs">
                                                         {isPlayerTurn ? "Locking in hand..." : "Patrons are rolling..."}
                                                     </div>
                                                 )}
 
                                                 {isPlayerTurn && playerDice[0] !== 0 && rollsLeft > 0 && !isLastCall && (
-                                                    <button onClick={forceFinish} className="px-4 py-3 bg-stone-800 hover:bg-stone-700 text-amber-200 font-bold rounded-xl shadow-lg flex items-center justify-center gap-1.5 border border-amber-700/60 text-xs md:text-sm transition-colors">
-                                                        <Icon name="Check" size={16} /> {isPlayerLead && playerRollsUsed < roundMaxRolls ? `🔨 CALL IN ${playerRollsUsed}` : 'STAND'}
+                                                    <button onClick={forceFinish} className="px-3.5 py-2.5 bg-stone-800 hover:bg-stone-700 text-amber-200 font-bold rounded-xl shadow-lg flex items-center justify-center gap-1 border border-amber-700/60 text-xs sm:text-sm transition-colors">
+                                                        <Icon name="Check" size={15} /> {isPlayerLead && playerRollsUsed < roundMaxRolls ? `🔨 CALL IN ${playerRollsUsed}` : 'STAND'}
                                                     </button>
                                                 )}
 
                                                 {isPlayerTurn && playerDice[0] !== 0 && !doubleTapUsed && funds >= 10 && !isLastCall && (
-                                                    <button onClick={handleDoubleTap} className="px-4 py-2.5 bg-gradient-to-b from-red-600 to-red-800 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 border border-red-400 text-xs uppercase transition-transform active:scale-95 w-full">
-                                                        <Icon name="Bell" size={14} /> DOUBLE TAP (+$10 POT)
+                                                    <button onClick={handleDoubleTap} className="px-3 py-2 bg-gradient-to-b from-red-600 to-red-800 text-white font-bold rounded-xl flex items-center justify-center gap-1 border border-red-400 text-[11px] uppercase transition-transform active:scale-95">
+                                                        <Icon name="Bell" size={13} /> DOUBLE TAP (+$10)
                                                     </button>
                                                 )}
                                             </>
                                         )}
                                         {gameState === 'ROUND_END' && (
-                                            <button onClick={startRound} className="btn-pulse w-full px-6 py-3.5 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 text-white font-bold rounded-xl shadow-xl flex items-center justify-center gap-2 border border-emerald-300 tracking-wide text-sm">
-                                                NEXT ROUND <Icon name="TrendingUp" size={18} />
+                                            <button onClick={startRound} className="btn-pulse w-full px-5 py-2.5 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 text-white font-bold rounded-xl shadow-xl flex items-center justify-center gap-2 border border-emerald-300 tracking-wide text-xs sm:text-sm">
+                                                NEXT ROUND <Icon name="TrendingUp" size={16} />
                                             </button>
                                         )}
                                     </div>
-                                    <div className="text-center text-[10px] md:text-[11px] text-stone-400 leading-tight">
+                                    <div className="text-center text-[9px] sm:text-[10px] text-stone-400 leading-tight">
                                         {isLastCall ? "Sudden Death. One roll. No holds." : (isPlayerTurn ? (isPlayerLead ? "Tap dice to HOLD, or click CALL IN to cap shakes." : "Tap dice to HOLD, or ring DOUBLE TAP to press the pot.") : "Watch your patrons shake and hold their dice.")}
                                     </div>
                                 </div>
