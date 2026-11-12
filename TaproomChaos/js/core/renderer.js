@@ -2151,12 +2151,15 @@ class GameRenderer {
         ctx.font = 'bold 25px Oswald';
         ctx.textAlign = 'center';
         ctx.fillText("📝 SHIFT CONTRACTS", boardMid, boardY + 34);
+
         ctx.fillStyle = '#a1a1aa';
         ctx.fillRect(boardX + 15, boardY + 46, boardW - 30, 2);
 
         if (state.activeOrders && state.activeOrders.length > 0) {
             state.activeOrders.forEach((order, i) => {
                 const oy = boardY + 76 + (i * 112);
+
+                // Check if the player already discovered this recipe
                 const isUnlocked = (typeof playerState !== 'undefined') && playerState.unlockedRecipes && playerState.unlockedRecipes.includes(order.name);
 
                 ctx.fillStyle = '#4ade80';
@@ -2167,10 +2170,11 @@ class GameRenderer {
                 ctx.font = 'bold 18px Inter';
                 ctx.fillText(order.name, boardMid, oy + 24, boardW - 20);
 
+                // Add the yellow visual tag if they already own it
                 if (isUnlocked) {
                     ctx.fillStyle = '#facc15';
                     ctx.font = 'bold 12px Oswald';
-                    ctx.fillText('📖 [ALREADY UNLOCKED - CHECK LOG]', boardMid, oy + 46);
+                    ctx.fillText('📖 [ALREADY UNLOCKED - CHECK LOG]', boardMid, oy + 44);
                 }
 
                 ctx.fillStyle = '#38bdf8';
@@ -2178,7 +2182,7 @@ class GameRenderer {
 
                 const words = order.hint.split(' ');
                 let line = '';
-                let hintY = oy + (isUnlocked ? 66 : 46);
+                let hintY = oy + (isUnlocked ? 66 : 46); // Push text down if tag is present
 
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';

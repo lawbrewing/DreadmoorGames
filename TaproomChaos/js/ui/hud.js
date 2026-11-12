@@ -106,24 +106,33 @@ class GameHUD {
 
                 if (!ingredients || !Array.isArray(ingredients)) return;
 
-                // Ensure initial 2 shown ingredients are pre-tracked as revealed
-                if (!currentOrder.revealedIngredients) {
-                    currentOrder.revealedIngredients = ingredients.slice(0, 2);
+                // Safely initialize the first 2 ingredients as "freebies" using their exact indices
+                if (!currentOrder.unlockedIndices) {
+                    currentOrder.unlockedIndices = [0, 1];
                 }
 
-                const unknown = ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
+                // Strictly find which slots (indices) are still hidden
+                const unknownIndices = [];
+                for (let i = 0; i < ingredients.length; i++) {
+                    if (!currentOrder.unlockedIndices.includes(i)) {
+                        unknownIndices.push(i);
+                    }
+                }
+
                 const hintCost = 1.00;
 
-                if (unknown.length > 0 && typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
+                if (unknownIndices.length > 0 && typeof playerState !== 'undefined' && playerState.canAfford(hintCost)) {
                     gameEvents.emit('SPEND_TIPS', hintCost);
 
-                    const randomIng = unknown[Math.floor(Math.random() * unknown.length)];
-                    currentOrder.revealedIngredients.push(randomIng);
+                    // Pick a random unknown slot and unlock it
+                    const randIndex = unknownIndices[Math.floor(Math.random() * unknownIndices.length)];
+                    currentOrder.unlockedIndices.push(randIndex);
+                    const randomIng = ingredients[randIndex];
 
-                    // Update hint display with newly unlocked ingredient
-                    if (!currentOrder.originalHint) currentOrder.originalHint = currentOrder.hint;
-                    const extraRevealed = currentOrder.revealedIngredients.slice(2);
-                    currentOrder.hint = currentOrder.originalHint + (extraRevealed.length > 0 ? " | Unlocked: " + extraRevealed.join(", ") : "");
+                    // Dynamically rebuild the hint string so duplicates show up perfectly (e.g. "Water, Grain, Hops, ???")
+                    currentOrder.hint = ingredients.map((ing, idx) => {
+                        return currentOrder.unlockedIndices.includes(idx) ? ing : '???';
+                    }).join(', ');
 
                     if (typeof brewingPhase !== 'undefined' && brewingPhase.floatingTexts) {
                         brewingPhase.floatingTexts.push({
@@ -360,12 +369,22 @@ class GameHUD {
                 const ingredients = recipeDef ? recipeDef.ingredients : null;
 
                 if (ingredients && Array.isArray(ingredients)) {
-                    if (!currentOrder.revealedIngredients) {
-                        currentOrder.revealedIngredients = ingredients.slice(0, 2);
+                    // Auto-format the string the moment the contract hits the board
+                    if (!currentOrder.unlockedIndices) {
+                        currentOrder.unlockedIndices = [0, 1];
+                        currentOrder.hint = ingredients.map((ing, idx) => {
+                            return currentOrder.unlockedIndices.includes(idx) ? ing : '???';
+                        }).join(', ');
                     }
-                    const unknown = ingredients.filter(ing => !currentOrder.revealedIngredients.includes(ing));
 
-                    if (unknown.length === 0) {
+                    const unknownIndices = [];
+                    for (let i = 0; i < ingredients.length; i++) {
+                        if (!currentOrder.unlockedIndices.includes(i)) {
+                            unknownIndices.push(i);
+                        }
+                    }
+
+                    if (unknownIndices.length === 0) {
                         this.btnBuyHint.innerText = "💡 FULLY SOLVED";
                         this.btnBuyHint.style.background = "#3f3f46";
                         this.btnBuyHint.style.cursor = "not-allowed";
