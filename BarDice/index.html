@@ -93,6 +93,7 @@
             border: 2px solid #4a3020;
             box-shadow: 0 8px 18px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.08);
             position: relative;
+            overflow: hidden;
         }
 
         .chalkboard-banner {
@@ -145,28 +146,29 @@
         .die-ivory { background: linear-gradient(145deg, #fffbeb 0%, #f3e8d2 55%, #d6c3a5 100%); border: 1px solid #a89070; box-shadow: 0 5px 10px rgba(0, 0, 0, 0.75), 0 3px 0 #8c7355, inset 0 2px 3px rgba(255, 255, 255, 0.9), inset 0 -2px 4px rgba(138, 112, 80, 0.45); }
         .die-ivory:hover { filter: brightness(1.05); }
         .die-wild-ace { background: linear-gradient(145deg, #fef9c3 0%, #fde047 45%, #ca8a04 100%); border: 1px solid #fef08a; box-shadow: 0 5px 12px rgba(234, 179, 8, 0.4), 0 3px 0 #854d0e, inset 0 2px 4px rgba(255, 255, 255, 0.95), inset 0 -2px 5px rgba(133, 77, 14, 0.6); }
-        .die-held { transform: translateY(-8px) scale(1.05) !important; border: 2px solid #facc15 !important; box-shadow: 0 12px 18px -4px rgba(0, 0, 0, 0.85), 0 0 16px rgba(234, 179, 8, 0.75), 0 3px 0 #b45309, inset 0 2px 3px rgba(255, 255, 255, 0.9) !important; }
+        .die-held { transform: translateY(-6px) scale(1.05) !important; border: 2px solid #facc15 !important; box-shadow: 0 10px 15px -4px rgba(0, 0, 0, 0.85), 0 0 14px rgba(234, 179, 8, 0.75), 0 3px 0 #b45309, inset 0 2px 3px rgba(255, 255, 255, 0.9) !important; }
+        .die-held-small { border: 1.5px solid #facc15 !important; box-shadow: 0 0 8px rgba(234, 179, 8, 0.75) !important; transform: translateY(-2px); }
 
         .pip-dot { background: radial-gradient(circle at 35% 35%, #334155 0%, #0f172a 70%, #020617 100%); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.6); }
         .pip-six-red { background: radial-gradient(circle at 35% 35%, #ef4444 0%, #991b1b 75%, #450a0a 100%); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.6); }
 
         @keyframes pulse-yellow { 0%, 100% { box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.7), 0 4px 12px rgba(0, 0, 0, 0.6); } 50% { box-shadow: 0 0 0 8px rgba(234, 179, 8, 0), 0 4px 16px rgba(234, 179, 8, 0.5); } }
         .btn-pulse { animation: pulse-yellow 2s infinite; }
-        
+
         @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7), 0 4px 12px rgba(0, 0, 0, 0.6); } 50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 4px 16px rgba(239, 68, 68, 0.5); } }
         .btn-pulse-red { animation: pulse-red 1.5s infinite; }
 
         .active-turn { border-color: #eab308 !important; box-shadow: 0 0 22px rgba(234, 179, 8, 0.35), inset 0 0 15px rgba(234, 179, 8, 0.12) !important; }
-        .inactive-turn { opacity: 0.9; }
+        .inactive-turn { opacity: 0.92; }
 
         .cheat-sheet-container:hover .cheat-sheet { display: block; }
         .cheat-sheet { z-index: 9999; }
 
         @keyframes dice-roll {
             0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-            20% { transform: translate3d(-5px, -10px, 0) rotate(-35deg) scale(1.1); }
-            45% { transform: translate3d(7px, 5px, 0) rotate(40deg) scale(0.92); }
-            70% { transform: translate3d(-4px, -5px, 0) rotate(-18deg) scale(1.05); }
+            20% { transform: translate3d(-4px, -8px, 0) rotate(-35deg) scale(1.08); }
+            45% { transform: translate3d(6px, 4px, 0) rotate(40deg) scale(0.94); }
+            70% { transform: translate3d(-3px, -4px, 0) rotate(-18deg) scale(1.04); }
             100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
         }
         .rolling-animation { animation: dice-roll 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
@@ -185,7 +187,7 @@
         .anim-smoke-1 { animation: cigar-smoke 2.6s infinite ease-out; }
         .anim-smoke-2 { animation: cigar-smoke 2.6s infinite 1.3s ease-out; }
 
-        @keyframes react-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.03); background-color: #422006; } }
+        @keyframes react-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.02); background-color: #422006; } }
         .reaction-rolling { border-color: #eab308 !important; }
         .reaction-winner { animation: react-bounce 0.75s infinite cubic-bezier(0.28, 0.84, 0.42, 1); border-color: #eab308 !important; box-shadow: 0 0 24px rgba(234, 179, 8, 0.85) !important; z-index: 20; }
         .reaction-loser { filter: grayscale(0.8) brightness(0.65); border-color: #1e293b !important; }
@@ -233,6 +235,12 @@
         .die-physics { transition: transform 0.45s cubic-bezier(0.25, 1.25, 0.5, 1); transform-style: preserve-3d; }
     </style>
 
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error("Critical Runtime Error:", message, "Line:", lineno);
+            document.body.innerHTML = "<div style='color:white;padding:20px;text-align:center'><h2>Game Error Detected</h2><p>Check console (F12) for details.</p><small>" + message + "</small></div>";
+        };
+    </script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -245,11 +253,26 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         /* -------------------------------------------
+           CORE GAME CONSTANTS
+        ------------------------------------------- */
+        const HOUSE_START_MONEY = 50;
+        const PATRON_START_MONEY = 50;
+        const CONTRIBUTION = 10;
+        const BUY_A_ROUND_COST = 20;
+        const GAME_STATE_BAR_VICTORY = 'BAR_VICTORY';
+
+        /* -------------------------------------------
            PROCEDURAL WEB AUDIO
         ------------------------------------------- */
         const SoundFX = {
             ctx: null, muted: false,
-            init() { if (!this.ctx) { const A = window.AudioContext || window.webkitAudioContext; if (A) this.ctx = new A(); } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+            init() {
+                if (!this.ctx) {
+                    const A = window.AudioContext || window.webkitAudioContext;
+                    if (A) this.ctx = new A();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            },
             shakeAndRoll() {
                 if (this.muted) return; this.init(); if (!this.ctx) return; const now = this.ctx.currentTime;
                 for (let i = 0; i < 5; i++) {
@@ -345,7 +368,7 @@
             { id: "marshmallow", name: "NOT Burnt Marshmallow", buffTitle: "Sugar Coma", buffRule: "Table capped at 2 Shakes max!" },
             { id: "cabana", name: "Raspberry Cabana", buffTitle: "Pucker Stakes", buffRule: "Ante jumps to $15 per player!" },
             { id: "sublime", name: "subLime", buffTitle: "Jukebox Groove", buffRule: "Finish with a 3 & 1 for +$10 bonus!" },
-            { id: "blood", name: "Enemy's Blood", buffTitle: "Bloodlust", buffRule: "All AI Aggressive & loser pays $30!" },
+            { id: "blood", name: "Hopped Up on Enemy's Blood", buffTitle: "Bloodlust", buffRule: "All AI Aggressive & loser pays $30!" },
             { id: "egret", name: "The Patient Egret", buffTitle: "Lagoon Zen", buffRule: "All AI hunt Flights & Flight pays +$15!" }
         ];
 
@@ -369,6 +392,13 @@
             { name: "Cutter McCoy", type: "Aggressive", Avatar: Avatars.Cutter },
             { name: "Loomis", type: "Patient", Avatar: Avatars.Loomis }
         ];
+
+        const getAvatarComponent = (name) => {
+            const patronType = BASE_PATRON_TYPES.find(p => p.name === name);
+            return patronType ? patronType.Avatar : Avatars.Pete;
+        };
+
+        const has311Combo = (dice) => dice && dice.includes(3) && dice.includes(1);
 
         const evaluateHand = (dice) => {
             if (!dice || dice[0] === 0) return null;
@@ -420,9 +450,11 @@
             if (isZero) return <div className={`${sizeClass} flex items-center justify-center rounded-xl border border-amber-900/40 bg-black/40 text-amber-800/50 shadow-inner`}><Icon name="Mug" size={size === "large" ? 22 : 13} /></div>;
             const displayVal = isRolling && value === 0 ? ((Math.floor(Math.random() * 6)) + 1) : value;
             const style = isRolling ? {} : { transform: `translate3d(${physics.x}px, ${physics.y}px, 0) rotate(${physics.rot}deg)` };
+            const heldClass = held ? (size === "large" ? "die-held" : "die-held-small") : "";
+
             return (
                 <div className="relative flex flex-col items-center">
-                    <div onClick={onClick} className={`${sizeClass} flex items-center justify-center rounded-xl cursor-pointer dice-face ${displayVal === 1 ? 'die-wild-ace' : 'die-ivory'} ${held ? 'die-held' : ''} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`} style={held ? {} : style}>
+                    <div onClick={onClick} className={`${sizeClass} flex items-center justify-center rounded-xl cursor-pointer dice-face ${displayVal === 1 ? 'die-wild-ace' : 'die-ivory'} ${heldClass} ${isRolling && !held ? 'rolling-animation' : 'die-physics'}`} style={held ? {} : style}>
                         {renderPips(displayVal, size)}
                     </div>
                     {size === "large" && held && <span className="absolute -bottom-2 px-1.5 py-0.5 text-[8px] font-black tracking-widest uppercase bg-yellow-500 text-black rounded shadow border border-yellow-200 leading-none z-20">HELD</span>}
@@ -442,12 +474,14 @@
             const updateProgression = (earningsToAdd) => {
                 const nextTotal = localSave.lifetimeEarnings + earningsToAdd;
                 const nextState = { ...localSave, lifetimeEarnings: nextTotal };
-                setLocalSave(nextState); localStorage.setItem('lawBrewingClub', JSON.stringify(nextState));
+                setLocalSave(nextState);
+                try { localStorage.setItem('lawBrewingClub', JSON.stringify(nextState)); } catch(e) {}
             };
 
             const recordDailyShake = () => {
                 const nextState = { ...localSave, lastShakeDate: new Date().toDateString() };
-                setLocalSave(nextState); localStorage.setItem('lawBrewingClub', JSON.stringify(nextState));
+                setLocalSave(nextState);
+                try { localStorage.setItem('lawBrewingClub', JSON.stringify(nextState)); } catch(e) {}
             };
 
             const [gameState, setGameState] = useState('START');
@@ -467,17 +501,25 @@
             const [isLastCall, setIsLastCall] = useState(false);
             const [dailyBonusBank, setDailyBonusBank] = useState(false);
 
-            const [sessionStats, setSessionStats] = useState({ roundsSurvived: 0, highestHandRank: 0, potsWon: 0, totalEarnings: 0 });
+            const [sessionStats, setSessionStats] = useState({
+                roundsSurvived: 0,
+                highestHandRank: 0,
+                potsWon: 0,
+                totalEarnings: 0
+            });
 
             const [playerDice, setPlayerDice] = useState([0, 0, 0, 0, 0]);
             const [heldDice, setHeldDice] = useState([false, false, false, false, false]);
             const [dicePhysics, setDicePhysics] = useState(Array(5).fill({x:0, y:0, rot:0}));
             const [rollsLeft, setRollsLeft] = useState(3);
+            const [playerHand, setPlayerHand] = useState(null);
             const [isRollingDice, setIsRollingDice] = useState(false);
 
             const [opponents, setOpponents] = useState([]);
+            const [retiredPatronTypes, setRetiredPatronTypes] = useState([]);
             const [turnOrder, setTurnOrder] = useState([]);
             const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+            const [lastRoundRankings, setLastRoundRankings] = useState([]);
 
             const playerDiceRef = useRef(playerDice);
             const opponentsRef = useRef(opponents);
@@ -512,109 +554,342 @@
                     const res = evaluateHand(newDice);
                     if (res && res.rank === 8) {
                         SoundFX.potWin(); setDailyBonusBank(true);
-                        setMessage("🎰 KEK STAND! You won a $500 Bankroll for your next session!");
+                        setMessage("🎰 KEG STAND! You unlocked a $500 Bankroll for your next session!");
                     } else {
-                        setMessage("Better luck tomorrow. Standard $50 Bankroll applied.");
+                        setMessage(`Rolled ${HAND_NAMES[res ? res.rank : 1]}. Come back tomorrow for another shot at the $500 Keg Stand!`);
                     }
-                    setTimeout(() => { setGameState('START'); setPlayerDice([0,0,0,0,0]); }, 3500);
+                    setTimeout(() => { setGameState('START'); setPlayerDice([0,0,0,0,0]); }, 3200);
                 }, 1000);
             };
 
+            // Step-by-step visible AI rolling so you can watch each patron shake and hold dice
             useEffect(() => {
-                if (gameState === 'ROLLING') {
-                    const activeId = turnOrder[currentTurnIndex];
-                    if (activeId !== undefined && activeId !== 'player') {
-                        SoundFX.shakeAndRoll();
-                        const aiDelay = setTimeout(() => { playAITurn(activeId); }, 1150);
-                        return () => clearTimeout(aiDelay);
-                    }
-                }
+                if (gameState !== 'ROLLING') return;
+                const activeId = turnOrder[currentTurnIndex];
+                if (activeId === undefined || activeId === 'player') return;
+
+                let isCancelled = false;
+                const timers = [];
+
+                const runAISequence = () => {
+                    const isLeadRoller = currentTurnIndex === 0;
+                    const maxAllowedRolls = roundMaxRollsRef.current;
+                    const currentBuff = activeDrinkBuffRef.current;
+
+                    SoundFX.shakeAndRoll();
+
+                    // Shake 1
+                    timers.push(setTimeout(() => {
+                        if (isCancelled) return;
+                        let currentDice = [1,1,1,1,1].map(() => Math.ceil(Math.random() * 6));
+                        const targetOpp = opponentsRef.current.find(o => o.id === activeId);
+                        if (!targetOpp) return;
+
+                        const eval1 = evaluateHand(currentDice);
+                        const stopOn1 = maxAllowedRolls === 1 || eval1.rank === 8 || (isLeadRoller && !isLastCall && eval1.rank >= 5);
+                        const keeps1 = stopOn1 ? [0,1,2,3,4] : getAIKeeps(currentDice, targetOpp, currentBuff);
+
+                        const step1Opps = opponentsRef.current.map(o =>
+                            o.id === activeId ? { ...o, dice: currentDice, heldIndices: keeps1, hand: eval1, isRollingNow: false } : o
+                        );
+                        setOpponents(step1Opps);
+                        opponentsRef.current = step1Opps;
+
+                        if (stopOn1 || keeps1.length === 5) {
+                            timers.push(setTimeout(() => {
+                                if (isCancelled) return;
+                                finalizeAITurn(activeId, currentDice, 1, isLeadRoller && !isLastCall && maxAllowedRolls > 1);
+                            }, 650));
+                            return;
+                        }
+
+                        // Trigger Shake 2
+                        timers.push(setTimeout(() => {
+                            if (isCancelled) return;
+                            SoundFX.shakeAndRoll();
+                            const rolling2Opps = opponentsRef.current.map(o =>
+                                o.id === activeId ? { ...o, isRollingNow: true } : o
+                            );
+                            setOpponents(rolling2Opps);
+                            opponentsRef.current = rolling2Opps;
+
+                            timers.push(setTimeout(() => {
+                                if (isCancelled) return;
+                                currentDice = currentDice.map((d, i) => keeps1.includes(i) ? d : Math.ceil(Math.random() * 6));
+                                const eval2 = evaluateHand(currentDice);
+                                const stopOn2 = maxAllowedRolls <= 2 || eval2.rank === 8 || (isLeadRoller && !isLastCall && eval2.rank >= 4);
+                                const keeps2 = stopOn2 ? [0,1,2,3,4] : getAIKeeps(currentDice, targetOpp, currentBuff);
+
+                                const step2Opps = opponentsRef.current.map(o =>
+                                    o.id === activeId ? { ...o, dice: currentDice, heldIndices: keeps2, hand: eval2, isRollingNow: false } : o
+                                );
+                                setOpponents(step2Opps);
+                                opponentsRef.current = step2Opps;
+
+                                if (stopOn2 || keeps2.length === 5) {
+                                    timers.push(setTimeout(() => {
+                                        if (isCancelled) return;
+                                        finalizeAITurn(activeId, currentDice, 2, isLeadRoller && !isLastCall && maxAllowedRolls > 2);
+                                    }, 650));
+                                    return;
+                                }
+
+                                // Trigger Final Shake 3
+                                timers.push(setTimeout(() => {
+                                    if (isCancelled) return;
+                                    SoundFX.shakeAndRoll();
+                                    const rolling3Opps = opponentsRef.current.map(o =>
+                                        o.id === activeId ? { ...o, isRollingNow: true } : o
+                                    );
+                                    setOpponents(rolling3Opps);
+                                    opponentsRef.current = rolling3Opps;
+
+                                    timers.push(setTimeout(() => {
+                                        if (isCancelled) return;
+                                        currentDice = currentDice.map((d, i) => keeps2.includes(i) ? d : Math.ceil(Math.random() * 6));
+                                        finalizeAITurn(activeId, currentDice, 3, false);
+                                    }, 450));
+                                }, 500));
+                            }, 450));
+                        }, 550));
+                    }, 500));
+                };
+
+                // Mark opponent as rolling at start of turn
+                const startRollingOpps = opponentsRef.current.map(o =>
+                    o.id === activeId ? { ...o, isRollingNow: true, heldIndices: [] } : o
+                );
+                setOpponents(startRollingOpps);
+                opponentsRef.current = startRollingOpps;
+
+                runAISequence();
+
+                return () => {
+                    isCancelled = true;
+                    timers.forEach(clearTimeout);
+                };
             }, [currentTurnIndex, gameState, turnOrder]);
 
-            const playAITurn = (aiId) => {
-                const isLeadRoller = currentTurnIndex === 0;
-                const maxAllowedRolls = roundMaxRollsRef.current;
+            const finalizeAITurn = (aiId, finalDice, rollsUsed, calledEarly) => {
                 const currentBuff = activeDrinkBuffRef.current;
-                let leadCalledEarly = false; let newCap = maxAllowedRolls;
+                const finalHand = evaluateHand(finalDice);
+                let bonusAlert = "";
 
                 const newOpps = opponentsRef.current.map(opp => {
                     if (opp.id === aiId) {
-                        let currentDice = [1,1,1,1,1].map(() => Math.ceil(Math.random() * 6));
-                        for (let r = 1; r < maxAllowedRolls; r++) {
-                            const evalNow = evaluateHand(currentDice);
-                            if (isLeadRoller && !isLastCall) {
-                                if (r === 1 && evalNow.rank >= 5) { leadCalledEarly = true; newCap = 1; break; }
-                                if (r === 2 && evalNow.rank >= 4) { leadCalledEarly = true; newCap = 2; break; }
-                            }
-                            if (evalNow.rank === 8) break;
-                            const keeps = getAIKeeps(currentDice, opp, currentBuff);
-                            if (keeps.length === 5) break;
-                            currentDice = currentDice.map((d, i) => keeps.includes(i) ? d : Math.ceil(Math.random() * 6));
+                        let updatedMoney = opp.money;
+                        if (currentBuff?.id === 'sublime' && has311Combo(finalDice)) {
+                            updatedMoney += 10;
+                            bonusAlert = ` 🎶 ${opp.name} hit 3-1-1 (+$10)!`;
                         }
-                        const finalHand = evaluateHand(currentDice);
-                        return { ...opp, dice: currentDice, hand: finalHand, status: 'Done', quote: leadCalledEarly ? PATRON_QUOTES[opp.name]?.call : (finalHand.rank >= 6 ? "Top that!" : null) };
+                        if (currentBuff?.id === 'egret' && finalHand.rank === 5) {
+                            updatedMoney += 15;
+                            bonusAlert += ` 🦢 ${opp.name} hit Lagoon Zen (+$15)!`;
+                        }
+                        const quotePool = PATRON_QUOTES[opp.name];
+                        const chosenQuote = calledEarly
+                            ? quotePool?.call
+                            : (finalHand.rank >= 6 ? "Top that hand!" : null);
+
+                        return {
+                            ...opp,
+                            money: updatedMoney,
+                            dice: finalDice,
+                            heldIndices: [],
+                            isRollingNow: false,
+                            hand: finalHand,
+                            rollsUsed,
+                            status: 'Done',
+                            quote: chosenQuote
+                        };
                     }
                     return opp;
                 });
 
-                if (leadCalledEarly) { SoundFX.callTheBar(); setRoundMaxRolls(newCap); roundMaxRollsRef.current = newCap; setIsCapLocked(true); }
-                setOpponents(newOpps); opponentsRef.current = newOpps;
-                advanceTurn(leadCalledEarly ? newCap : null);
+                if (calledEarly) {
+                    SoundFX.callTheBar();
+                    setRoundMaxRolls(rollsUsed);
+                    roundMaxRollsRef.current = rollsUsed;
+                    setIsCapLocked(true);
+                }
+
+                setOpponents(newOpps);
+                opponentsRef.current = newOpps;
+                advanceTurn(calledEarly ? rollsUsed : null, bonusAlert);
             };
 
-            const advanceTurn = (justCalledCap = null) => {
+            const advanceTurn = (justCalledCap = null, extraNote = "") => {
                 const nextIndex = currentTurnIndex + 1;
                 const capToUse = justCalledCap || roundMaxRollsRef.current;
-                if (nextIndex >= turnOrder.length) { finishRound(); } else {
-                    setCurrentTurnIndex(nextIndex); const nextId = turnOrder[nextIndex];
+                const callPrefix = justCalledCap ? `🔨 BAR CALLED IN ${justCalledCap}! ` : "";
+
+                if (nextIndex >= turnOrder.length) {
+                    finishRound(extraNote);
+                } else {
+                    setCurrentTurnIndex(nextIndex);
+                    const nextId = turnOrder[nextIndex];
                     if (nextId === 'player') {
-                        setPlayerDice([0,0,0,0,0]); setHeldDice([false,false,false,false,false]); setDicePhysics(Array(5).fill({x:0, y:0, rot:0})); setRollsLeft(capToUse);
-                        setMessage(`Your turn! You have ${capToUse} ${capToUse === 1 ? 'shake' : 'shakes'}.`);
+                        setPlayerDice([0,0,0,0,0]);
+                        setHeldDice([false,false,false,false,false]);
+                        setDicePhysics(Array(5).fill({x:0, y:0, rot:0}));
+                        setRollsLeft(capToUse);
+                        setMessage(`${callPrefix}Your turn! You have ${capToUse} ${capToUse === 1 ? 'shake' : 'shakes'}.${extraNote}`);
                     } else {
                         const nextOpp = opponentsRef.current.find(o => o.id === nextId);
                         setOpponents(opponentsRef.current.map(o => o.id === nextId ? { ...o, quote: PATRON_QUOTES[o.name]?.rolling } : o));
-                        setMessage(`${nextOpp?.name} is shaking the cup...`);
+                        setMessage(`${callPrefix}${nextOpp?.name} is shaking the cup...${extraNote}`);
                     }
                 }
             };
 
             const initializeGame = () => {
-                SoundFX.init(); const bgm = document.getElementById('bgm');
+                SoundFX.init();
+                setHasSubmittedScore(false);
+                const bgm = document.getElementById('bgm');
                 if (bgm) { bgm.volume = 0.4; bgm.muted = isMuted; bgm.play().catch(e => {}); }
-                
-                const startBank = dailyBonusBank ? 500 : 50;
-                setFunds(startBank); fundsRef.current = startBank;
+
+                const startBank = dailyBonusBank ? 500 : HOUSE_START_MONEY;
+                setFunds(startBank);
+                fundsRef.current = startBank;
                 setDailyBonusBank(false);
-                
-                setRound(1); setRetiredPatronTypes([]); setActiveDrinkBuff(null); setNextDrinkBuff(null);
-                activeDrinkBuffRef.current = null; nextDrinkBuffRef.current = null; setIsLastCall(false);
-                
+
+                setRound(1);
+                setLastRoundRankings([]);
+                setRetiredPatronTypes([]);
+                setActiveDrinkBuff(null);
+                setNextDrinkBuff(null);
+                activeDrinkBuffRef.current = null;
+                nextDrinkBuffRef.current = null;
+                setIsLastCall(false);
+
+                setSessionStats({
+                    roundsSurvived: 0,
+                    highestHandRank: 0,
+                    potsWon: 0,
+                    totalEarnings: 0
+                });
+
                 const initialTypes = [...BASE_PATRON_TYPES].sort(() => 0.5 - Math.random()).slice(0, numOpponentsToPlay);
-                const newOpponents = initialTypes.map((pType, i) => ({ ...pType, id: i, dice: [0,0,0,0,0], hand: null, money: 50, status: 'Waiting', typeId: pType.name, quote: null, Avatar: pType.Avatar }));
-                setOpponents(newOpponents); opponentsRef.current = newOpponents;
+                const newOpponents = initialTypes.map((pType, i) => ({
+                    ...pType,
+                    id: i,
+                    dice: [0,0,0,0,0],
+                    heldIndices: [],
+                    isRollingNow: false,
+                    hand: null,
+                    money: PATRON_START_MONEY,
+                    status: 'Waiting',
+                    typeId: pType.name,
+                    quote: null,
+                    Avatar: getAvatarComponent(pType.name)
+                }));
+
+                setOpponents(newOpponents);
+                opponentsRef.current = newOpponents;
                 setupRound([...newOpponents.map(o => o.id), 'player'], newOpponents, startBank, null);
+            };
+
+            const processEliminations = (currentOpponents, requiredAnte) => {
+                const survivingOpponents = [];
+                const newRetired = [];
+                let eliminationMsg = "";
+
+                currentOpponents.forEach(opp => {
+                    if (opp.money < requiredAnte) {
+                        newRetired.push(opp.typeId);
+                        eliminationMsg += `🚨 ${opp.name} tabbed out! `;
+                    } else {
+                        survivingOpponents.push(opp);
+                    }
+                });
+
+                let finalOpponents = [...survivingOpponents];
+                const allRetired = [...retiredPatronTypes, ...newRetired];
+
+                if (newRetired.length > 0) {
+                    const seatsNeeded = numOpponentsToPlay - survivingOpponents.length;
+                    const sittingTypes = finalOpponents.map(o => o.typeId);
+
+                    for (let i = 0; i < seatsNeeded; i++) {
+                        const availableTypes = BASE_PATRON_TYPES.filter(p => !allRetired.includes(p.name) && !sittingTypes.includes(p.name));
+
+                        if (availableTypes.length > 0) {
+                            const replacementType = availableTypes[0];
+                            sittingTypes.push(replacementType.name);
+
+                            finalOpponents.push({
+                                ...replacementType,
+                                id: Math.max(...currentOpponents.map(o => o.id), 0) + 1 + i,
+                                dice: [0,0,0,0,0],
+                                heldIndices: [],
+                                isRollingNow: false,
+                                hand: null,
+                                money: PATRON_START_MONEY,
+                                status: 'Waiting',
+                                typeId: replacementType.name,
+                                quote: "Fresh tab! Deal me in.",
+                                Avatar: getAvatarComponent(replacementType.name)
+                            });
+                            eliminationMsg += `${replacementType.name} pulled up a stool! `;
+                        } else {
+                            eliminationMsg += `No more regulars left in the taproom! `;
+                        }
+                    }
+                }
+
+                return { opponents: finalOpponents, newRetiredList: allRetired, msg: eliminationMsg };
             };
 
             const startRound = () => {
                 const incomingDrink = nextDrinkBuffRef.current;
-                const nextAnte = incomingDrink?.id === 'cabana' ? 15 : 10;
-                let alive = opponentsRef.current.filter(o => o.money >= nextAnte);
-                
-                if (alive.length === 0) { SoundFX.potWin(); setGameState('BAR_VICTORY'); return; }
-                setRound(r => r + 1); setIsLastCall(false);
-                setupRound([...alive.map(o => o.id), 'player'], alive, fundsRef.current, incomingDrink);
+                const nextAnte = incomingDrink?.id === 'cabana' ? 15 : CONTRIBUTION;
+
+                const { opponents: nextOpponents, newRetiredList, msg } = processEliminations(opponentsRef.current, nextAnte);
+
+                if (newRetiredList.length > retiredPatronTypes.length) {
+                    setRetiredPatronTypes(newRetiredList);
+                }
+
+                if (nextOpponents.length === 0) {
+                    SoundFX.potWin();
+                    setGameState(GAME_STATE_BAR_VICTORY);
+                    return;
+                }
+
+                setRound(r => r + 1);
+                setIsLastCall(false);
+
+                let order = [];
+                if (lastRoundRankings.length > 0) {
+                    const worstToBest = [...lastRoundRankings].reverse();
+                    const currentIds = nextOpponents.map(o => o.id);
+                    currentIds.push('player');
+                    order = worstToBest.map(p => p.id).filter(id => currentIds.includes(id));
+                    currentIds.forEach(id => {
+                        if (!order.includes(id)) order.unshift(id);
+                    });
+                } else {
+                    order = [...nextOpponents.map(o => o.id), 'player'];
+                }
+
+                if (msg) {
+                    setMessage(msg.trim());
+                    setTimeout(() => setupRound(order, nextOpponents, fundsRef.current, incomingDrink), 1800);
+                } else {
+                    setupRound(order, nextOpponents, fundsRef.current, incomingDrink);
+                }
             };
 
             const triggerLastCall = () => {
                 SoundFX.callTheBar();
                 const allIn = fundsRef.current;
                 const surviving = opponentsRef.current.filter(o => o.money > 0);
-                
+
                 let totalPot = allIn;
                 const matchOpps = surviving.map(o => {
                     const match = Math.min(o.money, allIn);
                     totalPot += match;
-                    return { ...o, money: o.money - match, dice: [0,0,0,0,0], hand: null, quote: "Last Call! All-in!" };
+                    return { ...o, money: o.money - match, dice: [0,0,0,0,0], heldIndices: [], isRollingNow: false, hand: null, quote: "Last Call! All-in!" };
                 });
 
                 setFunds(0); fundsRef.current = 0;
@@ -622,21 +897,27 @@
                 setRoundMaxRolls(1); roundMaxRollsRef.current = 1;
                 setIsCapLocked(true); setIsLastCall(true);
                 setOpponents(matchOpps); opponentsRef.current = matchOpps;
-                
+
                 const order = [...matchOpps.map(o => o.id), 'player'];
                 setTurnOrder(order); setCurrentTurnIndex(0);
                 setPlayerDice([0,0,0,0,0]); setHeldDice([false,false,false,false,false]); setRollsLeft(1);
-                
+
                 setMessage(`🚨 SUDDEN DEATH! ONE SHAKE. Pot: $${totalPot}`);
                 setGameState('ROLLING');
             };
 
             const setupRound = (order, currentOpponents, availableFunds, brewBuff) => {
-                const roundAnte = brewBuff?.id === 'cabana' ? 15 : 10;
+                const roundAnte = brewBuff?.id === 'cabana' ? 15 : CONTRIBUTION;
 
                 if (availableFunds < roundAnte) {
-                    if (availableFunds > 0) { setGameState('LAST_CALL_PROMPT'); setMessage("You cannot cover the ante. It's time for Last Call."); return; }
-                    setMessage("The House is broke. GAME OVER."); setTimeout(() => setGameState('GAME_OVER'), 2000); return;
+                    if (availableFunds > 0) {
+                        setGameState('LAST_CALL_PROMPT');
+                        setMessage("You cannot cover the ante. Trigger Last Call to go All-In!");
+                        return;
+                    }
+                    setMessage("The House is broke. GAME OVER.");
+                    setTimeout(() => setGameState('GAME_OVER'), 2000);
+                    return;
                 }
 
                 setActiveDrinkBuff(brewBuff); activeDrinkBuffRef.current = brewBuff;
@@ -646,7 +927,15 @@
                 setIsCapLocked(false); setDoubleTapUsed(false);
 
                 let currentFunds = availableFunds - roundAnte;
-                const newOpponents = currentOpponents.map(opp => ({ ...opp, money: opp.money - roundAnte, dice: [0,0,0,0,0], hand: null, quote: order[0] === opp.id ? PATRON_QUOTES[opp.name]?.rolling : null }));
+                const newOpponents = currentOpponents.map(opp => ({
+                    ...opp,
+                    money: opp.money - roundAnte,
+                    dice: [0,0,0,0,0],
+                    heldIndices: [],
+                    isRollingNow: false,
+                    hand: null,
+                    quote: order[0] === opp.id ? PATRON_QUOTES[opp.name]?.rolling : null
+                }));
                 const totalPot = (newOpponents.length + 1) * roundAnte;
 
                 setFunds(currentFunds); fundsRef.current = currentFunds;
@@ -654,7 +943,14 @@
                 setPlayerDice([0,0,0,0,0]); setHeldDice([false, false, false, false, false]); setRollsLeft(startingMaxRolls);
                 setOpponents(newOpponents); opponentsRef.current = newOpponents;
                 setTurnOrder(order); setCurrentTurnIndex(0); setGameState('ROLLING');
-                setMessage(`Ante up ($${roundAnte})! Pot is $${totalPot}. ${order[0]==='player' ? 'You have The Hammer!' : 'Opponent leads.'}`);
+
+                const firstId = order[0];
+                if (firstId === 'player') {
+                    setMessage(`Ante up ($${roundAnte})! Pot is $${totalPot}. You have The Hammer!`);
+                } else {
+                    const opp = newOpponents.find(o => o.id === firstId);
+                    setMessage(`Ante up ($${roundAnte})! Pot is $${totalPot}. ${opp ? opp.name : 'Opponent'} leads off.`);
+                }
             };
 
             const rollDice = () => {
@@ -679,20 +975,57 @@
                 setMessage(`🔔 DOUBLE TAP! Pot surges to $${potRef.current}!`);
             };
 
+            const checkPlayerInstantBonuses = (finalDice) => {
+                const buff = activeDrinkBuffRef.current;
+                const hand = evaluateHand(finalDice);
+                let bonusCash = 0;
+                let note = "";
+
+                if (buff?.id === 'sublime' && has311Combo(finalDice)) {
+                    bonusCash += 10;
+                    note += " 🎶 3-1-1 Jukebox Bonus (+$10)!";
+                }
+                if (buff?.id === 'egret' && hand?.rank === 5) {
+                    bonusCash += 15;
+                    note += " 🦢 Lagoon Zen Flight Bonus (+$15)!";
+                }
+
+                if (bonusCash > 0) {
+                    SoundFX.potWin();
+                    const updatedFunds = fundsRef.current + bonusCash;
+                    setFunds(updatedFunds);
+                    fundsRef.current = updatedFunds;
+                    setSessionStats(prev => ({ ...prev, totalEarnings: prev.totalEarnings + bonusCash }));
+                    updateProgression(bonusCash);
+                }
+                return note;
+            };
+
             useEffect(() => {
                  if (gameState === 'ROLLING' && turnOrder[currentTurnIndex] === 'player' && rollsLeft === 0) {
-                      const timer = setTimeout(() => advanceTurn(null), 900);
+                      const timer = setTimeout(() => {
+                          const bonusNote = checkPlayerInstantBonuses(playerDiceRef.current);
+                          advanceTurn(null, bonusNote);
+                      }, 900);
                       return () => clearTimeout(timer);
                  }
             }, [rollsLeft, currentTurnIndex, gameState]);
 
             const forceFinish = () => {
                 if (turnOrder[currentTurnIndex] !== 'player' || playerDice[0] === 0) return;
-                const isLeadRoller = currentTurnIndex === 0; const rollsUsed = roundMaxRollsRef.current - rollsLeft;
+                const isLeadRoller = currentTurnIndex === 0;
+                const rollsUsed = roundMaxRollsRef.current - rollsLeft;
+                const bonusNote = checkPlayerInstantBonuses(playerDiceRef.current);
+
                 if (isLeadRoller && rollsUsed < roundMaxRollsRef.current && !isLastCall) {
-                    SoundFX.callTheBar(); setRoundMaxRolls(rollsUsed); roundMaxRollsRef.current = rollsUsed;
-                    setIsCapLocked(true); advanceTurn(rollsUsed);
-                } else { setRollsLeft(0); }
+                    SoundFX.callTheBar();
+                    setRoundMaxRolls(rollsUsed);
+                    roundMaxRollsRef.current = rollsUsed;
+                    setIsCapLocked(true);
+                    advanceTurn(rollsUsed, bonusNote);
+                } else {
+                    setRollsLeft(0);
+                }
             };
 
             const getAIKeeps = (dice, opp, currentBuff) => {
@@ -721,11 +1054,12 @@
                 for (let i = 0; i < 5; i++) { if (!keeps.includes(i) && counts[dice[i]] >= 2) keeps.push(i); } return keeps;
             };
 
-            const finishRound = () => {
+            const finishRound = (extraNote = "") => {
                 setGameState('EVALUATION');
                 const finalPHand = evaluateHand(playerDiceRef.current); setPlayerHand(finalPHand);
-                const finalOpps = opponentsRef.current.map(opp => ({ ...opp, hand: evaluateHand(opp.dice) }));
+                const finalOpps = opponentsRef.current.map(opp => ({ ...opp, hand: evaluateHand(opp.dice), heldIndices: [], isRollingNow: false }));
                 setOpponents(finalOpps);
+                if (extraNote) setMessage(prev => prev + extraNote);
                 setTimeout(() => determineWinner(finalPHand, finalOpps), 950);
             };
 
@@ -733,24 +1067,46 @@
                 const safePHand = pHand || { rank: 1, value: 0 };
                 const allPlayers = [{ id: 'player', name: 'You', hand: safePHand }, ...opps.map(o => ({ ...o, hand: o.hand || {rank:1,value:0} }))];
                 allPlayers.sort((a, b) => b.hand.rank !== a.hand.rank ? b.hand.rank - a.hand.rank : b.hand.value - a.hand.value);
-                
+                setLastRoundRankings(allPlayers);
+
                 const winner = allPlayers[0]; const loser = allPlayers[allPlayers.length - 1];
                 const losingDrink = ROUND_DRINKS[Math.floor(Math.random() * ROUND_DRINKS.length)];
                 setNextDrinkBuff({ ...losingDrink, buyer: loser.name }); nextDrinkBuffRef.current = { ...losingDrink, buyer: loser.name };
 
                 const currentRoundCost = activeDrinkBuffRef.current?.id === 'blood' ? 30 : BUY_A_ROUND_COST;
                 let msg = ""; let newFunds = fundsRef.current; const activePot = potRef.current;
+                let wonPotThisRound = false;
 
-                if (winner.id === 'player') { SoundFX.potWin(); newFunds += activePot; msg += `🏆 WINNER: You scooped $${activePot}! `; }
-                else { SoundFX.buyRound(); msg += `🏆 WINNER: ${winner.name} scooped $${activePot}. `; }
+                if (winner.id === 'player') {
+                    SoundFX.potWin(); newFunds += activePot; wonPotThisRound = true;
+                    msg += `🏆 WINNER: You scooped $${activePot}! `;
+                    updateProgression(activePot);
+                } else {
+                    SoundFX.buyRound();
+                    msg += `🏆 WINNER: ${winner.name} scooped $${activePot}. `;
+                }
 
                 if (loser.id === 'player') { newFunds -= currentRoundCost; msg += `🍺 TAB: You bought ${losingDrink.name} (-$${currentRoundCost})`; }
                 else { msg += `🍺 TAB: ${loser.name} bought ${losingDrink.name}`; }
 
-                setOpponents(opps.map(o => ({ ...o, money: Math.max(0, o.id === winner.id ? o.money + activePot : (o.id === loser.id ? o.money - currentRoundCost : o.money)), quote: o.id === winner.id ? PATRON_QUOTES[o.name]?.winner : (o.id === loser.id ? PATRON_QUOTES[o.name]?.loser : null) })));
-                setPot(0); potRef.current = 0;
+                setOpponents(opps.map(o => {
+                    const nextCash = Math.max(0, o.id === winner.id ? o.money + activePot : (o.id === loser.id ? o.money - currentRoundCost : o.money));
+                    const quotes = PATRON_QUOTES[o.name];
+                    let reactionQuote = null;
+                    if (o.id === winner.id) reactionQuote = quotes?.winner;
+                    else if (o.id === loser.id) reactionQuote = quotes?.loser;
+                    else if ((o.hand?.rank || 1) >= 5) reactionQuote = quotes?.salty;
+                    return { ...o, money: nextCash, quote: reactionQuote };
+                }));
 
-                if (winner.id === 'player') updateProgression(activePot);
+                setSessionStats(prev => ({
+                    roundsSurvived: prev.roundsSurvived + 1,
+                    highestHandRank: Math.max(prev.highestHandRank, safePHand.rank),
+                    potsWon: prev.potsWon + (wonPotThisRound ? 1 : 0),
+                    totalEarnings: prev.totalEarnings + (wonPotThisRound ? activePot : 0)
+                }));
+
+                setPot(0); potRef.current = 0;
 
                 if (newFunds <= 0 || (isLastCall && winner.id !== 'player')) {
                     setMessage(`FINAL: ${msg} — 💀 The House is bankrupt.`);
@@ -797,17 +1153,20 @@
             const isPlayerTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === 'player';
             const isPlayerLead = turnOrder[0] === 'player';
             const playerRollsUsed = roundMaxRolls - rollsLeft;
-            
+
             const opponentGridClass = useMemo(() => {
                 const c = opponents.length;
-                if (c === 1) return "grid-cols-1 max-w-md mx-auto w-full"; if (c === 2) return "grid-cols-2"; if (c === 3) return "grid-cols-3";
-                if (c === 4) return "grid-cols-2 md:grid-cols-4"; return "grid-cols-2 md:grid-cols-5";
+                if (c === 1) return "grid-cols-1 max-w-md mx-auto w-full";
+                if (c === 2) return "grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto w-full";
+                if (c === 3) return "grid-cols-1 sm:grid-cols-3";
+                if (c === 4) return "grid-cols-2 lg:grid-cols-4";
+                return "grid-cols-2 lg:grid-cols-5";
             }, [opponents.length]);
 
             let coasterClass = "border-stone-800 opacity-90";
             let coasterLabel = "THE HOUSE TRAY";
             if (localSave.lifetimeEarnings >= 10000) { coasterClass = "coaster-gold"; coasterLabel = "👑 VIP MUG CLUB TRAY"; }
-            else if (localSave.lifetimeEarnings >= 2500) { coasterClass = "coaster-copper"; coasterLabel = "🏅 GOLD MEMBER TRAY"; }
+            else if (localSave.lifetimeEarnings >= 2500) { coasterClass = "coaster-copper"; coasterLabel = "🏅 COPPER RING TRAY"; }
             else if (localSave.lifetimeEarnings >= 500) { coasterClass = "coaster-leather"; coasterLabel = "📜 LEATHER COASTER TRAY"; }
 
             const todayStr = new Date().toDateString();
@@ -832,7 +1191,36 @@
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                            {activeDrinkBuff && gameState !== 'START' && (
+                                <div title={activeDrinkBuff.buffRule} className="hidden lg:flex items-center gap-1.5 bg-amber-950/90 border border-amber-500/60 px-2.5 py-1 rounded-lg text-[11px]">
+                                    <span className="font-black text-amber-400 uppercase">🍺 {activeDrinkBuff.name}:</span>
+                                    <span className="text-amber-100">{activeDrinkBuff.buffRule}</span>
+                                </div>
+                            )}
+
                             <button onClick={toggleAudio} className="p-1.5 text-amber-300/80 border border-amber-800/60 rounded-lg bg-black/40"><Icon name={isMuted ? "VolumeOff" : "VolumeOn"} size={14} /></button>
+
+                            <div className="relative cheat-sheet-container">
+                                <button className="flex items-center gap-1 text-xs text-amber-200 hover:text-white border border-amber-700/60 px-2.5 py-1 rounded-lg bg-black/40 font-medium">
+                                    <Icon name="Help" size={13} /> Ranks
+                                </button>
+                                <div className="cheat-sheet hidden absolute right-0 top-8 w-64 bg-stone-950 border-2 border-amber-600 rounded-xl p-3.5 shadow-2xl text-xs">
+                                    <h3 className="font-western text-amber-400 mb-2 border-b border-amber-900/60 pb-1 tracking-wide">
+                                        TAPROOM HAND RANKS
+                                    </h3>
+                                    <ul className="space-y-1.5 text-stone-300 font-medium">
+                                        <li className="flex justify-between"><span><b className="text-amber-400">8.</b> Keg Stand</span> <span className="text-stone-500">5-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">7.</b> Case of Beer</span> <span className="text-stone-500">4-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">6.</b> Full Tab</span> <span className="text-stone-500">Full House</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">5.</b> Flight</span> <span className="text-stone-500">Straight</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">4.</b> Six Pack</span> <span className="text-stone-500">3-Kind</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">3.</b> Double Fisted</span> <span className="text-stone-500">2 Pair</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">2.</b> Solo Cup</span> <span className="text-stone-500">1 Pair</span></li>
+                                        <li className="flex justify-between"><span><b className="text-amber-400">1.</b> Spilled Drink</span> <span className="text-stone-500">High Die</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+
                             <div className="text-right bg-black/40 border border-amber-900/50 px-2.5 py-0.5 rounded-lg">
                                 <div className="text-[8px] text-amber-500/80 uppercase tracking-widest font-bold">Round</div>
                                 <div className="text-base font-western text-white leading-tight">{round}</div>
@@ -857,117 +1245,164 @@
 
                     {/* CENTER TABLE AREA */}
                     <div className="w-full max-w-6xl flex-1 min-h-0 z-10 flex flex-col justify-center">
-                        {gameState === 'START' || gameState === 'GAME_OVER' || gameState === 'BAR_VICTORY' || gameState === 'DAILY_SHAKE' ? (
-                            <div className="glass-panel p-6 md:p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-4 max-w-xl mx-auto w-full my-auto shadow-2xl">
-                                
+                        {gameState === 'START' || gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY || gameState === 'DAILY_SHAKE' ? (
+                            <div className="glass-panel p-5 md:p-7 rounded-2xl flex flex-col items-center justify-center text-center gap-3.5 max-w-xl mx-auto w-full my-auto shadow-2xl">
                                 {gameState === 'DAILY_SHAKE' ? (
                                     <>
                                         <h2 className="text-2xl font-western text-amber-400 neon-title">SHAKE OF THE DAY</h2>
-                                        <div className="felt-dice-pit rounded-2xl py-4 px-3 flex justify-center items-center gap-3 min-h-[5.75rem] w-full mt-4">
+                                        <div className="felt-dice-pit rounded-2xl py-4 px-3 flex justify-center items-center gap-3 min-h-[5.75rem] w-full mt-2">
                                             {playerDice.map((val, idx) => <Die key={idx} value={val} isRolling={isRollingDice} />)}
                                         </div>
                                         <p className="text-amber-200 text-sm mt-2">{message}</p>
                                     </>
                                 ) : (
                                     <>
-                                        {gameState === 'BAR_VICTORY' ? (
+                                        {gameState === GAME_STATE_BAR_VICTORY ? (
                                             <>
-                                                <div className="text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]"><Icon name="Party" size={56} /></div>
+                                                <div className="text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)]"><Icon name="Party" size={50} /></div>
                                                 <h2 className="text-2xl md:text-3xl font-western neon-title">BAR CONQUERS ALL!</h2>
-                                                <p className="text-stone-300 text-sm max-w-md">You cleaned out every patron in Dreadmoor!</p>
+                                                <p className="text-stone-300 text-xs md:text-sm max-w-md">You cleaned out every patron in Dreadmoor!</p>
                                             </>
                                         ) : gameState === 'GAME_OVER' ? (
                                             <>
-                                                <div className="text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]"><Icon name="Skull" size={56} /></div>
+                                                <div className="text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]"><Icon name="Skull" size={50} /></div>
                                                 <h2 className="text-2xl md:text-3xl font-western text-red-500">BAR CLOSED</h2>
-                                                <p className="text-stone-300 text-sm">Womp. Womp. The House ran out of cash.</p>
+                                                <p className="text-stone-300 text-xs md:text-sm">Womp. Womp. The House ran out of cash.</p>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 shadow-inner"><Icon name="Beer" size={36} /></div>
+                                                <div className="w-14 h-14 rounded-full bg-amber-500/10 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 shadow-inner"><Icon name="Beer" size={32} /></div>
                                                 <h2 className="text-2xl md:text-3xl font-western text-amber-400 tracking-wide">High-Stakes Taproom Dice</h2>
+                                                <div className="bg-black/40 border border-amber-900/50 px-4 py-2.5 rounded-xl flex flex-col items-center gap-1.5">
+                                                    <span className="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Barstools Occupied (Opponents)</span>
+                                                    <div className="flex gap-2">
+                                                        {[1, 2, 3, 4, 5].map(cnt => (
+                                                            <button key={cnt} onClick={() => { SoundFX.holdClick(true); setNumOpponentsToPlay(cnt); }} className={`w-9 h-9 rounded-lg font-western text-sm transition-all border ${numOpponentsToPlay === cnt ? 'bg-amber-500 text-black border-yellow-200 scale-105 shadow' : 'bg-stone-900 text-stone-400 border-stone-700'}`}>{cnt}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </>
                                         )}
 
                                         {/* Mug Club Local Progression UI */}
-                                        <div className="w-full bg-black/50 border border-amber-900/50 rounded-xl p-3 mt-2 flex flex-col items-center gap-1.5 shadow-inner">
+                                        <div className="w-full bg-black/50 border border-amber-900/50 rounded-xl p-3 flex flex-col items-center gap-1 shadow-inner">
                                             <div className="text-[10px] uppercase font-bold text-amber-500 tracking-widest">Lifetime Mug Club Earnings</div>
-                                            <div className="text-2xl font-mono-num font-bold text-emerald-400">${localSave.lifetimeEarnings.toLocaleString()}</div>
-                                            
+                                            <div className="text-xl md:text-2xl font-mono-num font-bold text-emerald-400">${localSave.lifetimeEarnings.toLocaleString()}</div>
                                             <div className="w-full bg-stone-900 h-2 rounded-full mt-1 overflow-hidden border border-stone-800">
                                                 <div className="h-full bg-gradient-to-r from-amber-600 to-yellow-400 transition-all" style={{ width: `${Math.min(100, (localSave.lifetimeEarnings / 10000) * 100)}%` }}></div>
                                             </div>
                                             <div className="flex justify-between w-full text-[9px] text-stone-500 px-1 mt-0.5">
-                                                <span>$0</span><span>$500</span><span>$2.5k</span><span>$10k VIP</span>
+                                                <span>$0 Cardboard</span><span>$500 Leather</span><span>$2.5k Copper</span><span>$10k VIP Gold</span>
                                             </div>
                                         </div>
 
                                         {canShakeToday && gameState === 'START' && (
-                                            <button onClick={triggerShakeOfDay} className="btn-pulse w-full py-3 bg-gradient-to-r from-yellow-600 to-amber-500 text-black font-black uppercase rounded-lg shadow-lg text-sm border border-yellow-300 flex items-center justify-center gap-2">
-                                                <Icon name="Zap" size={16} /> Roll Shake of the Day (Win $500 Start)
+                                            <button onClick={triggerShakeOfDay} className="btn-pulse w-full py-2.5 bg-gradient-to-r from-yellow-600 to-amber-500 text-black font-black uppercase rounded-xl shadow-lg text-xs md:text-sm border border-yellow-300 flex items-center justify-center gap-2">
+                                                <Icon name="Zap" size={15} /> Shake of the Day (5-of-a-Kind Wins $500 Start)
                                             </button>
                                         )}
 
-                                        {(gameState === 'START' || gameState === 'GAME_OVER' || gameState === 'BAR_VICTORY') && (
-                                            <>
-                                                <button onClick={initializeGame} className="w-full py-3 bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold uppercase rounded-lg shadow-lg text-sm border border-amber-700 mt-2">
-                                                    {gameState === 'START' ? 'Open the Taproom' : 'Pour Another Game'}
+                                        {(gameState === 'START' || gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY) && (
+                                            <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                                <button onClick={initializeGame} className="flex-1 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-western uppercase rounded-xl shadow-lg text-sm border border-yellow-200">
+                                                    {gameState === 'START' ? (dailyBonusBank ? 'Open Taproom ($500 Bank!)' : 'Open the Taproom') : 'Pour Another Game'}
                                                 </button>
-                                                {(gameState === 'GAME_OVER' || gameState === 'BAR_VICTORY') && !hasSubmittedScore && (
-                                                    <button onClick={() => { submitBarDiceScore(sessionStats, round); setHasSubmittedScore(true); }} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase rounded-lg shadow-lg text-xs mt-2 border border-emerald-400">
-                                                        Submit Run to API
+                                                {(gameState === 'GAME_OVER' || gameState === GAME_STATE_BAR_VICTORY) && !hasSubmittedScore && (
+                                                    <button onClick={() => { submitBarDiceScore(sessionStats, round); setHasSubmittedScore(true); }} className="py-3 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase rounded-xl shadow-lg text-xs border border-emerald-400">
+                                                        Submit Score
                                                     </button>
                                                 )}
-                                            </>
+                                            </div>
                                         )}
                                     </>
                                 )}
                             </div>
                         ) : (
-                            /* OPPONENT COASTER GRID */
-                            <div className={`grid ${opponentGridClass} gap-2 h-full items-stretch auto-rows-fr`}>
+                            /* COLLISION-PROOF OPPONENT COASTER GRID */
+                            <div className={`grid ${opponentGridClass} gap-2.5 h-full items-stretch auto-rows-fr min-h-0`}>
                                 {opponents.map((opp) => {
                                     const isMyTurn = gameState === 'ROLLING' && turnOrder[currentTurnIndex] === opp.id;
                                     const isHammer = turnOrder[0] === opp.id;
                                     const AvatarComp = opp.Avatar;
                                     const displayQuote = opp.quote || PATRON_QUOTES[opp.name]?.idle;
 
-                                    return (
-                                        <div key={opp.id} className={`coaster-card p-2 md:p-2.5 rounded-2xl flex flex-col items-center h-full transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${isLastCall ? 'border-red-900/50' : ''}`}>
-                                            
-                                            {/* Top Row: Hammer Badge */}
-                                            <div className="w-full flex justify-between items-center h-4 shrink-0">
-                                                {isHammer && !isLastCall ? <span className="bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow uppercase">🔨 Lead</span> : <span />}
-                                            </div>
+                                    let reactionClass = '';
+                                    let statusBadge = null;
 
-                                            {/* Center: Rigged Avatar & Identity */}
-                                            <div className="flex flex-col items-center text-center gap-1 flex-1 justify-center min-h-0 py-1">
-                                                <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-stone-800 flex items-center justify-center shrink-0 overflow-hidden border-2 shadow-lg ${isLastCall ? 'border-red-600/80' : 'border-amber-600/80'}`}>
+                                    if (gameState === 'ROLLING' && isMyTurn) {
+                                        reactionClass = 'reaction-rolling';
+                                        statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-amber-500 text-black rounded-full animate-pulse">Rolling</span>;
+                                    } else if (gameState === 'ROUND_END' || gameState === 'EVALUATION') {
+                                        if (lastRoundRankings.length > 0) {
+                                            const rankIndex = lastRoundRankings.findIndex(r => r.id === opp.id);
+                                            const isWinner = rankIndex === 0;
+                                            const isLoser = rankIndex === lastRoundRankings.length - 1;
+                                            const handStrength = opp.hand ? opp.hand.rank : 1;
+
+                                            if (isWinner) {
+                                                reactionClass = 'reaction-winner';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-yellow-400 text-black rounded-full shadow">🏆 Winner</span>;
+                                            } else if (handStrength >= 5) {
+                                                reactionClass = 'reaction-angry';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-red-600 text-white rounded-full">😤 Salty</span>;
+                                            } else if (isLoser) {
+                                                reactionClass = 'reaction-loser';
+                                                statusBadge = <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-stone-700 text-stone-300 rounded-full">🍺 Buying</span>;
+                                            } else {
+                                                reactionClass = 'reaction-smug';
+                                            }
+                                        }
+                                    }
+
+                                    return (
+                                        <div key={opp.id} className={`coaster-card p-2.5 md:p-3 rounded-2xl flex flex-col justify-between h-full min-h-0 transition-all duration-500 ${isMyTurn ? 'active-turn' : 'inactive-turn'} ${reactionClass} ${isLastCall ? 'border-red-900/50' : ''}`}>
+
+                                            {/* Top Identity Row: Side-by-Side Avatar + Name/Money/Badges (Never collides with dice) */}
+                                            <div className="flex items-center gap-2.5 w-full shrink-0">
+                                                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full bg-stone-800 flex items-center justify-center shrink-0 overflow-hidden border-2 shadow-lg ${isLastCall ? 'border-red-600/80' : 'border-amber-600/80'}`}>
                                                     <AvatarComp />
                                                 </div>
-                                                <div className="text-xs md:text-sm font-bold text-amber-100 leading-tight shrink-0">{opp.name}</div>
-                                                <div className={`inline-flex items-center text-[10px] md:text-xs font-mono-num font-bold bg-black/50 px-2 py-0.5 rounded-full border shrink-0 ${opp.money===0 ? 'text-red-400 border-red-900/60' : 'text-emerald-400 border-emerald-800/60'}`}>
-                                                    <Icon name="DollarSign" size={10}/> {opp.money}
+                                                <div className="flex flex-col items-start min-w-0 flex-1">
+                                                    <div className="flex items-center justify-between w-full gap-1">
+                                                        <span className="text-xs md:text-sm font-bold text-amber-100 truncate">{opp.name}</span>
+                                                        {isHammer && !isLastCall && (
+                                                            <span className="bg-amber-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded shadow uppercase shrink-0">🔨 Lead</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                        <span className={`inline-flex items-center text-[11px] md:text-xs font-mono-num font-bold bg-black/50 px-2 py-0.5 rounded-full border ${opp.money === 0 ? 'text-red-400 border-red-900/60' : 'text-emerald-400 border-emerald-800/60'}`}>
+                                                            <Icon name="DollarSign" size={10}/> {opp.money}
+                                                        </span>
+                                                        {statusBadge}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Dialogue Box */}
-                                            <div className="w-full my-1 shrink-0 relative z-20">
-                                                <div className={`${opp.quote && opp.quote.includes("Last Call") ? 'bg-red-900 text-white font-bold border-red-500' : (opp.quote ? 'speech-pill font-bold' : 'bg-black/35 text-stone-400 border border-stone-800/80 italic')} px-2 py-1 rounded-lg text-[9px] md:text-[10px] text-center truncate w-full`}>
+                                            {/* Middle Speech / Chatter Pill */}
+                                            <div className="w-full my-auto py-1 shrink-0">
+                                                <div className={`${opp.quote && opp.quote.includes("Last Call") ? 'bg-red-900 text-white font-bold border-red-500' : (opp.quote ? 'speech-pill font-bold' : 'bg-black/35 text-stone-400 border border-stone-800/80 italic')} px-2.5 py-1 rounded-lg text-[10px] md:text-xs text-center truncate w-full`}>
                                                     "{displayQuote}"
                                                 </div>
                                             </div>
 
-                                            {/* Bottom Dice Tray */}
-                                            <div className="w-full bg-black/40 border border-amber-950/60 rounded-xl p-1.5 flex flex-col items-center gap-1 shrink-0 relative z-10">
-                                                <div className="flex gap-1 justify-center flex-wrap w-full">
-                                                    {opp.dice.map((d, i) => <Die key={i} value={d} size="small" isRolling={isMyTurn} />)}
+                                            {/* Bottom Dedicated Coaster Dice Tray */}
+                                            <div className="w-full bg-black/45 border border-amber-950/70 rounded-xl p-2 flex flex-col items-center gap-1 shrink-0">
+                                                <div className="flex gap-1 md:gap-1.5 justify-center items-center w-full">
+                                                    {opp.dice.map((d, i) => (
+                                                        <Die
+                                                            key={i}
+                                                            value={d}
+                                                            size="small"
+                                                            held={opp.heldIndices?.includes(i)}
+                                                            isRolling={opp.isRollingNow && !opp.heldIndices?.includes(i)}
+                                                        />
+                                                    ))}
                                                 </div>
-                                                <div className="text-[9px] md:text-[10px] font-bold text-amber-400 uppercase tracking-wider truncate w-full text-center mt-0.5">
-                                                    {isMyTurn ? 'Shaking Cup...' : (opp.hand ? HAND_NAMES[opp.hand.rank].split('(')[0] : 'Waiting...')}
+                                                <div className="text-[10px] md:text-xs font-bold text-amber-400 uppercase tracking-wider truncate w-full text-center">
+                                                    {opp.isRollingNow ? 'Shaking Cup...' : (opp.hand ? HAND_NAMES[opp.hand.rank] : 'Waiting for turn...')}
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
                                     );
                                 })}
@@ -976,14 +1411,14 @@
                     </div>
 
                     {/* PLAYER TRAY */}
-                    {gameState !== 'START' && gameState !== 'GAME_OVER' && gameState !== 'BAR_VICTORY' && gameState !== 'DAILY_SHAKE' && (
+                    {gameState !== 'START' && gameState !== 'GAME_OVER' && gameState !== GAME_STATE_BAR_VICTORY && gameState !== 'DAILY_SHAKE' && (
                         <div className={`w-full max-w-6xl glass-panel p-3 md:p-4 rounded-2xl border-t-4 transition-all duration-500 z-20 shrink-0 ${isPlayerTurn ? (isLastCall ? 'border-red-500 shadow-[0_0_25px_rgba(220,38,38,0.3)]' : 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.25)]') : coasterClass} ${coasterClass}`}>
                             <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
                                 <div className="flex items-center gap-3 flex-wrap">
                                     <h2 className={`text-sm md:text-lg font-western flex items-center gap-2 tracking-wide ${localSave.lifetimeEarnings >= 10000 ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-amber-400'}`}>
                                         {coasterLabel}
                                         {isPlayerLead && !isLastCall && <span className="text-[10px] font-sans bg-amber-500/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-full font-bold">🔨 YOU HAVE THE HAMMER</span>}
-                                        {isPlayerTurn && <span className={`text-[10px] font-sans text-white px-2.5 py-0.5 rounded-full font-black animate-pulse tracking-wider ${isLastCall ? 'bg-red-600' : 'bg-yellow-500 text-black'}`}>YOUR ROLL</span>}
+                                        {isPlayerTurn && <span className={`text-[10px] font-sans px-2.5 py-0.5 rounded-full font-black animate-pulse tracking-wider ${isLastCall ? 'bg-red-600 text-white' : 'bg-yellow-500 text-black'}`}>YOUR ROLL</span>}
                                     </h2>
                                     <div className="text-xs md:text-sm text-stone-300 bg-black/40 px-3 py-0.5 rounded-full border border-stone-800">
                                         Hand: <span className="text-amber-300 font-bold">{currentHandDisplay ? HAND_NAMES[currentHandDisplay.rank] : 'Shake to Reveal'}</span>
@@ -1042,7 +1477,7 @@
                                         )}
                                     </div>
                                     <div className="text-center text-[10px] md:text-[11px] text-stone-400 leading-tight">
-                                        {isLastCall ? "Sudden Death. One roll. No holds." : (isPlayerTurn ? (isPlayerLead ? "Tap dice to HOLD, or click CALL IN to cap shakes." : "Tap dice to HOLD, or ring DOUBLE TAP to press the pot.") : "Watch your patrons.")}
+                                        {isLastCall ? "Sudden Death. One roll. No holds." : (isPlayerTurn ? (isPlayerLead ? "Tap dice to HOLD, or click CALL IN to cap shakes." : "Tap dice to HOLD, or ring DOUBLE TAP to press the pot.") : "Watch your patrons shake and hold their dice.")}
                                     </div>
                                 </div>
                             </div>
