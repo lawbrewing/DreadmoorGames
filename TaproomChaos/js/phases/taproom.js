@@ -259,9 +259,9 @@ class TaproomPhase {
     }
 
     fireProjectile(x, y, vx, vy, vz) {
+        if (this.isFinishingShift) return;
         if (typeof playerState === 'undefined' || !playerState.ammo || playerState.ammo.length === 0) return;
 
-        // Strictly require a positive brewed count before firing
         const validIdx = this.findValidAmmoIndex(this.selectedAmmoIndex);
         if (validIdx === -1) {
             this.floatingTexts.push(new FloatingTitle(x, y - 40, "OUT OF BREWED AMMO!", "#ef4444"));
@@ -276,15 +276,21 @@ class TaproomPhase {
             return;
         }
 
-        // Strictly decrement and clamp at 0 so ammo can NEVER go negative
+        // Strictly decrement and clamp at 0
         currentAmmo.count = Math.max(0, countNum - 1);
 
-        // If this batch just hit 0, immediately advance selector to the next available brew
         if (currentAmmo.count === 0) {
             const nextIdx = this.findValidAmmoIndex(this.selectedAmmoIndex);
             if (nextIdx !== -1) {
                 this.selectedAmmoIndex = nextIdx;
             }
+        }
+
+        // Check total remaining stock across all slots to warn player on their final throw
+        let remainingTotal = 0;
+        playerState.ammo.forEach(a => { remainingTotal += Math.max(0, Number(a.count) || 0); });
+        if (remainingTotal === 0) {
+            this.floatingTexts.push(new FloatingTitle(640, 480, "🍺 LAST BREW IN THE AIR!", "#facc15"));
         }
 
         this.projectiles.push({
@@ -298,14 +304,19 @@ class TaproomPhase {
     init(ammoList = []) {
         this.isActive = true;
         this.isTransitioning = false;
+        this.isFinishingShift = false;
+        this.finishTimer = 0;
+        this.finishReason = '';
+        this.FinishOutOfAmmo = false;
+
         this.patrons = [];
+        this.patronsServed = 0;
         this.spawnTimer = 1.2;
         this.projectiles = [];
         this.darts = [];
         this.particles = [];
         this.isAiming = false;
 
-        // Sanitize any legacy 'Infinite' or negative counts so ammo strictly reflects brewed stock
         if (typeof playerState !== 'undefined' && Array.isArray(playerState.ammo)) {
             playerState.ammo = playerState.ammo.filter(a => a && a.count !== 'Infinite' && a.count !== Infinity);
             playerState.ammo.forEach(a => {
@@ -325,6 +336,14 @@ class TaproomPhase {
 
         const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
         this.shift = prog.shift || prog.currentShift || prog.day || this.shiftCount;
+        const shiftGoal = this.shift * 40;
+        const startingTips = (typeof playerState !== 'undefined') ? playerState.tips : 0;
+
+        // Track arcade milestones so each callout triggers once per shift
+        this.quotaCelebrated = startingTips >= shiftGoal;
+        this.calledHalfway = false;
+        this.calledLastCall = false;
+        this.lastCountdownSec = 6;
 
         if (this.shift === 1 && window.taproomTelemetry) {
             window.taproomTelemetry.reset();
@@ -355,6 +374,11 @@ class TaproomPhase {
         let baseSpawn = Math.max(1.5, 3.5 - (this.shift * 0.15));
         this.spawnInterval = (mod === 'crowd_spike') ? Math.max(1.0, baseSpawn * 0.6) : baseSpawn;
         this.basePatience = Math.max(15, 45 - this.shift);
+
+        // Kickoff Arcade Banner at Shift Start
+        this.floatingTexts.push(
+            new FloatingTitle(640, 320, `🍻 SHIFT ${this.shift} — GOAL: $${shiftGoal}!`, "#facc15")
+        );
     }
 
     // Checks both dynamic obstacles AND hardcoded furniture keep-out zones (Pool Table, Centerpiece, Bars)
@@ -536,37 +560,35 @@ class TaproomPhase {
     update(dt) {
         if (!this.isActive) return;
 
-        // 1. STRICT AMMO CHECK (Instantly end shift if empty)
-        let totalAmmo = 0;
-        if (typeof playerState !== 'undefined' && playerState.ammo) {
-            playerState.ammo.forEach(a => {
-                totalAmmo += Math.max(0, Number(a.count) || 0);
+        const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
+        const currentShift = prog.shift || prog.currentShift || this.shift;
+        const shiftGoal = currentShift * 40;
+
+        // 0. IF SHIFT JUST FINISHED, RUN 1.1s FINISH CAM SO PLAYER SEES FINAL THROW & COINS
+        if (this.isFinishingShift) {
+            this.finishTimer -= dt;
+
+            this.floatingTexts = this.floatingTexts.filter(text => {
+                if (text.update) text.update(dt);
+                return text.active;
             });
-        }
 
-        const isOutOfAmmo = (totalAmmo <= 0 && this.projectiles.length === 0);
-        if (isOutOfAmmo && this.timeRemaining > 0) {
-            this.timeRemaining = 0; // Force instant transition
-        }
+            if (!this.particles) this.particles = [];
+            this.particles = this.particles.filter(p => {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += this.gravity * 0.8 * dt;
+                p.life -= dt;
+                return p.life > 0;
+            });
 
-        this.timeRemaining -= dt;
-
-        // 2. END OF SHIFT LOGIC (Overlay Trigger)
-        if (this.timeRemaining <= 0) {
-            if (!this.isTransitioning) {
+            if (this.finishTimer <= 0 && !this.isTransitioning) {
                 this.isTransitioning = true;
-
-                // Halt the game loop for this phase immediately
                 this.shutdown();
 
-                const prog = (typeof progressionState !== 'undefined') ? progressionState : {};
-                const currentShift = prog.shift || prog.currentShift || this.shift;
-                const shiftGoal = currentShift * 40;
                 const currentTips = typeof playerState !== 'undefined' ? playerState.tips : 0;
-
                 const isSuccess = currentTips >= shiftGoal;
 
-                // Process successful progression silently in the background
                 if (isSuccess) {
                     if (window.taproomTelemetry) window.taproomTelemetry.stats.shiftsCleared++;
                     if (typeof progressionState !== 'undefined' && typeof progressionState.advanceShift === 'function') {
@@ -577,16 +599,70 @@ class TaproomPhase {
                     }
                 }
 
-                // Pop the new HTML Overlay and let the player choose when to proceed
                 if (typeof hud !== 'undefined' && typeof hud.showShiftResult === 'function') {
-                    hud.showShiftResult(isSuccess, currentTips, shiftGoal, isOutOfAmmo);
+                    hud.showShiftResult(isSuccess, currentTips, shiftGoal, this.FinishOutOfAmmo);
                 } else {
-                    // Fallback if hud fails
                     if (isSuccess) gameEvents.emit('CHANGE_STATE', { newState: 'BREWING' });
                     else gameEvents.emit('BANKRUPT');
                 }
             }
-            return; // Stop processing patrons/physics if shift is over
+            return;
+        }
+
+        // 1. CHECK IF QUOTA WAS JUST CROSSED
+        const currentTipsNow = typeof playerState !== 'undefined' ? playerState.tips : 0;
+        if (!this.quotaCelebrated && currentTipsNow >= shiftGoal) {
+            this.quotaCelebrated = true;
+            this.floatingTexts.push(new FloatingTitle(640, 260, `🏆 QUOTA MET ($${shiftGoal})! BONUS MODE! 🏆`, "#4ade80"));
+            this.spawnCoinBurst(520, 260);
+            this.spawnCoinBurst(760, 260);
+        }
+
+        // 2. STRICT AMMO CHECK (Trigger 1.1s Finish Cam once last projectile resolves)
+        let totalAmmo = 0;
+        if (typeof playerState !== 'undefined' && playerState.ammo) {
+            playerState.ammo.forEach(a => {
+                totalAmmo += Math.max(0, Number(a.count) || 0);
+            });
+        }
+
+        const isOutOfAmmo = (totalAmmo <= 0 && this.projectiles.length === 0);
+        if (isOutOfAmmo && this.timeRemaining > 0) {
+            this.isFinishingShift = true;
+            this.finishTimer = 1.15;
+            this.FinishOutOfAmmo = true;
+            this.finishReason = "🍾 OUT OF BREWED AMMO! TALLYING SHIFT...";
+            this.floatingTexts.push(new FloatingTitle(640, 340, "🍾 OUT OF AMMO! SHIFT COMPLETE!", "#facc15"));
+            return;
+        }
+
+        // 3. COUNTDOWN CLOCK & ARCADE MILESTONE CALLOUTS
+        this.timeRemaining -= dt;
+        const secLeft = Math.ceil(this.timeRemaining);
+
+        if (!this.calledHalfway && this.timeRemaining <= 30 && this.timeRemaining > 28) {
+            this.calledHalfway = true;
+            this.floatingTexts.push(new FloatingTitle(640, 250, "⏳ 30 SECONDS LEFT!", "#38bdf8"));
+        }
+
+        if (!this.calledLastCall && this.timeRemaining <= 10 && this.timeRemaining > 8) {
+            this.calledLastCall = true;
+            this.floatingTexts.push(new FloatingTitle(640, 250, "🚨 LAST CALL! 10 SECONDS! 🚨", "#ef4444"));
+        }
+
+        if (secLeft <= 5 && secLeft >= 1 && secLeft < this.lastCountdownSec) {
+            this.lastCountdownSec = secLeft;
+            this.floatingTexts.push(new FloatingTitle(640, 290, `⏱️ ${secLeft}!`, "#ef4444"));
+        }
+
+        if (this.timeRemaining <= 0) {
+            this.timeRemaining = 0;
+            this.isFinishingShift = true;
+            this.finishTimer = 1.15;
+            this.FinishOutOfAmmo = false;
+            this.finishReason = "🔔 TIME'S UP! CLOSING TABS...";
+            this.floatingTexts.push(new FloatingTitle(640, 340, "🔔 TIME'S UP!", "#facc15"));
+            return;
         }
 
         this.spawnTimer -= dt;
@@ -701,6 +777,7 @@ class TaproomPhase {
                     const isCraved = config.craves && config.craves.includes(p.type);
 
                     const assignActivity = (pt) => {
+                        this.patronsServed = (this.patronsServed || 0) + 1;
                         const roll = Math.random();
                         const isLeftSide = pt.x < 640;
                         const safeAisleX = isLeftSide ? 445 : 835;

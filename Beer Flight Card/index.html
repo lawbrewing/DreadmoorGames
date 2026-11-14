@@ -5,119 +5,149 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Taproom: A Beer Flight Card Game</title>
     <link rel="stylesheet" href="Static/style.css">
+    <!-- Google Font for that Pub feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
 </head>
 <body>
 
-   <div id="cheat-sheet" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 5px;">
-        <!-- Top Row: Card Actions -->
-        <div style="display: flex; gap: 15px;">
-            <div class="legend-item"><b>J</b>Draw2/Disc1</div>
-            <div class="legend-item"><b>Q</b>Rmv Opp</div>
-            <div class="legend-item"><b>K</b>Peek&Swap</div>
-            <div class="legend-item"><b>A</b>Steal</div>
+    <!-- CHALKBOARD OVERHEAD MENU -->
+    <header id="cheat-sheet" class="chalkboard-bar">
+        <div class="chalk-actions">
+            <div class="legend-item"><span class="card-badge">J</span> Draw 2 / Disc 1</div>
+            <div class="legend-item"><span class="card-badge">Q</span> Dump Opp Brew</div>
+            <div class="legend-item"><span class="card-badge">K</span> Peek &amp; Swap</div>
+            <div class="legend-item"><span class="card-badge">A</span> Steal Brew</div>
         </div>
-        
-        <!-- Bottom Row: Bonuses -->
-        <div style="color: var(--gold); font-size: 0.85em; text-align: center; border-top: 1px solid #444; padding-top: 5px; width: 90%;">
-            <b>BONUSES:</b> +20 Quadrupel (4-of-a-kind) &nbsp;|&nbsp; +10 Full Pour (Flush) &nbsp;|&nbsp; +5 House Blend (Same Color)
+        <div class="chalk-bonuses">
+            <b>FLIGHT BONUSES (4 CARDS):</b>
+            <span class="bonus-pill">+20 Quadrupel (4-Kind)</span>
+            <span class="bonus-pill">+15 Vertical (Straight)</span>
+            <span class="bonus-pill">+10 Full Pour (Suit)</span>
+            <span class="bonus-pill">+5 House Blend (Color)</span>
         </div>
-    </div>
+    </header>
 
+    <!-- LANDING SCREEN -->
     <div id="landing-screen" class="screen active-screen">
-        <h1>THE TAPROOM</h1>
-        <h3 style="font-size: 1em; margin-top: -10px;">A Beer Flight Card Game</h3>
-        <br><br>
-        <div style="margin: 20px 0;">
-            <label>OPPONENTS:</label><br>
+        <div class="taproom-sign">
+            <div class="sign-subtitle">EST. DREADMOOR</div>
+            <h1>THE TAPROOM</h1>
+            <h3 class="sign-tagline">A 52-Card Beer Flight Game</h3>
+        </div>
+
+        <div class="setup-panel">
+            <label for="num-opponents">CHOOSE YOUR TABLE:</label>
             <select id="num-opponents">
                 <option value="1">1 CPU (Mara Lawson)</option>
-                <option value="2">2 CPUs (Mara & James)</option>
-                <option value="3">3 CPUs (Mara, James & Pete)</option>
+                <option value="2">2 CPUs (Mara &amp; James)</option>
+                <option value="3">3 CPUs (Mara, James &amp; Pete)</option>
             </select>
         </div>
-        <button class="btn-main" onclick="goToManualMode()">Rules & Tools</button>
-        <button class="btn-main" onclick="startNewMatch()">START NEW MATCH</button>
-        <br><br>
-        <button class="btn-main" style="background:#222; border-color:#888; margin-top:20px; width:50%; font-size:1em;" onclick="window.location.href='https://lawbrewing.github.io/DreadmoorGames/'">HOME</button>
+
+        <div class="menu-buttons">
+            <button class="btn-main btn-primary" onclick="startNewMatch()">🍺 START NEW MATCH</button>
+            <button class="btn-main" onclick="goToManualMode()">📖 Rules &amp; Real-Deck Guide</button>
+        </div>
     </div>
 
+    <!-- MANUAL / RULES SCREEN -->
     <div id="manual-screen" class="screen">
-        <button class="btn-main btn-secondary" onclick="goHome()">Back</button>
-        <h2>The Rules</h2>
+        <button class="btn-main btn-secondary" onclick="goHome()">← Back to Bar</button>
+        <h2>Taproom House Rules</h2>
         <div class="ref-card">
             <h3>OBJECTIVE</h3>
-            <p>Win 3 shifts (rounds) to win the match. To win a shift, have the highest scoring flight when Last Call ends.</p>
-            
+            <p>Win <b>3 Shifts</b> (rounds). To win a Shift, build the highest-scoring Beer Flight before <b>Last Call</b> finishes.</p>
+
             <h3>THE TURN</h3>
-            <ol style="padding-left:20px; margin:5px;">
-                <li><b>1. The Serve:</b> Start with 4 cards. Do ONE:
+            <ol class="rules-list">
+                <li>
+                    <b>The Serve:</b> Start with 4 cards. Choose <b>ONE</b> action:
                     <ul>
-                        <li><b>Play a Brew (2-10):</b> Place in Flight (Max 4).</li>
-                        <li><b>Play a Patron (J, Q, K, A):</b> Discard for effect.</li>
-                        <li><b>Waste:</b> Discard 1 card from hand.</li>
+                        <li><b>Pour a Brew (2–10):</b> Place onto your Paddle. <i>(Top-Off: If you have 4 Brews, play a higher Brew to replace your lowest one).</i></li>
+                        <li><b>Call a Patron (J, Q, K, A):</b> Discard for its effect.</li>
+                        <li><b>Pour Out (Waste):</b> Discard 1 unwanted card.</li>
                     </ul>
                 </li>
-                <li><b>2. The Pour:</b> Draw cards until you have 4 again.</li>
+                <li><b>The Refill:</b> Draw from the Keg until you hold 4 cards again.</li>
             </ol>
-            <!-- NEW: Thematic Bonuses -->
-            <h3>FLIGHT BONUSES (Full Flight of 4)</h3>
-            <ul style="padding-left:20px; margin:5px; font-size: 0.9em;">
-                <li><b>The Quadrupel (+20):</b> All 4 Brews are the exact same number.</li>
-                <li><b>Full Pours Only (+10):</b> All 4 Brews are the exact same suit.</li>
-                <li><b>The House Blend (+5):</b> All 4 Brews are the exact same color.</li>
-            </ul>
 
-            <h3>THE MENU (Discard for Effect)</h3>
-            <table class="ref-table">
-                <tr><th>Card</th><th>Effect</th></tr>
-                <tr><td><b>Jack</b></td><td>Draw 2, Discard 1.</td></tr>
-                <tr><td><b>Queen</b></td><td>Remove 1 card from opp. Flight.</td></tr>
-                <tr><td><b>King</b></td><td>Peek at random opp card. Keep it or Return it.</td></tr>
-                <tr><td><b>Ace</b></td><td>Steal 1 Brew from opp. Flight.</td></tr>
-            </table>
+            <h3>LAST CALL & THE KEG</h3>
+            <ul class="rules-list">
+                <li><b>Last Call:</b> You <b>must have exactly 4 Brews</b> in your flight to ring Last Call. Once rung, the shift ends and the highest score wins.</li>
+                <li><b>The Keg Kicks:</b> If the 52-card deck runs out before anyone rings Last Call, the shift ends immediately and <b>all Flight Bonuses are voided</b>.</li>
+            </ul>
         </div>
     </div>
 
+    <!-- GAME SCREEN -->
     <div id="game-screen" class="screen">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <button class="btn-small" onclick="if(confirm('Abandon Match?')) goHome()">EXIT</button>
-            <div id="match-score-board"></div>
+        <div class="top-hud">
+            <button class="btn-small" onclick="goHome()">✕ EXIT</button>
+            <div id="match-score-board" class="coaster-scoreboard"></div>
         </div>
 
-        <div id="opponents-container">
+        <!-- CPU Opponents Area -->
+        <div id="opponents-container"></div>
+
+        <!-- BAR TOP ZONE (Keg & Discard) -->
+        <div class="bar-top-zone">
+            <div class="keg-area">
+                <div id="the-keg" class="deck-visual">
+                    <div class="keg-label">THE KEG</div>
+                    <div id="keg-count" class="keg-count">52</div>
+                </div>
             </div>
-
-        <div id="log"></div>
-        
-        <div id="controls-area" style="background:#000; border: 1px solid white; padding:5px; margin:5px 0;">
-            <div id="turn-indicator" style="font-weight:bold; font-family: 'Rye'; font-size: 1.1em; color: var(--gold);">Starting...</div>
-            <button id="last-call-btn" onclick="triggerLastCall()">🔔 CALL LAST CALL</button>
-            <div id="player-options" style="display:none; margin-top:5px;">
-                <label style="cursor:pointer;"><input type="checkbox" id="waste-mode"> 🗑️ WASTE MODE</label>
+            <div class="spill-mat-area">
+                <div class="spill-label">SPILL MAT</div>
+                <div id="spill-mat" class="discard-visual"></div>
             </div>
         </div>
 
-        <div style="display:flex; justify-content: space-between; align-items: flex-end; padding: 0 10px;">
-            <div style="font-size:0.8em;">YOUR FLIGHT</div>
-            <div style="font-family:'Rye'; color:var(--gold);">Score: <span id="player-score-val">0</span></div>
+        <!-- Action Log + Turn Controls -->
+        <div id="log" class="taproom-log"></div>
+
+        <div id="controls-area" class="bar-controls">
+            <div id="turn-indicator" class="turn-banner">Starting Shift...</div>
+            <div class="control-actions">
+                <button id="last-call-btn" class="brass-bell-btn" onclick="triggerLastCall()" disabled>🔔 RING LAST CALL</button>
+                <div id="player-options" style="display:none;">
+                    <label class="waste-toggle-pill">
+                        <input type="checkbox" id="waste-mode">
+                        <span>🗑️ Pour Out (Discard Mode)</span>
+                    </label>
+                </div>
+            </div>
         </div>
+
+        <!-- Player Flight Paddle Area -->
+        <div class="flight-header">
+            <div class="flight-label">YOUR FLIGHT PADDLE <span class="flight-sub">(MAX 4)</span></div>
+            <div class="flight-score">
+                <span id="player-bonus-badge" class="bonus-tag"></span>
+                Score: <span id="player-score-val">0</span>
+            </div>
+        </div>
+
         <div class="paddle-container">
             <div class="paddle player-paddle" id="player-flight"></div>
             <div class="paddle-handle"><div class="hole"></div></div>
         </div>
 
-        <div class="zone" style="border:none; background:transparent;">
+        <!-- Player Hand -->
+        <div class="zone hand-zone">
+            <div class="hand-label">YOUR HAND</div>
             <div id="player-hand" class="card-container"></div>
         </div>
     </div>
 
+    <!-- KING MODAL -->
     <div id="king-modal">
-        <h3>THE BOUNCER</h3>
-        <p id="king-msg">You caught an opponent!</p>
+        <h3>🛂 THE BOUNCER (KING)</h3>
+        <p id="king-msg">You inspected an opponent's hand!</p>
         <div id="king-card-reveal" style="display:flex; justify-content:center; margin:15px;"></div>
-        <div style="display:flex; justify-content:space-between;">
+        <div style="display:flex; justify-content:space-between; gap:10px;">
             <button class="btn-action" onclick="kingAction('RETURN')">RETURN IT</button>
-            <button class="btn-action" style="background:var(--gold)" onclick="kingAction('KEEP')">KEEP & SWAP</button>
+            <button class="btn-action" style="background:var(--gold); color:#111;" onclick="kingAction('KEEP')">KEEP &amp; SWAP</button>
         </div>
     </div>
 

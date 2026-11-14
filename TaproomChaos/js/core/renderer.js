@@ -1247,15 +1247,130 @@ class GameRenderer {
             }
         });
 
-        const timeLeft = Math.max(0, Math.ceil(state.timeRemaining || state.timeLeft || 0));
+        // ==========================================
+        // ARCADE TOP JUMBOTRON (TIME BAR + QUOTA METER)
+        // ==========================================
+        const maxTime = state.shiftDuration || 60;
+        const rawTime = Math.max(0, state.timeRemaining !== undefined ? state.timeRemaining : maxTime);
+        const timeLeft = Math.ceil(rawTime);
+        const timePct = Math.max(0, Math.min(1, rawTime / maxTime));
+
+        const shiftGoal = currentShift * 40;
+        const currentTips = (typeof playerState !== 'undefined' && playerState.tips !== undefined) ? playerState.tips : 0;
+        const quotaPct = Math.max(0, Math.min(1, currentTips / Math.max(1, shiftGoal)));
+        const isQuotaMet = currentTips >= shiftGoal;
+        const dollarsNeeded = Math.max(0, shiftGoal - currentTips);
+        const approxServesNeeded = Math.ceil(dollarsNeeded / 12);
+
+        let totalAmmoLeft = 0;
+        if (typeof playerState !== 'undefined' && Array.isArray(playerState.ammo)) {
+            playerState.ammo.forEach(a => { totalAmmoLeft += Math.max(0, Number(a.count) || 0); });
+        }
+
         const seasonIcons = { spring: '🌸', summer: '🎆', fall: '🎃', winter: '🎄' };
         const sIcon = seasonIcons[season] || '🍻';
-        ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
-        ctx.beginPath(); ctx.roundRect((w / 2) - 80, 8, 160, 34, 8); ctx.fill();
-        ctx.strokeStyle = isBossRound ? '#ef4444' : '#dc2626';
-        ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#f4f4f5'; ctx.font = 'bold 17px Oswald'; ctx.textAlign = 'center';
-        ctx.fillText(`${sIcon} SHIFT: ${timeLeft}s`, w / 2, 30);
+
+        const jumboW = 540;
+        const jumboH = 66;
+        const jumboX = (w / 2) - (jumboW / 2);
+        const jumboY = 8;
+
+        ctx.save();
+
+        // Jumbotron Outer Frame
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = 'rgba(9, 9, 11, 0.94)';
+        ctx.strokeStyle = isQuotaMet ? '#22c55e' : (timeLeft <= 10 ? '#ef4444' : '#52525b');
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(jumboX, jumboY, jumboW, jumboH, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowColor = 'transparent';
+
+        // Center Divider
+        ctx.fillStyle = '#3f3f46';
+        ctx.fillRect((w / 2) - 1, jumboY + 8, 2, jumboH - 16);
+
+        // --- LEFT HALF: DEPLETING SHIFT TIMER BAR ---
+        const leftX = jumboX + 14;
+        const barW = 240;
+        const isPanicTime = timeLeft <= 10 && timeLeft > 0;
+        const timeColor = isPanicTime ? '#ef4444' : (timeLeft <= 25 ? '#facc15' : '#38bdf8');
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.font = 'bold 12px Oswald';
+        ctx.fillText(`${sIcon} SHIFT ${currentShift} CLOCK`, leftX, jumboY + 20);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = timeColor;
+        ctx.font = isPanicTime ? 'bold 22px Oswald' : 'bold 19px Oswald';
+        ctx.fillText(`${timeLeft}s`, leftX + barW, jumboY + 21);
+
+        // Time Bar Track
+        ctx.fillStyle = '#27272a';
+        ctx.beginPath();
+        ctx.roundRect(leftX, jumboY + 28, barW, 18, 6);
+        ctx.fill();
+
+        // Time Bar Fill
+        if (timePct > 0) {
+            ctx.fillStyle = timeColor;
+            ctx.beginPath();
+            ctx.roundRect(leftX, jumboY + 28, Math.max(8, barW * timePct), 18, 6);
+            ctx.fill();
+        }
+
+        // Sub-label inside/under Time Bar
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f4f4f5';
+        ctx.font = 'bold 10.5px Inter';
+        ctx.fillText(
+            totalAmmoLeft <= 3 ? `⚠️ AMMO LEFT: ${totalAmmoLeft}` : `AMMO STOCK: ${totalAmmoLeft} BREWS`,
+            leftX + (barW / 2),
+            jumboY + 59
+        );
+
+        // --- RIGHT HALF: LIVE QUOTA / BANK PROGRESS BAR ---
+        const rightX = (w / 2) + 14;
+        const quotaColor = isQuotaMet ? '#22c55e' : '#facc15';
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.font = 'bold 12px Oswald';
+        ctx.fillText('💰 SHIFT QUOTA', rightX, jumboY + 20);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = isQuotaMet ? '#4ade80' : '#f4f4f5';
+        ctx.font = 'bold 18px Oswald';
+        ctx.fillText(`$${currentTips.toFixed(0)} / $${shiftGoal}`, rightX + barW, jumboY + 21);
+
+        // Quota Bar Track
+        ctx.fillStyle = '#27272a';
+        ctx.beginPath();
+        ctx.roundRect(rightX, jumboY + 28, barW, 18, 6);
+        ctx.fill();
+
+        // Quota Bar Fill
+        if (quotaPct > 0) {
+            ctx.fillStyle = quotaColor;
+            ctx.beginPath();
+            ctx.roundRect(rightX, jumboY + 28, Math.max(8, barW * quotaPct), 18, 6);
+            ctx.fill();
+        }
+
+        // Actionable Serve Counter below Quota Bar
+        ctx.textAlign = 'center';
+        ctx.fillStyle = isQuotaMet ? '#4ade80' : '#fde047';
+        ctx.font = 'bold 11px Inter';
+        const quotaStatusText = isQuotaMet
+            ? `✅ GOAL MET! (+$${(currentTips - shiftGoal).toFixed(0)} BONUS)`
+            : `NEED $${dollarsNeeded.toFixed(0)} MORE (~${approxServesNeeded} SERVE${approxServesNeeded === 1 ? '' : 'S'})`;
+        ctx.fillText(quotaStatusText, rightX + (barW / 2), jumboY + 59);
+
+        ctx.restore();
 
         // --- NATIVE CANVAS MENU BUTTON (TOP-LEFT IN TAPROOM) ---
         const mBtn = (typeof brewingPhase !== 'undefined' && brewingPhase.menuBtn)
@@ -1280,36 +1395,45 @@ class GameRenderer {
         ctx.fillText('☰ MENU', mBtn.x + (mBtn.w / 2), mBtn.y + (mBtn.h / 2) + 1);
         ctx.restore();
 
-        // --- DYNAMIC SHIFT NOTIFICATIONS ---
-        const served = state.patronsServed || 0;
-        const quota = state.shiftQuota || 10;
-
+        // --- ARCADE CALLOUT BANNER (BELOW JUMBOTRON) ---
         ctx.save();
         ctx.textAlign = 'center';
 
-        if (timeLeft <= 0) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-            ctx.shadowColor = '#3b82f6';
-            ctx.shadowBlur = 15;
-            ctx.font = 'bold 22px Oswald';
-            ctx.fillText("⏳ SHIFT ENDED! CLOSING TABS...", w / 2, 80);
-        } else if (served >= quota) {
-            const pulse = 0.5 + 0.5 * Math.sin(time * 6);
-            ctx.fillStyle = `rgba(34, 197, 94, ${0.85 + (pulse * 0.15)})`;
-            ctx.shadowColor = '#4ade80';
-            ctx.shadowBlur = 10 * pulse;
-            ctx.font = 'bold 18px Oswald';
-            ctx.fillText(`🔥 QUOTA MET! (${served}/${quota}) - BONUS TIME! 🔥`, w / 2, 80);
-        } else if (timeLeft <= 10) {
-            const pulse = 0.5 + 0.5 * Math.sin(time * 15);
-            ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + (pulse * 0.15)})`;
-            ctx.shadowColor = '#ef4444';
-            ctx.shadowBlur = 12 * pulse;
+        if (state.finishReason) {
+            ctx.fillStyle = '#facc15';
+            ctx.shadowColor = '#000000';
+            ctx.shadowBlur = 12;
+            ctx.font = 'bold 26px Oswald';
+            ctx.fillText(state.finishReason, w / 2, 102);
+        } else if (totalAmmoLeft > 0 && totalAmmoLeft <= 3) {
+            const pulse = 0.5 + 0.5 * Math.sin(time * 12);
+            ctx.fillStyle = `rgba(251, 146, 60, ${0.88 + pulse * 0.12})`;
+            ctx.shadowColor = '#ea580c';
+            ctx.shadowBlur = 10;
             ctx.font = 'bold 20px Oswald';
-
-            const shakeX = (Math.random() - 0.5) * 6;
-            const shakeY = (Math.random() - 0.5) * 6;
-            ctx.fillText(`⚠️ HURRY! ${quota - served} MORE TO MEET QUOTA! ⚠️`, (w / 2) + shakeX, 80 + shakeY);
+            ctx.fillText(`⚠️ LOW AMMO: LAST ${totalAmmoLeft} BREW${totalAmmoLeft === 1 ? '' : 'S'}! MAKE 'EM COUNT! ⚠️`, w / 2, 98);
+        } else if (isPanicTime) {
+            const pulse = 0.5 + 0.5 * Math.sin(time * 16);
+            const shakeX = (Math.random() - 0.5) * 5;
+            const shakeY = (Math.random() - 0.5) * 5;
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.88 + pulse * 0.12})`;
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 14 * pulse;
+            ctx.font = 'bold 22px Oswald';
+            ctx.fillText(
+                isQuotaMet
+                    ? `🚨 LAST CALL: ${timeLeft}s LEFT FOR BONUS TIPS! 🚨`
+                    : `🚨 HURRY! NEED $${dollarsNeeded.toFixed(0)} IN ${timeLeft}s! 🚨`,
+                (w / 2) + shakeX,
+                98 + shakeY
+            );
+        } else if (isQuotaMet) {
+            const pulse = 0.5 + 0.5 * Math.sin(time * 6);
+            ctx.fillStyle = `rgba(74, 222, 128, ${0.85 + pulse * 0.15})`;
+            ctx.shadowColor = '#22c55e';
+            ctx.shadowBlur = 10 * pulse;
+            ctx.font = 'bold 19px Oswald';
+            ctx.fillText('🔥 QUOTA LOCKED IN! BONUS MONEY ROUND! 🔥', w / 2, 98);
         }
         ctx.restore();
 
