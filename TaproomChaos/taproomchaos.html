@@ -3,103 +3,787 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Law Brewing: Taproom Chaos</title>
+    <title>Law Brewing: Taproom Chaos — Ultra Edition</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto+Mono:wght@400;700;900&display=swap');
+
+        :root {
+            --copper: #b87333;
+            --amber: #e67e22;
+            --flame: #d35400;
+            --gold: #f1c40f;
+            --crimson: #c0392b;
+            --neon-cyan: #00f3ff;
+            --neon-green: #2ecc71;
+            --dark-bg: #120e0c;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
 
         body {
-            margin: 0; overflow: hidden;
-            background-color: #1a1a1a; color: #eee;
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            color: #eee;
             font-family: 'Roboto Mono', monospace;
-            user-select: none; -webkit-user-select: none; touch-action: none;
+            touch-action: none;
         }
 
-        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Damage / Status Vignette Overlay */
+        #vignette-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            transition: box-shadow 0.2s ease;
+        }
+
+        /* Floating 2D World-Space Text Layer */
+        #floating-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 8;
+            overflow: hidden;
+        }
+
+        .float-tag {
+            position: absolute;
+            font-family: 'Bangers', cursive;
+            font-size: 28px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 0 0 12px rgba(255, 160, 0, 0.8);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            white-space: nowrap;
+            will-change: transform, opacity;
+        }
 
         #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
         }
 
+        /* TOP HUD */
         .hud-top {
-            display: flex; justify-content: space-between; padding: 20px;
-            font-family: 'Bangers', cursive; font-size: 24px; text-shadow: 2px 2px 0 #000;
-            background: linear-gradient(to bottom, rgba(20,20,20,0.95), transparent); pointer-events: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 14px 22px;
+            font-family: 'Bangers', cursive;
+            background: linear-gradient(to bottom, rgba(12, 8, 6, 0.92) 0%, rgba(12, 8, 6, 0.5) 70%, transparent 100%);
+            pointer-events: auto;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hud-left, .hud-center, .hud-right {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hud-center {
+            align-items: center;
+        }
+
+        .hud-right {
+            align-items: flex-end;
+        }
+
+        .hud-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #timer-display {
+            color: #fff;
+            font-size: 36px;
+            letter-spacing: 1.5px;
+            text-shadow: 3px 3px 0 #000;
+        }
+
+        .timer-low {
+            color: #ff3b30 !important;
+            animation: pulseFast 0.45s infinite;
+        }
+
+        @keyframes pulseFast {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.08);
+                opacity: 0.65;
+            }
+        }
+
+        #level-indicator {
+            font-size: 20px;
+            color: var(--gold);
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #tips-display {
+            font-size: 28px;
+            color: #2ecc71;
+            text-shadow: 2px 2px 0 #000, 0 0 10px rgba(46, 204, 113, 0.4);
+        }
+
+        #combo-badge {
+            background: linear-gradient(135deg, #f39c12, #c0392b);
+            border: 2px solid #fff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 22px;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.6);
+            transform: scale(0);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+            #combo-badge.active {
+                transform: scale(1);
+            }
+
+        #buff-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .buff-pill {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         #meter-container {
-            width: 250px; height: 25px; background: #222; border: 2px solid #b87333; margin-top: 5px; position: relative; border-radius: 4px;
+            width: 240px;
+            height: 26px;
+            background: #1a120e;
+            border: 2px solid var(--copper);
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.7);
         }
-        #meter-fill { width: 0%; height: 100%; background: #d35400; transition: width 0.1s; }
-        #meter-label { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 16px; line-height: 25px; color: #fff; text-shadow: 1px 1px 0 #000; }
 
-        #patron-counter { color: #e67e22; font-size: 28px; }
-        #timer-display { color: #fff; font-size: 32px; }
-        .timer-low { color: #d35400 !important; animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        #meter-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #e67e22, #e74c3c, #ff0044);
+            transition: width 0.12s ease-out;
+        }
 
+        #meter-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            line-height: 22px;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+            letter-spacing: 1px;
+        }
+
+        #patron-counter {
+            color: var(--amber);
+            font-size: 28px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .icon-btn {
+            background: rgba(30, 22, 18, 0.85);
+            border: 2px solid var(--copper);
+            color: #fff;
+            font-family: 'Bangers', cursive;
+            font-size: 18px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+            .icon-btn:hover {
+                background: var(--copper);
+                color: #111;
+            }
+
+        /* CENTER BANNER MESSAGE */
+        #msg-area {
+            position: absolute;
+            top: 22%;
+            width: 100%;
+            text-align: center;
+            font-family: 'Bangers', cursive;
+            font-size: clamp(42px, 7vw, 76px);
+            color: var(--gold);
+            text-shadow: 4px 4px 0 #000, 0 0 25px rgba(243, 156, 18, 0.9);
+            pointer-events: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            z-index: 15;
+        }
+
+        /* CONTROLS LAYER */
         #controls-layer {
-            position: absolute; bottom: 20px; width: 100%; height: 180px; pointer-events: none;
-            display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box; z-index: 20;
+            position: absolute;
+            bottom: 18px;
+            width: 100%;
+            height: 190px;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 28px;
+            z-index: 20;
         }
 
-        .control-zone { pointer-events: auto; position: relative; }
+        .control-zone {
+            pointer-events: auto;
+            position: relative;
+        }
 
         #joystick-zone {
-            width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid rgba(184, 115, 51, 0.3); position: relative;
+            width: 145px;
+            height: 145px;
+            background: radial-gradient(circle, rgba(184, 115, 51, 0.18) 0%, rgba(20, 15, 12, 0.5) 100%);
+            border-radius: 50%;
+            border: 2px solid rgba(230, 126, 34, 0.45);
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
         }
+
         #joystick-knob {
-            width: 60px; height: 60px; background: rgba(184, 115, 51, 0.8); border-radius: 50%; position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            width: 58px;
+            height: 58px;
+            background: radial-gradient(circle at 30% 30%, #f39c12, #b87333);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.85);
         }
 
-        #action-zone { display: flex; gap: 30px; align-items: flex-end; padding-bottom: 10px; }
+        #action-zone {
+            display: grid;
+            grid-template-columns: repeat(2, auto);
+            gap: 14px;
+            align-items: end;
+            padding-bottom: 4px;
+        }
+
         .action-btn {
-            width: 100px; height: 100px; border-radius: 50%; font-family: 'Bangers', cursive; font-size: 24px;
-            display: flex; justify-content: center; align-items: center; border: 3px solid #b87333; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            transition: transform 0.1s; cursor: pointer; pointer-events: auto;
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            font-family: 'Bangers', cursive;
+            font-size: 21px;
+            letter-spacing: 0.5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 3px solid var(--copper);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.3);
+            transition: transform 0.08s, filter 0.15s;
+            cursor: pointer;
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
         }
-        .action-btn:active { transform: scale(0.95); opacity: 0.8; }
-        #btn-slap { background: #c0392b; color: white; border-color: #922b21; }
-        #btn-pour { background: #e67e22; color: #111; border-color: #d35400; }
 
+            .action-btn .key-hint {
+                font-family: 'Roboto Mono', monospace;
+                font-size: 10px;
+                font-weight: 900;
+                opacity: 0.85;
+                margin-top: 2px;
+                background: rgba(0,0,0,0.45);
+                color: #fff;
+                padding: 1px 5px;
+                border-radius: 4px;
+            }
+
+            .action-btn:active {
+                transform: scale(0.92);
+            }
+
+        #btn-pour {
+            background: radial-gradient(circle at 30% 30%, #f39c12, #d35400);
+            color: #111;
+            border-color: #f1c40f;
+        }
+
+        #btn-slap {
+            background: radial-gradient(circle at 30% 30%, #e74c3c, #922b21);
+            color: #fff;
+            border-color: #ff6b6b;
+        }
+
+        #btn-dash {
+            width: 78px;
+            height: 78px;
+            background: radial-gradient(circle at 30% 30%, #00d2ff, #1f618d);
+            color: #fff;
+            border-color: var(--neon-cyan);
+            font-size: 18px;
+        }
+
+        #btn-ult {
+            width: 78px;
+            height: 78px;
+            background: #2c221e;
+            color: #888;
+            border-color: #555;
+            font-size: 17px;
+        }
+
+            #btn-ult.ready {
+                background: radial-gradient(circle at 30% 30%, #fff200, #e67e22);
+                color: #111;
+                border-color: #fff;
+                box-shadow: 0 0 25px #f1c40f, 0 0 45px #e67e22;
+                animation: ultPulse 0.8s infinite alternate;
+            }
+
+        @keyframes ultPulse {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.08);
+            }
+        }
+
+        #ult-fill-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background: rgba(241, 196, 15, 0.35);
+            pointer-events: none;
+            transition: height 0.2s;
+        }
+
+        /* MODAL SCREENS */
         .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,20,20,0.95);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; text-align: center; pointer-events: auto; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(32, 22, 16, 0.94) 0%, rgba(10, 7, 5, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+            pointer-events: auto;
+            padding: 20px;
+            overflow-y: auto;
         }
-        .hidden { display: none !important; }
-        h1 { font-family: 'Bangers', cursive; font-size: 4em; color: #e67e22; margin: 0; text-shadow: 4px 4px 0 #000; }
-        p { color: #ccc; font-size: 1.4em; max-width: 600px; line-height: 1.5; margin-bottom: 20px; text-shadow: 2px 2px 0 black;}
-        
-        button.main-btn {
-            padding: 20px 50px; font-size: 30px; font-family: 'Bangers', cursive; background: #d35400; border: 2px solid #e67e22; color: #fff; cursor: pointer; border-radius: 8px;
-            box-shadow: 0 5px 0 #a04000; margin-top: 20px; pointer-events: auto;
-        }
-        button.main-btn:active { transform: translateY(5px); box-shadow: 0 0 0; }
 
-        #flight-ui { background: #222; padding: 20px; border: 2px solid #b87333; border-radius: 10px; max-width: 90%; pointer-events: auto; z-index: 1002; }
-        .beer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; justify-content: center; }
-        .slot { width: 75px; height: 95px; border: 2px dashed #555; background: #111; display: flex; align-items: center; justify-content: center; font-size: 11px; text-align: center; padding: 2px; }
-        .slot.filled { background: #e67e22; color: #111; border: 2px solid #d35400; font-weight: bold; }
-        #beer-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
-        .choice-btn { padding: 10px; background: #333; border: 1px solid #555; color: #eee; cursor: pointer; margin: 0; font-size: 11px; border-radius: 4px; }
-        .choice-btn:hover { background: #b87333; color: #111; }
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-family: 'Bangers', cursive;
+            font-size: clamp(2.8em, 6vw, 4.5em);
+            color: var(--amber);
+            margin: 0 0 8px 0;
+            letter-spacing: 2px;
+            text-shadow: 4px 4px 0 #000, 0 0 20px rgba(230, 126, 34, 0.5);
+        }
+
+        .subtitle-badge {
+            font-family: 'Bangers', cursive;
+            font-size: 1.4em;
+            color: var(--gold);
+            background: rgba(184, 115, 51, 0.2);
+            border: 1px solid var(--copper);
+            padding: 4px 18px;
+            border-radius: 20px;
+            margin-bottom: 14px;
+            letter-spacing: 1.5px;
+        }
+
+        p {
+            color: #ddd;
+            font-size: clamp(0.95em, 2vw, 1.15em);
+            max-width: 650px;
+            line-height: 1.55;
+            margin: 6px 0 16px 0;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            max-width: 760px;
+            width: 100%;
+            margin: 10px 0 18px 0;
+            text-align: left;
+        }
+
+        .guide-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(184, 115, 51, 0.4);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+
+            .guide-card b {
+                color: var(--gold);
+                font-family: 'Bangers', cursive;
+                font-size: 18px;
+                letter-spacing: 0.8px;
+                display: block;
+                margin-bottom: 3px;
+            }
+
+        button.main-btn {
+            padding: 16px 44px;
+            font-size: 28px;
+            font-family: 'Bangers', cursive;
+            letter-spacing: 1.5px;
+            background: linear-gradient(180deg, #f39c12 0%, #d35400 100%);
+            border: 2px solid #fff;
+            color: #111;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 6px 0 #7e2c00, 0 10px 20px rgba(0,0,0,0.6);
+            margin-top: 12px;
+            pointer-events: auto;
+            transition: transform 0.1s, filter 0.15s;
+        }
+
+            button.main-btn:hover {
+                filter: brightness(1.12);
+            }
+
+            button.main-btn:active {
+                transform: translateY(5px);
+                box-shadow: 0 1px 0 #7e2c00;
+            }
+
+        /* MUG CLUB SHOP */
+        #shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+            max-width: 880px;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        .shop-card {
+            background: linear-gradient(180deg, #241914 0%, #160f0c 100%);
+            border: 2px solid var(--copper);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+        }
+
+            .shop-card h3 {
+                font-family: 'Bangers', cursive;
+                font-size: 22px;
+                color: var(--gold);
+                margin: 4px 0;
+                letter-spacing: 1px;
+            }
+
+            .shop-card p {
+                font-size: 12px;
+                color: #bbb;
+                margin: 6px 0 12px 0;
+            }
+
+        .buy-btn {
+            width: 100%;
+            padding: 8px 12px;
+            font-family: 'Bangers', cursive;
+            font-size: 20px;
+            background: #27ae60;
+            color: #fff;
+            border: 1px solid #2ecc71;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+            .buy-btn:disabled {
+                background: #333;
+                border-color: #555;
+                color: #777;
+                cursor: not-allowed;
+            }
+
+        /* THE FINAL FLIGHT UI */
+        #flight-ui {
+            background: linear-gradient(180deg, #2a1b12 0%, #170f0a 100%);
+            padding: 22px;
+            border: 3px solid var(--copper);
+            border-radius: 14px;
+            max-width: 820px;
+            width: 95%;
+            pointer-events: auto;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.85);
+        }
+
+        .flight-paddle {
+            background: #4a2c18;
+            border: 3px solid #784727;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 10px 0 18px 0;
+            box-shadow: inset 0 3px 10px rgba(0,0,0,0.7);
+        }
+
+        .beer-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            justify-items: center;
+        }
+
+        .slot {
+            width: 100%;
+            max-width: 150px;
+            height: 125px;
+            border: 2px dashed #8d6e63;
+            border-radius: 10px;
+            background: rgba(15, 10, 8, 0.75);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 6px;
+            font-size: 11px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s, border-color 0.2s;
+            cursor: pointer;
+        }
+
+            .slot.filled {
+                border: 2px solid var(--gold);
+                background: rgba(30, 20, 15, 0.9);
+                font-weight: bold;
+                color: #fff;
+            }
+
+        .glass-visual {
+            width: 44px;
+            height: 62px;
+            border: 2px solid rgba(255,255,255,0.65);
+            border-top: none;
+            border-radius: 2px 2px 8px 8px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,0.06);
+        }
+
+        .glass-liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            transition: height 0.3s ease;
+        }
+
+        .glass-foam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: #fff9e6;
+            border-bottom: 2px dotted rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .slot.filled .glass-liquid {
+            height: 78%;
+        }
+
+        .slot.filled .glass-foam {
+            opacity: 1;
+        }
+
+        #beer-choices {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .choice-btn {
+            padding: 10px 8px;
+            background: #2c2018;
+            border: 1px solid var(--copper);
+            color: #eee;
+            cursor: pointer;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            transition: all 0.12s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+            .choice-btn:hover {
+                background: var(--amber);
+                color: #111;
+                transform: translateY(-2px);
+            }
+
+        .beer-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
 
         #error-log {
-            position: absolute; top: 0; left: 0; width: 100%; background: rgba(200, 0, 0, 0.9);
-            color: white; padding: 10px; z-index: 9999; display: none; font-family: monospace; pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(200, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            z-index: 9999;
+            display: none;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        @media (max-width: 640px) {
+            .hud-top {
+                padding: 10px 12px;
+            }
+
+            #timer-display {
+                font-size: 26px;
+            }
+
+            #meter-container {
+                width: 170px;
+                height: 22px;
+            }
+
+            #meter-label {
+                font-size: 13px;
+                line-height: 18px;
+            }
+
+            #patron-counter {
+                font-size: 22px;
+            }
+
+            #tips-display {
+                font-size: 22px;
+            }
+
+            #controls-layer {
+                padding: 0 14px;
+                bottom: 12px;
+            }
+
+            #joystick-zone {
+                width: 125px;
+                height: 125px;
+            }
+
+            .action-btn {
+                width: 74px;
+                height: 74px;
+                font-size: 18px;
+            }
+
+            #btn-dash, #btn-ult {
+                width: 66px;
+                height: 66px;
+                font-size: 15px;
+            }
         }
     </style>
 
     <!-- Error Catcher -->
     <script>
-        window.addEventListener('error', function(e) {
-            const err = document.getElementById('error-log');
-            if(err) { err.style.display = 'block'; err.innerHTML += 'ERROR: ' + e.message + '<br>'; }
-        });
+                window.addEventListener('error', function(e) {
+                    const err = document.getElementById('error-log');
+                    if (err) {
+                        err.style.display = 'block';
+                        err.innerHTML += 'ERROR: ' + e.message + '<br>';
+                    }
+                });
     </script>
 
-    <!-- ES Module Import Map (Modern, bulletproof loading) -->
+    <!-- ES Module Import Map -->
     <script type="importmap">
         {
             "imports": {
@@ -112,497 +796,2545 @@
 <body>
     <div id="error-log"></div>
     <div id="game-container"></div>
+    <div id="vignette-layer"></div>
+    <div id="floating-layer"></div>
 
+    <!-- HUD & CONTROLS -->
     <div id="ui-layer">
         <div class="hud-top">
-            <div>
-                <div id="timer-display">00:00</div>
-                <div id="level-indicator" style="font-size:18px; color:#aaa;">LEVEL 1</div>
+            <div class="hud-left">
+                <div class="hud-row">
+                    <div id="timer-display">TIME: 60</div>
+                    <button id="btn-mute" class="icon-btn" title="Toggle Sound">🔊 SOUND</button>
+                </div>
+                <div id="level-indicator">SHIFT 1 / 5</div>
+                <div id="buff-bar"></div>
             </div>
-            <div>
-                <div id="meter-container"><div id="meter-fill"></div><div id="meter-label">ANNOYANCE: 0%</div></div>
+
+            <div class="hud-center">
+                <div id="tips-display">TIPS: $0</div>
+                <div id="combo-badge">2x HYPE!</div>
+            </div>
+
+            <div class="hud-right">
+                <div id="meter-container">
+                    <div id="meter-fill"></div>
+                    <div id="meter-label">ANNOYANCE: 0%</div>
+                </div>
                 <div id="patron-counter">SERVED: 0/6</div>
             </div>
         </div>
-        <div id="msg-area" style="position:absolute; top:20%; width:100%; text-align:center; font-family:'Bangers'; font-size:60px; color:#e67e22; text-shadow:3px 3px 0 #000; pointer-events:none;"></div>
+
+        <div id="msg-area"></div>
+
         <div id="controls-layer">
-            <div id="joystick-zone" class="control-zone"><div id="joystick-knob"></div></div>
+            <div id="joystick-zone" class="control-zone">
+                <div id="joystick-knob"></div>
+            </div>
             <div id="action-zone" class="control-zone">
-                <div id="btn-pour" class="action-btn">POUR</div>
-                <div id="btn-slap" class="action-btn">SLAP</div>
+                <div id="btn-dash" class="action-btn">
+                    <span>MOP DASH</span>
+                    <span class="key-hint">SHIFT</span>
+                </div>
+                <div id="btn-ult" class="action-btn">
+                    <div id="ult-fill-bar"></div>
+                    <span>LAST CALL</span>
+                    <span class="key-hint">Q</span>
+                </div>
+                <div id="btn-pour" class="action-btn">
+                    <span>POUR</span>
+                    <span class="key-hint">E</span>
+                </div>
+                <div id="btn-slap" class="action-btn">
+                    <span>SLAP</span>
+                    <span class="key-hint">SPACE</span>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- START SCREEN -->
     <div id="start-screen" class="screen">
-        <h1>LAW BREWING<br>TAPROOM</h1>
-        <p><b>Third-Person Service Sim</b></p>
-        <p>1. Navigate the upscale taproom.<br>2. <b>POUR</b> beer for sitting patrons.<br>3. <b>SLAP</b> aggressive villains.<br>4. Avoid <b>Spills</b> & <b>Plants</b>!<br>5. Beat the <b>Timer</b>.</p>
-        <button id="btn-start" class="main-btn">OPEN TAB (Sound On)</button>
-    </div>
+        <div class="subtitle-badge">PATIENT EGRET • MUG CLUB • ULTRA EDITION</div>
+        <h1>LAW BREWING<br>TAPROOM CHAOS</h1>
+        <p>Welcome to the wildest shift in craft brewing. Keep the Lukr side-pulls flowing, defend the vibe with your trusty Wooden Spoon, and survive all 5 rounds to pour The Final Flight!</p>
 
-    <div id="level-screen" class="screen hidden">
-        <h1 style="color:#27ae60">ROUND CLEAR</h1>
-        <p>Tables served in time. The taproom is buzzing.</p>
-        <button id="btn-next-level" class="main-btn">NEXT ROUND</button>
-    </div>
-
-    <div id="game-over-screen" class="screen hidden">
-        <h1 style="color:#c0392b" id="game-over-title">MAX ANNOYANCE!</h1>
-        <p id="game-over-msg">You flipped a table and quit.</p>
-        <button id="btn-restart" class="main-btn">RE-APPLY</button>
-    </div>
-
-    <div id="flight-screen" class="screen hidden">
-        <h1>THE FINAL FLIGHT</h1>
-        <p>Create the Perfect Flight to clock out.</p>
-        <div id="flight-ui">
-            <div class="beer-grid" id="beer-slots"></div>
-            <div id="beer-choices"></div>
-            <div style="margin-top:15px; display:flex; justify-content:center; gap:10px;">
-                <button id="btn-clear-flight" class="choice-btn" style="background:#c0392b; color:white;">Reset</button>
-                <button id="btn-submit-flight" class="choice-btn" style="background:#e67e22; color:#111; font-weight:bold;">SERVE</button>
+        <div class="guide-grid">
+            <div class="guide-card">
+                <b>🍺 POUR (E / Button)</b>
+                Serve thirsty tables before their patience ring turns red! Try pouring on dancers for a cosmic surprise (👽).
             </div>
-            <p id="flight-msg" style="color:#ff4444; height:20px; font-size: 24px; margin-top: 10px; font-family:'Bangers'"></p>
+            <div class="guide-card">
+                <b>🥄 SPOON SLAP (Space / Button)</b>
+                Smack unruly villains with your handcrafted Wooden Spoon! Slapping dancers unleashes taproom zoomies (🐶).
+            </div>
+            <div class="guide-card">
+                <b>🧹 MOP DASH (Shift / Button)</b>
+                Power-slide through sticky beer spills to clean them up for bonus Tips ($) and Hype!
+            </div>
+            <div class="guide-card">
+                <b>🔔 LAST CALL! (Q / Ultimate)</b>
+                Fill your Hype meter to 100% and unleash a golden shockwave that stuns villains, chills annoyance, and serves tables!
+            </div>
+        </div>
+
+        <button id="btn-start" class="main-btn">OPEN TAB & START SHIFT</button>
+    </div>
+
+    <!-- LEVEL CLEAR + MUG CLUB SHOP SCREEN -->
+    <div id="level-screen" class="screen hidden">
+        <div class="subtitle-badge">MUG CLUB INTERMISSION</div>
+        <h1 style="color:#2ecc71" id="level-clear-title">ROUND CLEAR!</h1>
+        <p id="level-clear-stats">Tables served in record time. Spend your Tips on taproom upgrades before the next wave!</p>
+        <div id="shop-balance" style="font-family:'Bangers'; font-size:32px; color:#2ecc71; margin-bottom:8px;">AVAILABLE TIPS: $0</div>
+
+        <div id="shop-grid"></div>
+
+        <button id="btn-next-level" class="main-btn">START NEXT SHIFT</button>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color:#e74c3c" id="game-over-title">MAX ANNOYANCE!</h1>
+        <p id="game-over-msg">You flipped the mash tun, threw your apron on the bar, and walked out.</p>
+        <button id="btn-restart" class="main-btn">RE-APPLY FOR SHIFT</button>
+    </div>
+
+    <!-- THE FINAL FLIGHT PUZZLE SCREEN -->
+    <div id="flight-screen" class="screen hidden">
+        <div class="subtitle-badge">ENDGAME MASTER CICERONE CHALLENGE</div>
+        <h1>THE FINAL FLIGHT</h1>
+        <p>
+            Assemble the <b>Perfect 4-Taster Flight</b> to clock out like a legend.<br>
+            <span style="color:#f1c40f; font-size:0.9em;">Rule: Include at least 1 <b>IPA</b>, 1 <b>Sour</b>, and 1 <b>Stout/Porter</b> — and NEVER serve a Pilsner, Cider, or Lager trap!</span>
+        </p>
+
+        <div id="flight-ui">
+            <div class="flight-paddle">
+                <div class="beer-grid" id="beer-slots"></div>
+            </div>
+            <div id="beer-choices"></div>
+            <div style="margin-top:14px; display:flex; justify-content:center; gap:14px;">
+                <button id="btn-clear-flight" class="choice-btn" style="background:#c0392b; color:white; padding:12px 24px; font-size:15px; font-family:'Bangers'; letter-spacing:1px;">DUMP & RESET</button>
+                <button id="btn-submit-flight" class="choice-btn" style="background:#2ecc71; color:#111; padding:12px 32px; font-size:18px; font-family:'Bangers'; letter-spacing:1px;">SERVE FLIGHT 🍻</button>
+            </div>
+            <p id="flight-msg" style="color:#ff4444; min-height:28px; font-size: 24px; margin: 10px 0 0 0; font-family:'Bangers'; letter-spacing:1px;"></p>
         </div>
     </div>
 
+    <!-- WIN SCREEN -->
     <div id="win-screen" class="screen hidden">
-        <h1 style="color:#27ae60">Good Job!</h1>
-        <p>You're slick with the spoon and a maestro on the menu.<br>Keep Going...</p>
-        <button id="btn-play-again" class="main-btn">PLAY AGAIN</button>
+        <div class="subtitle-badge">TAPROOM LEGEND CERTIFIED</div>
+        <h1 style="color:#2ecc71">MASTER OF THE MASH!</h1>
+        <p id="win-summary">You're slick with the spoon and a maestro on the menu. The Egret shines bright tonight!</p>
+        <button id="btn-play-again" class="main-btn">RUN ANOTHER SHIFT</button>
     </div>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+                import * as THREE from 'three';
+                import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+                import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+                import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        const LEVELS = 5;
-        const ROOM_SIZE = 30;
-        const PLAYER_START = { x: 0, z: 12 };
-        
-        const RESTRICTED_ZONES = [
-            { minX: 6, maxX: 14, minZ: 4, maxZ: 12 },   
-            { minX: -16, maxX: -6, minZ: 3, maxZ: 14 }, 
-            { minX: -16, maxX: 16, minZ: -16, maxZ: -9 }, 
-            { minX: -4, maxX: 4, minZ: 10, maxZ: 16 }, 
-            { minX: -3, maxX: 3, minZ: -12, maxZ: 12 }, 
-            { minX: -16, maxX: 16, minZ: -1, maxZ: 2 }   
-        ];
+                // ==========================================
+                // CONSTANTS & BREWERY LORE DATA
+                // ==========================================
+                const LEVELS = 5;
+                const ROOM_SIZE = 32;
+                const PLAYER_START = { x: 0, z: 12 };
 
-        const BEERS = [
-            'nIPLy Cold IPA', 'subLime Milkshake IPA', 
-            'Stolem Baltic Porter', 'Gutless Rusty Pumpkin',
-            'Kaszubian Sour', 'German Pilsner', 
-            'Peach Cider', 'Lime Lager'
-        ];
-        const BEER_MAP = {
-            'nIPLy Cold IPA': 'IPA', 'subLime Milkshake IPA': 'IPA',
-            'Stolem Baltic Porter': 'Stout', 'Gutless Rusty Pumpkin': 'Stout',
-            'Kaszubian Sour': 'Sour', 'German Pilsner': 'Pilsner', 
-            'Peach Cider': 'Cider', 'Lime Lager': 'Lager'
-        };
+                const RESTRICTED_ZONES = [
+                    { minX: 5.5, maxX: 14.5, minZ: 3.5, maxZ: 12.5 },  // Dance floor & DJ booth
+                    { minX: -16, maxX: -7.5, minZ: 2.5, maxZ: 13.5 },  // Pool table zone
+                    { minX: -16, maxX: 16, minZ: -16, maxZ: -8.5 },    // Main Bar & Stools
+                    { minX: -4.5, maxX: 4.5, minZ: 9.5, maxZ: 16 },    // Player Spawn area
+                    { minX: -2.8, maxX: 2.8, minZ: -10, maxZ: 12 },    // Center walkway aisle
+                    { minX: -16, maxX: 16, minZ: -1.5, maxZ: 1.8 }     // Cross aisle
+                ];
 
-        let state = {
-            level: 1, isPlaying: false, annoyance: 0,
-            patronsTotal: 6, patronsServed: 0, timeLeft: 60, maxTime: 60, 
-            enemies: [], patrons: [], npcs: [], notes: [], 
-            obstacles: [], spills: [], flight: [null, null, null, null],
-            enemySpawnTimer: 0, animState: { slap: 0, pour: 0 },
-            safeSpawnGrid: [], spawnedPositions: [], particles: []
-        };
+                const BEER_CATALOG = [
+                    { name: 'nIPLy Cold IPA', type: 'IPA', color: '#f39c12' },
+                    { name: 'subLime Milkshake IPA', type: 'IPA', color: '#f1c40f' },
+                    { name: 'Tangier Management IPA', type: 'IPA', color: '#e67e22' },
+                    { name: 'Patient Egret Pineapple IPA', type: 'IPA', color: '#ffbe0b' },
+                    { name: 'Stolem Baltic Porter', type: 'Stout', color: '#2c1810' },
+                    { name: 'not burnt marshmallow', type: 'Stout', color: '#1a0f0a' },
+                    { name: 'Gutless Rusty Pumpkin', type: 'Stout', color: '#5c2a12' },
+                    { name: 'Raspberry Cabana Sour', type: 'Sour', color: '#e84393' },
+                    { name: 'Kaszubian Sour', type: 'Sour', color: '#fd79a8' },
+                    { name: 'German Pilsner', type: 'Pilsner', color: '#ffeaa7' },
+                    { name: 'Peach Cider', type: 'Cider', color: '#fab1a0' },
+                    { name: 'Lime Lager', type: 'Lager', color: '#badc58' }
+                ];
 
-        let scene, camera, renderer, clock, composer;
-        let playerGroup, playerBeerModel, playerSpoonModel;
-        let joystick = { x: 0, y: 0, active: false };
-        const textures = {};
+                const SHOP_ITEMS = [
+                    {
+                        id: 'spoon',
+                        name: 'Heavy Oak Wooden Spoon',
+                        desc: '+1 Slap Damage, wider cleave arc & massive knockback!',
+                        baseCost: 80,
+                        maxLvl: 3
+                    },
+                    {
+                        id: 'lukr',
+                        name: 'Lukr Side-Pull Mastery',
+                        desc: '+25% Pour Range & every Pour chills Annoyance by 8%!',
+                        baseCost: 75,
+                        maxLvl: 3
+                    },
+                    {
+                        id: 'boots',
+                        name: "Brewer's Non-Slip Boots",
+                        desc: 'Ignore sticky spill slowdowns & faster Mop Dash recharge!',
+                        baseCost: 70,
+                        maxLvl: 3
+                    },
+                    {
+                        id: 'bass',
+                        name: 'DJ Sub-Bass Drop',
+                        desc: 'DJ periodically blasts a sonic wave that slows & stuns villains!',
+                        baseCost: 90,
+                        maxLvl: 3
+                    }
+                ];
 
-        const AudioSys = {
-            ctx: null,
-            init: function() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} },
-            playSFX: function(type) {
-                if(!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-                    const now = this.ctx.currentTime;
-                    if (type === 'slap') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.5, now); osc.start(now); osc.stop(now + 0.1); } 
-                    else if (type === 'pour') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.2, now); osc.start(now); osc.stop(now + 0.3); } 
-                    else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); gain.gain.setValueAtTime(0.3, now); osc.start(now); osc.stop(now + 0.5); } 
-                    else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); gain.gain.setValueAtTime(0.5, now); osc.start(now); osc.stop(now + 0.5); }
-                } catch(e) {}
-            }
-        };
+                // ==========================================
+                // GAME STATE
+                // ==========================================
+                let state = {
+                    level: 1,
+                    isPlaying: false,
+                    annoyance: 0,
+                    patronsTotal: 6,
+                    patronsServed: 0,
+                    timeLeft: 60,
+                    maxTime: 60,
+                    tips: 0,
+                    totalTipsEarned: 0,
+                    combo: 0,
+                    comboTimer: 0,
+                    ultCharge: 0,
+                    dashCooldown: 0,
+                    dashActiveTimer: 0,
+                    djBassTimer: 6.0,
+                    buffs: {
+                        latte: 0,   // Turbo speed & fast slap
+                        shield: 0   // Invulnerable to annoyance
+                    },
+                    upgrades: {
+                        spoon: 0,
+                        lukr: 0,
+                        boots: 0,
+                        bass: 0
+                    },
+                    enemies: [],
+                    patrons: [],
+                    npcs: [],
+                    notes: [],
+                    obstacles: [],
+                    spills: [],
+                    powerups: [],
+                    poolBalls: [],
+                    danceTiles: [],
+                    clubLights: [],
+                    shockwaves: [],
+                    particles: [],
+                    flight: [null, null, null, null],
+                    enemySpawnTimer: 0,
+                    animState: { slap: 0, pour: 0 },
+                    safeSpawnGrid: [],
+                    spawnedPositions: [],
+                    cameraShake: 0,
+                    cameraZoomPunch: 0,
+                    playerFacing: 0,
+                    playerVel: new THREE.Vector2(0, 0)
+                };
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x111111); 
-            scene.fog = new THREE.Fog(0x111111, 15, 50);
+                let scene, camera, renderer, clock, composer;
+                let playerGroup, playerCharacter, playerBeerModel, playerSpoonModel, playerSlashMesh, playerShieldMesh;
+                let joystick = { x: 0, y: 0, active: false };
+                let keyState = { w: false, a: false, s: false, d: false };
+                const textures = {};
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
-            camera.position.set(0, 32, 26); camera.lookAt(0, 0, 4);
+                // ==========================================
+                // PROCEDURAL WEB AUDIO ENGINE & GRUNGE GROOVE
+                // ==========================================
+                const AudioSys = {
+                    ctx: null,
+                    muted: false,
+                    musicTimer: null,
+                    step: 0,
+                    bassFreqs: [82.41, 82.41, 98.00, 110.00, 82.41, 123.47, 110.00, 98.00], // E2 grunge riff
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.toneMapping = THREE.ReinhardToneMapping;
-            document.getElementById('game-container').appendChild(renderer.domElement);
+                    init: function() {
+                        try {
+                            if (!this.ctx) {
+                                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            }
+                            if (this.ctx.state === 'suspended') {
+                                this.ctx.resume();
+                            }
+                            this.startMusicLoop();
+                        } catch (e) {}
+                    },
 
-            // --- BLOOM PIPELINE VIA MODULES ---
-            const renderScene = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-            bloomPass.threshold = 0.3;  
-            bloomPass.strength = 1.6;   
-            bloomPass.radius = 0.5;     
-            composer = new EffectComposer(renderer);
-            composer.addPass(renderScene);
-            composer.addPass(bloomPass);
+                    toggleMute: function() {
+                        this.muted = !this.muted;
+                        const btn = document.getElementById('btn-mute');
+                        if (btn) btn.innerText = this.muted ? '🔇 MUTED' : '🔊 SOUND';
+                    },
 
-            clock = new THREE.Clock();
-            generateTextures(); setupControls(); setupButtons();
+                    startMusicLoop: function() {
+                        if (this.musicTimer) clearInterval(this.musicTimer);
+                        this.musicTimer = setInterval(() => {
+                            if (!state.isPlaying || this.muted || !this.ctx) return;
+                            this.playBeatStep(this.step);
+                            this.step = (this.step + 1) % 8;
+                        }, 210);
+                    },
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                composer.setSize(window.innerWidth, window.innerHeight);
-            });
+                    playBeatStep: function(step) {
+                        try {
+                            const now = this.ctx.currentTime;
+                            // Kick on 0, 4
+                            if (step % 4 === 0) {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.frequency.setValueAtTime(130, now);
+                                osc.frequency.exponentialRampToValueAtTime(35, now + 0.14);
+                                gain.gain.setValueAtTime(0.22, now);
+                                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(now);
+                                osc.stop(now + 0.15);
+                            }
+                            // Snare/Hat on 2, 6
+                            if (step % 4 === 2) {
+                                this.playNoiseBurst(0.08, 900, 0.09);
+                            }
+                            // Grunge Bassline
+                            const bassOsc = this.ctx.createOscillator();
+                            const bassFilter = this.ctx.createBiquadFilter();
+                            const bassGain = this.ctx.createGain();
+                            bassOsc.type = 'sawtooth';
+                            const freqMult = state.timeLeft < 15 ? 1.122 : 1.0; // shift up when frantic
+                            bassOsc.frequency.setValueAtTime(this.bassFreqs[step] * freqMult, now);
+                            bassFilter.type = 'lowpass';
+                            bassFilter.frequency.setValueAtTime(380 + (state.combo * 45), now);
+                            bassGain.gain.setValueAtTime(0.09, now);
+                            bassGain.gain.exponentialRampToValueAtTime(0.005, now + 0.18);
+                            bassOsc.connect(bassFilter);
+                            bassFilter.connect(bassGain);
+                            bassGain.connect(this.ctx.destination);
+                            bassOsc.start(now);
+                            bassOsc.stop(now + 0.19);
+                        } catch (e) {}
+                    },
 
-            // Modern Main Loop
-            renderer.setAnimationLoop(animate);
-        }
+                    playNoiseBurst: function(duration, filterFreq, vol) {
+                        if (!this.ctx || this.muted) return;
+                        const bufferSize = this.ctx.sampleRate * duration;
+                        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            data[i] = Math.random() * 2 - 1;
+                        }
+                        const noise = this.ctx.createBufferSource();
+                        noise.buffer = buffer;
+                        const filter = this.ctx.createBiquadFilter();
+                        filter.type = 'bandpass';
+                        filter.frequency.value = filterFreq;
+                        const gain = this.ctx.createGain();
+                        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                        noise.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        noise.start();
+                    },
 
-        function setupButtons() {
-            const bind = (id, fn) => { const el = document.getElementById(id); if(el) { el.onclick = null; el.addEventListener('click', fn); el.addEventListener('touchend', (e) => { e.preventDefault(); fn(); }); } };
-            bind('btn-start', () => { 
-                AudioSys.init(); if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume(); 
-                document.getElementById('start-screen').classList.add('hidden'); 
-                state.level=1; state.isPlaying=true; clock.getDelta(); loadLevel(1); 
-            });
-            bind('btn-next-level', () => { 
-                document.getElementById('level-screen').classList.add('hidden'); 
-                if(state.level>=LEVELS){ document.getElementById('flight-screen').classList.remove('hidden'); setupFlightUI(); state.isPlaying=false; }
-                else { state.level++; state.isPlaying=true; clock.getDelta(); loadLevel(state.level); }
-            });
-            bind('btn-restart', () => location.reload()); bind('btn-play-again', () => location.reload()); bind('btn-clear-flight', clearFlight); bind('btn-submit-flight', submitFlight);
-        }
+                    playSFX: function(type) {
+                        if (!this.ctx || this.muted) return;
+                        try {
+                            const now = this.ctx.currentTime;
+                            if (type === 'slap') {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.type = 'sawtooth';
+                                osc.frequency.setValueAtTime(240, now);
+                                osc.frequency.exponentialRampToValueAtTime(55, now + 0.12);
+                                gain.gain.setValueAtTime(0.35, now);
+                                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(now);
+                                osc.stop(now + 0.13);
+                                this.playNoiseBurst(0.09, 1400, 0.25);
+                            } else if (type === 'pour') {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(320, now);
+                                osc.frequency.exponentialRampToValueAtTime(680, now + 0.28);
+                                gain.gain.setValueAtTime(0.22, now);
+                                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(now);
+                                osc.stop(now + 0.3);
+                                this.playNoiseBurst(0.25, 2400, 0.12);
+                            } else if (type === 'dash') {
+                                this.playNoiseBurst(0.22, 650, 0.25);
+                            } else if (type === 'coin') {
+                                [987.77, 1318.51].forEach((freq, idx) => {
+                                    const o = this.ctx.createOscillator();
+                                    const g = this.ctx.createGain();
+                                    o.type = 'triangle';
+                                    o.frequency.setValueAtTime(freq, now + idx * 0.06);
+                                    g.gain.setValueAtTime(0.2, now + idx * 0.06);
+                                    g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.2);
+                                    o.connect(g);
+                                    g.connect(this.ctx.destination);
+                                    o.start(now + idx * 0.06);
+                                    o.stop(now + idx * 0.06 + 0.2);
+                                });
+                            } else if (type === 'bark') {
+                                const o = this.ctx.createOscillator();
+                                const g = this.ctx.createGain();
+                                o.type = 'sawtooth';
+                                o.frequency.setValueAtTime(420, now);
+                                o.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+                                g.gain.setValueAtTime(0.3, now);
+                                g.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
+                                o.connect(g);
+                                g.connect(this.ctx.destination);
+                                o.start(now);
+                                o.stop(now + 0.13);
+                            } else if (type === 'alien') {
+                                const o = this.ctx.createOscillator();
+                                const g = this.ctx.createGain();
+                                o.type = 'sine';
+                                o.frequency.setValueAtTime(500, now);
+                                o.frequency.linearRampToValueAtTime(1100, now + 0.15);
+                                o.frequency.linearRampToValueAtTime(650, now + 0.3);
+                                g.gain.setValueAtTime(0.25, now);
+                                g.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+                                o.connect(g);
+                                g.connect(this.ctx.destination);
+                                o.start(now);
+                                o.stop(now + 0.32);
+                            } else if (type === 'ult') {
+                                [220, 277.18, 329.63, 440].forEach(f => {
+                                    const o = this.ctx.createOscillator();
+                                    const g = this.ctx.createGain();
+                                    o.type = 'sawtooth';
+                                    o.frequency.setValueAtTime(f, now);
+                                    g.gain.setValueAtTime(0.15, now);
+                                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+                                    o.connect(g);
+                                    g.connect(this.ctx.destination);
+                                    o.start(now);
+                                    o.stop(now + 0.85);
+                                });
+                            } else if (type === 'win') {
+                                [440, 554.37, 659.25, 880].forEach((f, i) => {
+                                    const o = this.ctx.createOscillator();
+                                    const g = this.ctx.createGain();
+                                    o.type = 'triangle';
+                                    o.frequency.setValueAtTime(f, now + i * 0.08);
+                                    g.gain.setValueAtTime(0.25, now + i * 0.08);
+                                    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.45);
+                                    o.connect(g);
+                                    g.connect(this.ctx.destination);
+                                    o.start(now + i * 0.08);
+                                    o.stop(now + i * 0.08 + 0.45);
+                                });
+                            } else if (type === 'lose') {
+                                [180, 150, 110].forEach((f, i) => {
+                                    const o = this.ctx.createOscillator();
+                                    const g = this.ctx.createGain();
+                                    o.type = 'sawtooth';
+                                    o.frequency.setValueAtTime(f, now + i * 0.15);
+                                    g.gain.setValueAtTime(0.3, now + i * 0.15);
+                                    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.35);
+                                    o.connect(g);
+                                    g.connect(this.ctx.destination);
+                                    o.start(now + i * 0.15);
+                                    o.stop(now + i * 0.15 + 0.35);
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                };
 
-        function createCharacterModel(type) {
-            const group = new THREE.Group();
-            let bodyColor = 0x555555; let headColor = 0xffccaa; 
-            
-            if (type === 'player') { bodyColor = 0x2980b9; headColor = 0xffccaa; }
-            else if (type === 'bartender') { bodyColor = 0x111111; headColor = 0xffccaa; }
-            else if (type === 'patron') { const colors = [0x34495e, 0x8e44ad, 0x16a085, 0xd35400, 0xc0392b]; bodyColor = colors[Math.floor(Math.random()*colors.length)]; }
-            else if (type === 'served') { bodyColor = 0x27ae60; headColor = 0xa9dfbf; }
-            else if (type === 'dancer') { bodyColor = 0xe91e63; headColor = 0xf8bbd0; }
-            else if (type === 'oldman') { bodyColor = 0x7f8c8d; headColor = 0xecf0f1; }
-            else if (type === 'police') { bodyColor = 0x154360; headColor = 0xf1c40f; }
-            else if (type === 'dj') { bodyColor = 0x111111; headColor = 0x9b59b6; }
-            else if (type === 'alien') { bodyColor = 0x2ecc71; headColor = 0x00ff00; }
-            else if (type === 'dog') { 
-                const b = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.2), new THREE.MeshStandardMaterial({color: 0x8d6e63})); b.position.y = 0.5;
-                const h = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({color: 0x5d4037})); h.position.set(0, 0.8, 0.6);
-                group.add(b); group.add(h); return group;
-            }
+                // ==========================================
+                // INITIALIZATION & RENDER PIPELINE
+                // ==========================================
+                function init() {
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x0f0b09);
+                    scene.fog = new THREE.FogExp2(0x0f0b09, 0.015);
 
-            const bodyGeo = new THREE.CylinderGeometry(0.25, 0.4, 1.2, 16);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.8 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 0.6;
-            
-            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
-            const headMat = new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.5 });
-            const head = new THREE.Mesh(headGeo, headMat); head.position.y = 1.45;
+                    camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 120);
+                    camera.position.set(0, 31, 25);
+                    camera.lookAt(0, 0, 3);
 
-            group.add(body); group.add(head);
-            if(type === 'dj') { const h = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.4), new THREE.MeshStandardMaterial({color:0x222})); h.position.y=1.5; group.add(h); }
-            return group;
-        }
+                    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    renderer.toneMapping = THREE.ReinhardToneMapping;
+                    renderer.toneMappingExposure = 1.15;
+                    document.getElementById('game-container').appendChild(renderer.domElement);
 
-        function createPlantModel() {
-            const group = new THREE.Group();
-            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.6), new THREE.MeshStandardMaterial({color: 0x222222})); pot.position.y = 0.3;
-            const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.7, 8, 8), new THREE.MeshStandardMaterial({color: 0x1e8449, flatShading: true})); leaves.position.y = 1.1;
-            group.add(pot); group.add(leaves); return group;
-        }
+                    // UnrealBloom Pipeline
+                    const renderScene = new RenderPass(scene, camera);
+                    const bloomPass = new UnrealBloomPass(
+                        new THREE.Vector2(window.innerWidth, window.innerHeight),
+                        1.1,
+                        0.45,
+                        0.82
+                    );
+                    composer = new EffectComposer(renderer);
+                    composer.addPass(renderScene);
+                    composer.addPass(bloomPass);
 
-        function createTapModel() {
-            const group = new THREE.Group();
-            const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.8, roughness: 0.2 })); spout.rotation.x = Math.PI / 2;
-            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 0.15), new THREE.MeshStandardMaterial({ color: 0x111111 })); handle.position.set(0.2, 0.3, 0); handle.rotation.z = -Math.PI / 8; 
-            group.add(spout); group.add(handle); return group;
-        }
+                    clock = new THREE.Clock();
+                    generateTextures();
+                    setupControls();
+                    setupButtons();
 
-        function createBeerGlassModel() {
-            const group = new THREE.Group();
-            const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0xff5e00, emissive: 0xaa2200, transparent: true, opacity: 0.9 }));
-            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.4, 1.0, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, metalness: 0.8, roughness: 0.1 }));
-            const foam = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffffff })); foam.position.y = 0.45; foam.scale.y = 0.5;
-            group.add(liquid); group.add(cup); group.add(foam); return group;
-        }
+                    // Build an attractive background preview scene while on the Start Screen
+                    loadLevel(1, true);
 
-        function createSpoonModel() {
-            const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({color: 0xaaaaaa, metalness: 0.8, roughness: 0.3});
-            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.2), mat);
-            const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.2), mat); bowl.scale.set(1, 0.2, 1.5); bowl.position.y = 0.6;
-            group.add(handle); group.add(bowl); return group;
-        }
+                    window.addEventListener('resize', () => {
+                        camera.aspect = window.innerWidth / window.innerHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                        composer.setSize(window.innerWidth, window.innerHeight);
+                    });
 
-        function createParticleBurst(pos, colorHex) {
-            const particleCount = 30; const geometry = new THREE.BufferGeometry(); const positions = new Float32Array(particleCount * 3); const velocities = [];
-            for (let i = 0; i < particleCount; i++) {
-                positions[i * 3] = pos.x; positions[i * 3 + 1] = pos.y + 1.5; positions[i * 3 + 2] = pos.z;
-                velocities.push({ x: (Math.random() - 0.5) * 8, y: (Math.random() * 5) + 2, z: (Math.random() - 0.5) * 8 });
-            }
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({ color: colorHex, size: 0.3, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
-            const particleSystem = new THREE.Points(geometry, material); scene.add(particleSystem);
-            state.particles.push({ mesh: particleSystem, velocities: velocities, life: 1.0 });
-        }
-
-        function generateTextures() {
-            const sc = document.createElement('canvas'); sc.width=128; sc.height=128; const sctx = sc.getContext('2d');
-            sctx.fillStyle = "#d35400"; sctx.beginPath(); sctx.arc(64, 64, 60, 0, Math.PI*2); sctx.fill(); textures.spill = new THREE.CanvasTexture(sc);
-
-            const nc = document.createElement('canvas'); nc.width=1024; nc.height=128; const nctx = nc.getContext('2d');
-            nctx.shadowColor = "#ff7b00"; nctx.shadowBlur = 50; 
-            nctx.fillStyle = "#ffffff"; nctx.font = "bold 80px Courier New"; nctx.textAlign = "center"; nctx.textBaseline = "middle";
-            nctx.fillText("LAW BREWING TAPROOM", 512, 64); textures.neon = new THREE.CanvasTexture(nc);
-
-            const dc = document.createElement('canvas'); dc.width=256; dc.height=256; const dctx = dc.getContext('2d');
-            dctx.fillStyle = '#111111'; dctx.fillRect(0,0,256,256); dctx.fillStyle = '#181818'; dctx.fillRect(0,0,128,128); dctx.fillRect(128,128,128,128);
-            textures.danceFloor = new THREE.CanvasTexture(dc); textures.danceFloor.wrapS = THREE.RepeatWrapping; textures.danceFloor.wrapT = THREE.RepeatWrapping; textures.danceFloor.repeat.set(4, 4);
-
-            const c = document.createElement('canvas'); c.width=128; c.height=128; const ctx=c.getContext('2d');
-            ctx.font='100px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🎶',64,64); textures.musicNote = new THREE.CanvasTexture(c);
-        }
-
-        function createPlayer(pos) {
-            playerGroup = new THREE.Group(); playerGroup.position.copy(pos); scene.add(playerGroup);
-            const pl = new THREE.PointLight(0xffe0b2, 0.6, 15); pl.position.set(0, 5, 0); playerGroup.add(pl);
-            const pModel = createCharacterModel('player'); playerGroup.add(pModel);
-            playerBeerModel = createBeerGlassModel(); playerBeerModel.position.set(-0.8, 1.0, 0.5); playerGroup.add(playerBeerModel);
-            playerSpoonModel = createSpoonModel(); playerSpoonModel.position.set(0.8, 1.0, 0.5); playerSpoonModel.rotation.z = Math.PI / 4; playerGroup.add(playerSpoonModel);
-        }
-
-        function createDecorations() {
-            const barMat = new THREE.MeshStandardMaterial({ color: 0x2c1e16, roughness: 0.6 }); 
-            const bar = new THREE.Mesh(new THREE.BoxGeometry(24, 2, 2), barMat); bar.position.set(0, 1, -12); scene.add(bar); state.obstacles.push(bar);
-            const backBar = new THREE.Mesh(new THREE.BoxGeometry(24, 4, 1), barMat); backBar.position.set(0, 2, -15.5); scene.add(backBar);
-            
-            const neonMat = new THREE.SpriteMaterial({ map: textures.neon, color: 0xffffff });
-            const neon = new THREE.Sprite(neonMat); neon.position.set(0, 6, -15.2); neon.scale.set(16, 2, 1); scene.add(neon);
-            
-            for(let i=0; i<10; i++) { const tap = createTapModel(); tap.position.set(-8 + (i*1.8), 2.5, -15); scene.add(tap); }
-            const bartender = createCharacterModel('bartender'); bartender.position.set(0, 0, -13.5); scene.add(bartender);
-            for(let i=0; i<6; i++) { const p = createCharacterModel('patron'); p.position.set(-9 + (i*3.5), 0, -10.5); scene.add(p); }
-
-            const poolGeo = new THREE.BoxGeometry(5, 2, 8); const poolMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
-            const poolTable = new THREE.Mesh(poolGeo, [barMat, barMat, poolMat, barMat, barMat, barMat]); poolTable.position.set(-12, 1, 8); scene.add(poolTable); state.obstacles.push(poolTable);
-            const pocketGeo = new THREE.CylinderGeometry(0.25, 0.25, 2.1); const pocketMat = new THREE.MeshBasicMaterial({color:0x000000});
-            for(let x of [-14.3, -9.7]) for(let z of [4.2, 8, 11.8]) { const p = new THREE.Mesh(pocketGeo, pocketMat); p.position.set(x, 1, z); scene.add(p); }
-            const ballGeo = new THREE.SphereGeometry(0.15, 8, 8);
-            for(let i=0; i<10; i++) { const b = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({color:Math.random()*0xffffff})); b.position.set(-12+(Math.random()-0.5)*4, 2.15, 8+(Math.random()-0.5)*7); scene.add(b); }
-            
-            [ {x: -15, z: 8}, {x: -9, z: 8}, {x: -12, z: 3.5}, {x: -12, z: 12.5} ].forEach(pos => { const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData={type:'npc'}; scene.add(p); state.npcs.push(p); });
-
-            const djBox = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 2), new THREE.MeshStandardMaterial({color:0x111})); djBox.position.set(10, 1, 4); scene.add(djBox); state.obstacles.push(djBox);
-            const dj = createCharacterModel('dj'); dj.position.set(10, 1.5, 3.5); scene.add(dj);
-
-            const df = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshBasicMaterial({ map: textures.danceFloor })); df.rotation.x = -Math.PI/2; df.position.set(10, 0.02, 8); scene.add(df);
-            [ {x: 8, z: 6}, {x: 12, z: 6}, {x: 8, z: 10}, {x: 12, z: 10} ].forEach(pos => { const d = createCharacterModel('dancer'); d.position.set(pos.x, 0, pos.z); d.userData = { type: 'dancer', isTransformed: false }; scene.add(d); state.npcs.push(d); });
-
-            state.notes = [];
-            for(let i=0; i<6; i++) { const n = new THREE.Sprite(new THREE.SpriteMaterial({map: textures.musicNote, transparent: true})); n.scale.set(1.5, 1.5, 1); n.position.set(6 + Math.random()*8, 3, 4 + Math.random()*8); scene.add(n); state.notes.push(n); }
-        }
-
-        function calculateSafeGrid() {
-            let points = [];
-            for(let x = -16; x <= 16; x += 2.5) {
-                for(let z = -12; z <= 14; z += 2.5) {
-                    let pos = new THREE.Vector3(x, 0, z); let safe = true;
-                    for(let zone of RESTRICTED_ZONES) if(x > zone.minX && x < zone.maxX && z > zone.minZ && z < zone.maxZ) safe = false;
-                    if(safe) for(let obs of state.obstacles) if(pos.distanceTo(obs.position) < 3.5) safe = false;
-                    if(safe) points.push(pos);
+                    renderer.setAnimationLoop(animate);
                 }
-            } return points.sort(() => Math.random() - 0.5); 
-        }
 
-        function getSafeSpot(spacing) {
-            for(let i=state.safeSpawnGrid.length-1; i>=0; i--) {
-                let pos = state.safeSpawnGrid[i]; let clear = true;
-                if(pos.distanceTo(new THREE.Vector3(PLAYER_START.x,0,PLAYER_START.z)) < 8.0) clear = false;
-                if(clear) for(let spawned of state.spawnedPositions) if(pos.distanceTo(spawned) < spacing) { clear = false; break; } 
-                if(clear) { state.safeSpawnGrid.splice(i, 1); state.spawnedPositions.push(pos); return pos; }
-            } return null;
-        }
+                // ==========================================
+                // PROCEDURAL TEXTURE GENERATOR
+                // ==========================================
+                function generateTextures() {
+                    // Sticky Beer Spill Texture
+                    const sc = document.createElement('canvas');
+                    sc.width = 256; sc.height = 256;
+                    const sctx = sc.getContext('2d');
+                    const grad = sctx.createRadialGradient(128, 128, 15, 128, 128, 110);
+                    grad.addColorStop(0, 'rgba(243, 156, 18, 0.85)');
+                    grad.addColorStop(0.7, 'rgba(211, 84, 0, 0.65)');
+                    grad.addColorStop(1, 'rgba(211, 84, 0, 0)');
+                    sctx.fillStyle = grad;
+                    sctx.beginPath();
+                    sctx.arc(128, 128, 115, 0, Math.PI * 2);
+                    sctx.fill();
+                    // Foam bubbles inside spill
+                    sctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                    for (let i = 0; i < 14; i++) {
+                        const a = Math.random() * Math.PI * 2;
+                        const r = Math.random() * 75;
+                        sctx.beginPath();
+                        sctx.arc(128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 3 + Math.random() * 6, 0, Math.PI * 2);
+                        sctx.fill();
+                    }
+                    textures.spill = new THREE.CanvasTexture(sc);
 
-        function loadLevel(lvl) {
-            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
-            const ambient = new THREE.AmbientLight(0xffe0b2, 0.5); scene.add(ambient);
-            const spotLight = new THREE.SpotLight(0xffb300, 0.8); spotLight.position.set(0, 40, 0); spotLight.castShadow = true; scene.add(spotLight);
-            
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SIZE+10, ROOM_SIZE+10), new THREE.MeshStandardMaterial({color:0x221a15, roughness:0.8})); floor.rotation.x = -Math.PI/2; scene.add(floor);
+                    // Main Neon Banner
+                    const nc = document.createElement('canvas');
+                    nc.width = 1024; nc.height = 160;
+                    const nctx = nc.getContext('2d');
+                    nctx.shadowColor = '#ff7b00';
+                    nctx.shadowBlur = 35;
+                    nctx.strokeStyle = '#ff9f43';
+                    nctx.lineWidth = 6;
+                    nctx.strokeRect(20, 20, 984, 120);
+                    nctx.fillStyle = '#fff5e6';
+                    nctx.font = '900 72px "Courier New", monospace';
+                    nctx.textAlign = 'center';
+                    nctx.textBaseline = 'middle';
+                    nctx.fillText('LAW BREWING TAPROOM', 512, 82);
+                    textures.neon = new THREE.CanvasTexture(nc);
 
-            state.obstacles = []; state.spills = []; state.npcs = []; state.notes = []; state.spawnedPositions = []; state.particles = [];
-            createPlayer(new THREE.Vector3(PLAYER_START.x, 0, PLAYER_START.z)); createDecorations();
-            camera.position.set(0, 32, 26); camera.lookAt(0, 0, 4);
-            state.timeLeft = 60; state.maxTime = 60; state.safeSpawnGrid = calculateSafeGrid();
+                    // Great Egret Neon Sign (Iconic Law Brewing Mascot)
+                    const ec = document.createElement('canvas');
+                    ec.width = 512; ec.height = 512;
+                    const ectx = ec.getContext('2d');
+                    ectx.shadowColor = '#00f3ff';
+                    ectx.shadowBlur = 32;
+                    ectx.strokeStyle = '#ffffff';
+                    ectx.lineWidth = 10;
+                    ectx.lineCap = 'round';
+                    ectx.lineJoin = 'round';
+                    // Draw stylized Great Egret silhouette in glowing neon lines
+                    ectx.beginPath();
+                    // Long legs
+                    ectx.moveTo(240, 440); ectx.lineTo(255, 310);
+                    ectx.moveTo(275, 440); ectx.lineTo(265, 310);
+                    // Sleek body
+                    ectx.ellipse(250, 275, 65, 38, -0.25, 0, Math.PI * 2);
+                    // S-curve graceful neck
+                    ectx.moveTo(295, 250);
+                    ectx.bezierCurveTo(355, 200, 270, 120, 325, 85);
+                    // Head & pointed golden beak
+                    ectx.arc(335, 85, 16, 0, Math.PI * 2);
+                    ectx.stroke();
+                    // Beak in glowing gold
+                    ectx.strokeStyle = '#f1c40f';
+                    ectx.shadowColor = '#f1c40f';
+                    ectx.beginPath();
+                    ectx.moveTo(350, 82);
+                    ectx.lineTo(415, 90);
+                    ectx.lineTo(350, 95);
+                    ectx.stroke();
+                    textures.egret = new THREE.CanvasTexture(ec);
 
-            for(let i=0; i<3+lvl; i++) {
-                let pos = getSafeSpot(4.0);
-                if(pos) { const s = new THREE.Mesh(new THREE.PlaneGeometry(4,4), new THREE.MeshBasicMaterial({map:textures.spill, transparent:true})); s.rotation.x = -Math.PI/2; s.position.copy(pos); s.position.y = 0.05; scene.add(s); state.spills.push(s); }
-            }
+                    // Mug Club Neon Sign
+                    const mc = document.createElement('canvas');
+                    mc.width = 512; mc.height = 128;
+                    const mctx = mc.getContext('2d');
+                    mctx.shadowColor = '#2ecc71';
+                    mctx.shadowBlur = 28;
+                    mctx.fillStyle = '#e8fff0';
+                    mctx.font = 'bold 64px "Courier New", monospace';
+                    mctx.textAlign = 'center';
+                    mctx.textBaseline = 'middle';
+                    mctx.fillText('★ MUG CLUB ★', 256, 64);
+                    textures.mugClub = new THREE.CanvasTexture(mc);
 
-            state.patrons = []; state.enemies = []; state.annoyance = 0; state.patronsServed = 0; state.patronsTotal = 6; updateUI();
+                    // Hardwood Floor Plank Texture
+                    const fc = document.createElement('canvas');
+                    fc.width = 256; fc.height = 256;
+                    const fctx = fc.getContext('2d');
+                    fctx.fillStyle = '#241811';
+                    fctx.fillRect(0, 0, 256, 256);
+                    fctx.strokeStyle = '#160e09';
+                    fctx.lineWidth = 3;
+                    for (let y = 0; y < 256; y += 32) {
+                        fctx.beginPath();
+                        fctx.moveTo(0, y);
+                        fctx.lineTo(256, y);
+                        fctx.stroke();
+                        const jointX = (y * 3) % 256;
+                        fctx.beginPath();
+                        fctx.moveTo(jointX, y);
+                        fctx.lineTo(jointX, y + 32);
+                        fctx.stroke();
+                    }
+                    textures.woodFloor = new THREE.CanvasTexture(fc);
+                    textures.woodFloor.wrapS = THREE.RepeatWrapping;
+                    textures.woodFloor.wrapT = THREE.RepeatWrapping;
+                    textures.woodFloor.repeat.set(10, 10);
 
-            let tablesSpawned = 0; let spacing = 4.5; let loop = 0;
-            while(tablesSpawned < 6 && loop < 500) {
-                let pos = getSafeSpot(spacing);
-                if(pos) {
-                    const t = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,1,16), new THREE.MeshLambertMaterial({color:0x2c1e16})); t.position.set(pos.x, 0.5, pos.z); scene.add(t); state.obstacles.push(t);
-                    const p = createCharacterModel('patron'); p.position.set(pos.x, 0, pos.z); p.userData = { isServed: false, type: 'patron', tablePos: t.position.clone() }; scene.add(p); state.patrons.push(p);
-                    tablesSpawned++;
-                } else { spacing -= 0.5; if(spacing < 2.0) spacing = 2.0; state.safeSpawnGrid = calculateSafeGrid(); }
-                loop++;
-            }
-
-            for(let i=0; i<2+lvl; i++) {
-                let pos = getSafeSpot(3.0);
-                if(pos) { const p = createPlantModel(); p.position.set(pos.x, 0, pos.z); scene.add(p); const obs = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshBasicMaterial({visible:false})); obs.position.set(pos.x, 0, pos.z); state.obstacles.push(obs); }
-            }
-
-            state.enemySpawnTimer = 3.0; document.getElementById('level-indicator').innerText = `LEVEL ${lvl}`; showMessage(`TAPROOM OPEN!`);
-        }
-
-        function checkCollision(pos) {
-            for(let obs of state.obstacles) {
-                if (!obs) continue; let colRad = obs.geometry.type === 'BoxGeometry' ? 2.5 : 1.5;
-                if(new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(obs.position.x, obs.position.z)) < 0.4 + colRad) return true;
-            } return Math.abs(pos.x)>15 || Math.abs(pos.z)>15 || pos.z>14;
-        }
-        
-        function spawnEnemy() {
-            const types = ['dancer', 'oldman', 'police']; const t = types[Math.floor(Math.random()*3)]; let pos = new THREE.Vector3(0,0,0);
-            if(state.safeSpawnGrid.length > 0) { for(let i=0; i<20; i++) { pos = state.safeSpawnGrid[Math.floor(Math.random()*state.safeSpawnGrid.length)].clone(); if(pos.distanceTo(playerGroup.position) > 10) break; } }
-            const e = createCharacterModel(t); e.position.set(pos.x, 0, pos.z); e.userData = { hp: 3, speed: 6.0 + state.level*0.5 }; scene.add(e); state.enemies.push(e);
-        }
-
-        function swapModel(targetObj, newType) {
-            while(targetObj.children.length > 0) { targetObj.remove(targetObj.children[0]); }
-            const newParts = createCharacterModel(newType);
-            while(newParts.children.length > 0) { targetObj.add(newParts.children[0]); }
-        }
-
-        function animate() {
-            if(!state.isPlaying) { composer.render(); return; }
-            const dt = clock.getDelta(); const time = clock.getElapsedTime();
-
-            state.timeLeft -= dt; document.getElementById('timer-display').innerText = `TIME: ${Math.max(0, Math.ceil(state.timeLeft))}`;
-            if(state.timeLeft <= 0) { state.isPlaying = false; AudioSys.playSFX('lose'); document.getElementById('game-over-title').innerText = "TIME'S UP!"; document.getElementById('game-over-screen').classList.remove('hidden'); }
-
-            state.npcs.forEach((d,i) => { if(!d.userData.isTransformed) d.position.y = (d.userData.type==='dancer' ? Math.abs(Math.sin(time*5+i))*0.4 : Math.sin(time*2+i)*0.1); });
-            state.notes.forEach((n,i) => { n.position.y = 4 + Math.sin(time*3+i)*0.5; n.position.x += Math.sin(time+i)*0.02; n.position.z += Math.cos(time+i)*0.02; });
-
-            let moveSpeed = 7.0; for(let s of state.spills) if(playerGroup.position.distanceTo(s.position) < 2.5) moveSpeed = 2.0;
-
-            if(joystick.active) {
-                let newPos = playerGroup.position.clone(); newPos.x += joystick.x * moveSpeed * dt; newPos.z += joystick.y * moveSpeed * dt;
-                if(!checkCollision(newPos)) playerGroup.position.copy(newPos);
-                else { let slideX = playerGroup.position.clone(); slideX.x = newPos.x; if(!checkCollision(slideX)) playerGroup.position.x = newPos.x; else { let slideZ = playerGroup.position.clone(); slideZ.z = newPos.z; if(!checkCollision(slideZ)) playerGroup.position.z = newPos.z; } }
-            }
-            camera.position.x = playerGroup.position.x * 0.3; camera.position.z = playerGroup.position.z + 10;
-
-            if(state.animState.slap > 0) { state.animState.slap -= dt*5; playerSpoonModel.rotation.x = Math.sin(state.animState.slap*10)*1.5; } else playerSpoonModel.rotation.x = 0;
-            if(state.animState.pour > 0) { state.animState.pour -= dt*3; playerBeerModel.rotation.z = -0.5; } else playerBeerModel.rotation.z = 0;
-
-            state.enemySpawnTimer -= dt; if(state.enemySpawnTimer <= 0 && state.enemies.length < 2) { spawnEnemy(); state.enemySpawnTimer = 3.0; }
-
-            for(let i=state.enemies.length-1; i>=0; i--) {
-                const e = state.enemies[i]; if(!e) continue;
-                let dir = new THREE.Vector3().subVectors(playerGroup.position, e.position).normalize();
-                state.obstacles.forEach(obs => { let diff = new THREE.Vector3().subVectors(e.position, obs.position); let dist = diff.length(); if(dist < 2.5) { diff.normalize().multiplyScalar(1.5/dist); dir.add(diff); } });
-                let nextPos = e.position.clone().addScaledVector(dir, e.userData.speed*dt); if(!checkCollision(nextPos)) e.position.copy(nextPos);
-                e.position.y = Math.sin(time*10+i)*0.2;
-                if(playerGroup.position.distanceTo(e.position) < 3.0) { state.annoyance += 80 * dt; updateUI(); }
-            }
-
-            for (let i = state.particles.length - 1; i >= 0; i--) {
-                let pSystem = state.particles[i]; pSystem.life -= dt * 1.5;
-                if (pSystem.life <= 0) { scene.remove(pSystem.mesh); pSystem.mesh.geometry.dispose(); pSystem.mesh.material.dispose(); state.particles.splice(i, 1); continue; }
-                let positions = pSystem.mesh.geometry.attributes.position.array;
-                for (let j = 0; j < pSystem.velocities.length; j++) {
-                    positions[j * 3] += pSystem.velocities[j].x * dt; positions[j * 3 + 1] += pSystem.velocities[j].y * dt; positions[j * 3 + 2] += pSystem.velocities[j].z * dt; pSystem.velocities[j].y -= 15.0 * dt; 
+                    // Floating Music Note Sprite
+                    const c = document.createElement('canvas');
+                    c.width = 128; c.height = 128;
+                    const ctx = c.getContext('2d');
+                    ctx.font = '96px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🎶', 64, 64);
+                    textures.musicNote = new THREE.CanvasTexture(c);
                 }
-                pSystem.mesh.geometry.attributes.position.needsUpdate = true; pSystem.mesh.material.opacity = pSystem.life;
-            }
 
-            if(state.annoyance >= 100) { state.isPlaying = false; AudioSys.playSFX('lose'); document.getElementById('game-over-screen').classList.remove('hidden'); }
+                // ==========================================
+                // ARTICULATED 3D CHARACTER & PROP MODELS
+                // ==========================================
+                function createCharacterModel(type) {
+                    const group = new THREE.Group();
+                    group.userData.charType = type;
 
-            composer.render();
-        }
+                    // Special Easter Egg Models: Dog & Alien
+                    if (type === 'dog') {
+                        const furMat = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.6 });
+                        const spotMat = new THREE.MeshStandardMaterial({ color: 0x4b2e16, roughness: 0.7 });
+                        const body = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.55, 1.25), furMat);
+                        body.position.y = 0.55;
+                        const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.6), spotMat);
+                        head.position.set(0, 0.95, 0.6);
+                        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.25, 0.35), furMat);
+                        snout.position.set(0, 0.88, 0.95);
+                        const earL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.35, 0.2), spotMat);
+                        earL.position.set(-0.28, 1.05, 0.55);
+                        const earR = earL.clone();
+                        earR.position.x = 0.28;
+                        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.5), furMat);
+                        tail.position.set(0, 0.85, -0.65);
+                        tail.rotation.x = -Math.PI / 4;
+                        group.add(body, head, snout, earL, earR, tail);
+                        return group;
+                    }
 
-        function setupControls() {
-            const joy = document.getElementById('joystick-zone'); const knob = document.getElementById('joystick-knob');
-            const move = (x, y) => { const rect = joy.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2; let dx = x - cx; let dy = y - cy; const dist = Math.sqrt(dx*dx + dy*dy); if(dist > 50) { dx = (dx/dist)*50; dy = (dy/dist)*50; } knob.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px)`; joystick.x = dx/50; joystick.y = dy/50; };
-            const end = () => { joystick.active=false; joystick.x=0; joystick.y=0; knob.style.transform=`translate(-50%, -50%)`; };
-            joy.addEventListener('mousedown', e => { joystick.active=true; move(e.clientX, e.clientY); }); window.addEventListener('mousemove', e => { if(joystick.active) move(e.clientX, e.clientY); }); window.addEventListener('mouseup', end);
-            joy.addEventListener('touchstart', e => { e.preventDefault(); joystick.active=true; move(e.touches[0].clientX, e.touches[0].clientY); }); joy.addEventListener('touchmove', e => { e.preventDefault(); if(joystick.active) move(e.touches[0].clientX, e.touches[0].clientY); }); joy.addEventListener('touchend', end);
-            document.getElementById('btn-slap').addEventListener('mousedown', ()=>performAction('slap')); document.getElementById('btn-pour').addEventListener('mousedown', ()=>performAction('pour'));
-            document.getElementById('btn-slap').addEventListener('touchstart', (e)=>{ e.preventDefault(); performAction('slap'); }); document.getElementById('btn-pour').addEventListener('touchstart', (e)=>{ e.preventDefault(); performAction('pour'); });
-            window.addEventListener('keydown', e => { if(['w','a','s','d'].includes(e.key)) { joystick.active=true; if(e.key==='w') joystick.y=-1; if(e.key==='s') joystick.y=1; if(e.key==='a') joystick.x=-1; if(e.key==='d') joystick.x=1; } if(e.key===' ') performAction('slap'); if(e.key==='e') performAction('pour'); });
-            window.addEventListener('keyup', () => { joystick.active=false; joystick.x=0; joystick.y=0; });
-        }
+                    if (type === 'alien') {
+                        const alienMat = new THREE.MeshStandardMaterial({
+                            color: 0x00ff66,
+                            emissive: 0x00aa33,
+                            emissiveIntensity: 0.6,
+                            roughness: 0.3
+                        });
+                        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+                        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 1.15, 16), alienMat);
+                        body.position.y = 0.6;
+                        const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), alienMat);
+                        head.scale.set(1, 1.25, 0.9);
+                        head.position.y = 1.5;
+                        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
+                        eyeL.scale.set(1, 1.6, 0.5);
+                        eyeL.position.set(-0.16, 1.55, 0.36);
+                        const eyeR = eyeL.clone();
+                        eyeR.position.x = 0.16;
+                        const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4), alienMat);
+                        ant.position.set(0, 2.1, 0);
+                        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
+                        orb.position.set(0, 2.35, 0);
+                        group.add(body, head, eyeL, eyeR, ant, orb);
+                        return group;
+                    }
 
-        function performAction(type) {
-            if(!state.isPlaying) return;
-            if(type==='slap') {
-                state.animState.slap = 1.0; AudioSys.playSFX('slap'); createParticleBurst(playerGroup.position, 0xff5500); 
-                state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 6.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'dog'); createEffect(d.position, '🐶'); } });
-                for(let i=state.enemies.length-1; i>=0; i--) {
-                    if(playerGroup.position.distanceTo(state.enemies[i].position) < 6.0) {
-                        state.enemies[i].userData.hp--; createParticleBurst(state.enemies[i].position, 0xff0000); 
-                        if(state.enemies[i].userData.hp <= 0) { scene.remove(state.enemies[i]); state.enemies.splice(i, 1); state.annoyance = Math.max(0, state.annoyance - 10); createEffect(state.enemies[i].position, '💀'); updateUI(); }
+                    // Custom Main Character: Dark-Haired Woman with Medium-Length Hair & Purple Sweater
+                    if (type === 'player') {
+                        const sweaterMat = new THREE.MeshStandardMaterial({ color: 0x7d3c98, roughness: 0.85 });
+                        const ribMat = new THREE.MeshStandardMaterial({ color: 0x6c3483, roughness: 0.88 });
+                        const pantsMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.8 });
+                        const bootMat = new THREE.MeshStandardMaterial({ color: 0x151210, roughness: 0.5 });
+                        const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1b3, roughness: 0.45 });
+                        const hairDarkMat = new THREE.MeshStandardMaterial({ color: 0x1a120e, roughness: 0.65 });
+                        const hairHighlightMat = new THREE.MeshStandardMaterial({ color: 0x231712, roughness: 0.6 });
+
+                        // Articulated Legs (Dark Charcoal/Denim Leggings + Ankle Boots)
+                        const makeLeg = (xOffset) => {
+                            const legGroup = new THREE.Group();
+                            legGroup.position.set(xOffset, 0.55, 0);
+                            const pantLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.095, 0.42, 12), pantsMat);
+                            pantLeg.position.y = -0.18;
+                            const bootShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.11, 0.22, 12), bootMat);
+                            bootShaft.position.y = -0.42;
+                            const bootToe = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.28), bootMat);
+                            bootToe.position.set(0, -0.48, 0.05);
+                            legGroup.add(pantLeg, bootShaft, bootToe);
+                            return legGroup;
+                        };
+                        const legL = makeLeg(-0.15);
+                        const legR = makeLeg(0.15);
+
+                        // Purple Knit Sweater Torso + Ribbed Hem & Crew-Neck Collar
+                        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.33, 0.88, 16), sweaterMat);
+                        torso.position.y = 0.92;
+
+                        const sweaterHem = new THREE.Mesh(new THREE.CylinderGeometry(0.335, 0.34, 0.12, 16), ribMat);
+                        sweaterHem.position.y = 0.52;
+
+                        const collar = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 10, 20), ribMat);
+                        collar.rotation.x = Math.PI / 2;
+                        collar.position.y = 1.35;
+
+                        // Articulated Sweater Sleeves, Ribbed Cuffs & Hands
+                        const makeArm = (xOffset, rotZ) => {
+                            const armGroup = new THREE.Group();
+                            armGroup.position.set(xOffset, 1.22, 0);
+                            armGroup.rotation.z = rotZ;
+                            const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.085, 0.52, 12), sweaterMat);
+                            sleeve.position.y = -0.22;
+                            const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.09, 12), ribMat);
+                            cuff.position.y = -0.48;
+                            const hand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), skinMat);
+                            hand.position.y = -0.56;
+                            armGroup.add(sleeve, cuff, hand);
+                            return armGroup;
+                        };
+                        const armL = makeArm(-0.34, 0.18);
+                        const armR = makeArm(0.34, -0.18);
+
+                        // Head, Rosy Cheeks, Expressive Eyes & Smile
+                        const head = new THREE.Group();
+                        head.position.y = 1.64;
+
+                        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.33, 18, 18), skinMat);
+                        head.add(skull);
+
+                        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x140d0a });
+                        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), eyeMat);
+                        eyeL.position.set(-0.11, 0.03, 0.29);
+                        const eyeR = eyeL.clone();
+                        eyeR.position.x = 0.11;
+
+                        // Subtle rosy cheeks
+                        const cheekMat = new THREE.MeshBasicMaterial({ color: 0xf1948a, transparent: true, opacity: 0.45 });
+                        const cheekL = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), cheekMat);
+                        cheekL.scale.set(1.2, 0.7, 0.4);
+                        cheekL.position.set(-0.18, -0.05, 0.27);
+                        const cheekR = cheekL.clone();
+                        cheekR.position.x = 0.18;
+
+                        // Confident smile
+                        const smile = new THREE.Mesh(
+                            new THREE.TorusGeometry(0.065, 0.015, 8, 12, Math.PI),
+                            new THREE.MeshBasicMaterial({ color: 0xa93226 })
+                        );
+                        smile.rotation.x = Math.PI;
+                        smile.position.set(0, -0.1, 0.3);
+
+                        // Sculpted Multi-Part Medium-Length Dark Hair
+                        const hairCap = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.355, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.58),
+                            hairDarkMat
+                        );
+                        hairCap.position.y = 0.03;
+
+                        // Swept front bangs / fringe
+                        const bangsL = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), hairHighlightMat);
+                        bangsL.scale.set(1.25, 0.55, 0.65);
+                        bangsL.position.set(-0.12, 0.21, 0.24);
+                        bangsL.rotation.z = 0.25;
+
+                        const bangsR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), hairDarkMat);
+                        bangsR.scale.set(1.3, 0.55, 0.65);
+                        bangsR.position.set(0.11, 0.22, 0.23);
+                        bangsR.rotation.z = -0.22;
+
+                        // Shoulder-length back hair volume (clearly visible from 3rd-person camera)
+                        const backHair = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.32, 0.39, 0.62, 16, 1, false, Math.PI * 0.55, Math.PI * 0.9),
+                            hairDarkMat
+                        );
+                        backHair.position.set(0, -0.12, -0.04);
+
+                        // Flared shoulder-length hair ends at the back
+                        const hairFlare = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.38, 0.43, 0.16, 16),
+                            hairHighlightMat
+                        );
+                        hairFlare.position.set(0, -0.38, -0.08);
+
+                        // Face-framing medium side locks reaching down to collarbone/shoulders
+                        const sideLockGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.52, 10);
+                        const sideLockL = new THREE.Mesh(sideLockGeo, hairDarkMat);
+                        sideLockL.position.set(-0.29, -0.14, 0.1);
+                        sideLockL.rotation.z = -0.08;
+                        const sideLockR = new THREE.Mesh(sideLockGeo, hairDarkMat);
+                        sideLockR.position.set(0.29, -0.14, 0.1);
+                        sideLockR.rotation.z = 0.08;
+
+                        head.add(eyeL, eyeR, cheekL, cheekR, smile, hairCap, bangsL, bangsR, backHair, hairFlare, sideLockL, sideLockR);
+
+                        group.add(legL, legR, torso, sweaterHem, collar, armL, armR, head);
+                        group.userData.limbs = { legL, legR, armL, armR, head };
+                        return group;
+                    }
+
+                    // Standard Articulated Humanoid
+                    let bodyColor = 0x555555;
+                    let headColor = 0xffccaa;
+                    let apronColor = null;
+
+                    if (type === 'bartender') {
+                        bodyColor = 0x1a1a1a;
+                        apronColor = 0xb87333;
+                    } else if (type === 'patron') {
+                        const palette = [0x34495e, 0x8e44ad, 0x16a085, 0xd35400, 0x2980b9, 0xa04000];
+                        bodyColor = palette[Math.floor(Math.random() * palette.length)];
+                    } else if (type === 'served') {
+                        bodyColor = 0x27ae60;
+                        headColor = 0xd4efdf;
+                    } else if (type === 'dancer') {
+                        bodyColor = 0xe91e63;
+                        headColor = 0xf8bbd0;
+                    } else if (type === 'oldman') {
+                        bodyColor = 0x7f8c8d;
+                        headColor = 0xecf0f1;
+                    } else if (type === 'police') {
+                        bodyColor = 0x154360;
+                        headColor = 0xf9e79f;
+                    } else if (type === 'brawler') {
+                        bodyColor = 0x922b21;
+                        headColor = 0xf5cba7;
+                    } else if (type === 'dj') {
+                        bodyColor = 0x111111;
+                        headColor = 0x9b59b6;
+                    }
+
+                    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.7 });
+                    const headMat = new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.45 });
+                    const limbMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+
+                    // Legs
+                    const legGeo = new THREE.CylinderGeometry(0.11, 0.1, 0.55, 10);
+                    const legL = new THREE.Mesh(legGeo, limbMat);
+                    legL.position.set(-0.16, 0.27, 0);
+                    const legR = new THREE.Mesh(legGeo, limbMat);
+                    legR.position.set(0.16, 0.27, 0);
+
+                    // Torso
+                    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.95, 16), bodyMat);
+                    torso.position.y = 0.9;
+
+                    // Brewer's Apron
+                    if (apronColor) {
+                        const apron = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.29, 0.37, 0.75, 16, 1, false, -Math.PI * 0.4, Math.PI * 0.8),
+                            new THREE.MeshStandardMaterial({ color: apronColor, roughness: 0.6 })
+                        );
+                        apron.position.y = 0.82;
+                        group.add(apron);
+                    }
+
+                    // Head & Eyes
+                    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 16), headMat);
+                    head.position.y = 1.62;
+
+                    const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
+                    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+                    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+                    eyeL.position.set(-0.12, 1.66, 0.3);
+                    const eyeR = eyeL.clone();
+                    eyeR.position.x = 0.12;
+
+                    // Arms
+                    const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.6, 10);
+                    const armL = new THREE.Mesh(armGeo, bodyMat);
+                    armL.position.set(-0.38, 1.0, 0);
+                    armL.rotation.z = 0.2;
+                    const armR = new THREE.Mesh(armGeo, bodyMat);
+                    armR.position.set(0.38, 1.0, 0);
+                    armR.rotation.z = -0.2;
+
+                    group.add(legL, legR, torso, head, eyeL, eyeR, armL, armR);
+                    group.userData.limbs = { legL, legR, armL, armR, head };
+
+                    // Character-Specific Hats & Accessories
+                    if (type === 'police') {
+                        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.18, 12), new THREE.MeshStandardMaterial({ color: 0x0b2545 }));
+                        cap.position.y = 1.92;
+                        const badge = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshBasicMaterial({ color: 0xf1c40f }));
+                        badge.position.set(0, 1.94, 0.35);
+                        group.add(cap, badge);
+                    } else if (type === 'oldman') {
+                        const fedoraBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 16), new THREE.MeshStandardMaterial({ color: 0x3e2723 }));
+                        fedoraBrim.position.y = 1.88;
+                        const fedoraTop = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.25, 16), new THREE.MeshStandardMaterial({ color: 0x4e342e }));
+                        fedoraTop.position.y = 2.0;
+                        group.add(fedoraBrim, fedoraTop);
+                    } else if (type === 'dancer') {
+                        const shades = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.15), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
+                        shades.position.set(0, 1.66, 0.3);
+                        group.add(shades);
+                    } else if (type === 'dj') {
+                        const phones = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.22, 0.35), new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x0088aa }));
+                        phones.position.y = 1.65;
+                        group.add(phones);
+                    }
+
+                    return group;
+                }
+
+                function createPlantModel() {
+                    const group = new THREE.Group();
+                    const pot = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.45, 0.32, 0.65, 12),
+                        new THREE.MeshStandardMaterial({ color: 0x6e2c00, roughness: 0.7 })
+                    );
+                    pot.position.y = 0.32;
+                    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x1e8449, flatShading: true, roughness: 0.6 });
+                    const leaves1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.68, 1), leavesMat);
+                    leaves1.position.y = 1.05;
+                    const leaves2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.48, 1), leavesMat);
+                    leaves2.position.set(0.2, 1.5, -0.1);
+                    group.add(pot, leaves1, leaves2);
+                    return group;
+                }
+
+                function createTapModel() {
+                    const group = new THREE.Group();
+                    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.85, roughness: 0.18 });
+                    // Lukr Side-Pull Body & Spout
+                    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.65, 16), brassMat);
+                    body.rotation.x = Math.PI / 2;
+                    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.45, 12), brassMat);
+                    nozzle.position.set(0, -0.2, 0.25);
+                    const handle = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.06, 0.08, 0.65, 12),
+                        new THREE.MeshStandardMaterial({ color: 0x2c1810, roughness: 0.5 })
+                    );
+                    handle.position.set(0.22, 0.28, 0.1);
+                    handle.rotation.z = -Math.PI / 5;
+                    group.add(body, nozzle, handle);
+                    return group;
+                }
+
+                function createBeerGlassModel(scale = 1.0) {
+                    const group = new THREE.Group();
+                    const liquid = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.36, 0.3, 0.75, 16),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xff9f00,
+                            emissive: 0xaa4400,
+                            emissiveIntensity: 0.5,
+                            transparent: true,
+                            opacity: 0.92
+                        })
+                    );
+                    const cup = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.4, 0.33, 0.92, 16),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.25,
+                            metalness: 0.6,
+                            roughness: 0.1
+                        })
+                    );
+                    const foam = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.38, 14, 14),
+                        new THREE.MeshStandardMaterial({ color: 0xfffdf5, roughness: 0.9 })
+                    );
+                    foam.position.y = 0.4;
+                    foam.scale.y = 0.45;
+                    group.add(liquid, cup, foam);
+                    group.scale.setScalar(scale);
+                    return group;
+                }
+
+                function createSpoonModel() {
+                    const group = new THREE.Group();
+                    const handleWoodMat = new THREE.MeshStandardMaterial({
+                        color: 0x704214,
+                        roughness: 0.75,
+                        metalness: 0.05
+                    });
+                    const bowlWoodMat = new THREE.MeshStandardMaterial({
+                        color: 0x8b5a2b,
+                        roughness: 0.75,
+                        metalness: 0.05
+                    });
+                    const recessWoodMat = new THREE.MeshStandardMaterial({
+                        color: 0x5c3310,
+                        roughness: 0.85,
+                        metalness: 0.02
+                    });
+
+                    // Handcrafted Hardwood Handle & Rounded Pommel
+                    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.055, 1.35, 12), handleWoodMat);
+                    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.056, 10, 10), handleWoodMat);
+                    pommel.position.y = -0.67;
+
+                    // Tapered Neck transition
+                    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.042, 0.25, 12), bowlWoodMat);
+                    neck.position.y = 0.68;
+
+                    // Oval Wooden Spoon Bowl
+                    const bowlOuter = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), bowlWoodMat);
+                    bowlOuter.scale.set(0.95, 1.38, 0.32);
+                    bowlOuter.position.y = 0.96;
+
+                    // Darker Carved Inner Bowl Recess
+                    const bowlHollow = new THREE.Mesh(new THREE.SphereGeometry(0.19, 14, 14), recessWoodMat);
+                    bowlHollow.scale.set(0.88, 1.28, 0.22);
+                    bowlHollow.position.set(0, 0.96, 0.045);
+
+                    group.add(handle, pommel, neck, bowlOuter, bowlHollow);
+                    return group;
+                }
+
+                // ==========================================
+                // PARTICLE & SHOCKWAVE FX
+                // ==========================================
+                function createParticleBurst(pos, colorHex, count = 28) {
+                    const geometry = new THREE.BufferGeometry();
+                    const positions = new Float32Array(count * 3);
+                    const velocities = [];
+                    for (let i = 0; i < count; i++) {
+                        positions[i * 3] = pos.x + (Math.random() - 0.5) * 0.5;
+                        positions[i * 3 + 1] = pos.y + 1.2 + Math.random() * 0.5;
+                        positions[i * 3 + 2] = pos.z + (Math.random() - 0.5) * 0.5;
+                        velocities.push({
+                            x: (Math.random() - 0.5) * 9,
+                            y: (Math.random() * 6) + 2.5,
+                            z: (Math.random() - 0.5) * 9
+                        });
+                    }
+                    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    const material = new THREE.PointsMaterial({
+                        color: colorHex,
+                        size: 0.34,
+                        transparent: true,
+                        opacity: 1,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    const particleSystem = new THREE.Points(geometry, material);
+                    scene.add(particleSystem);
+                    state.particles.push({ mesh: particleSystem, velocities, life: 1.0 });
+                }
+
+                function spawnShockwaveRing(pos, colorHex, maxRadius = 16) {
+                    const geo = new THREE.RingGeometry(0.4, 1.1, 36);
+                    const mat = new THREE.MeshBasicMaterial({
+                        color: colorHex,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.95
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(pos.x, 0.25, pos.z);
+                    scene.add(mesh);
+                    state.shockwaves.push({ mesh, maxRadius, life: 1.0 });
+                }
+
+                // ==========================================
+                // FLOATING 3D-TO-2D WORLD TEXT
+                // ==========================================
+                function createEffect(pos, text, color = '#ffffff') {
+                    const container = document.getElementById('floating-layer');
+                    if (!container) return;
+                    const d = document.createElement('div');
+                    d.className = 'float-tag';
+                    d.innerText = text;
+                    d.style.color = color;
+
+                    // Project 3D world position to 2D screen coordinates
+                    const vec = pos.clone();
+                    vec.y += 2.2;
+                    vec.project(camera);
+                    const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
+
+                    d.style.left = `${x}px`;
+                    d.style.top = `${y}px`;
+                    container.appendChild(d);
+
+                    const start = performance.now();
+                    const tick = (now) => {
+                        const p = (now - start) / 750;
+                        if (p >= 1) {
+                            d.remove();
+                            return;
+                        }
+                        d.style.transform = `translate(-50%, -50%) translateY(${-p * 55}px) scale(${1 + Math.sin(p * Math.PI) * 0.25})`;
+                        d.style.opacity = String(1 - p);
+                        requestAnimationFrame(tick);
+                    };
+                    requestAnimationFrame(tick);
+                }
+
+                // ==========================================
+                // PLAYER & TAPROOM ENVIRONMENT BUILDER
+                // ==========================================
+                function createPlayer(pos) {
+                    playerGroup = new THREE.Group();
+                    playerGroup.position.copy(pos);
+                    scene.add(playerGroup);
+
+                    const pl = new THREE.PointLight(0xffd280, 0.85, 16);
+                    pl.position.set(0, 4.5, 0);
+                    playerGroup.add(pl);
+
+                    playerCharacter = createCharacterModel('player');
+                    playerGroup.add(playerCharacter);
+
+                    playerBeerModel = createBeerGlassModel(0.85);
+                    playerBeerModel.position.set(-0.65, 1.05, 0.45);
+                    playerGroup.add(playerBeerModel);
+
+                    playerSpoonModel = createSpoonModel();
+                    playerSpoonModel.position.set(0.65, 1.05, 0.45);
+                    playerSpoonModel.rotation.x = Math.PI / 6;
+                    playerGroup.add(playerSpoonModel);
+
+                    // Cleave Slash Trail Arc
+                    const slashGeo = new THREE.RingGeometry(1.2, 3.6, 24, 1, -Math.PI * 0.35, Math.PI * 0.7);
+                    const slashMat = new THREE.MeshBasicMaterial({
+                        color: 0xff6b00,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.0
+                    });
+                    playerSlashMesh = new THREE.Mesh(slashGeo, slashMat);
+                    playerSlashMesh.rotation.x = -Math.PI / 2;
+                    playerSlashMesh.position.y = 1.0;
+                    playerGroup.add(playerSlashMesh);
+
+                    // Bitters Shield Bubble
+                    const shieldGeo = new THREE.SphereGeometry(1.35, 18, 18);
+                    const shieldMat = new THREE.MeshBasicMaterial({
+                        color: 0xf1c40f,
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.0
+                    });
+                    playerShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+                    playerShieldMesh.position.y = 1.0;
+                    playerGroup.add(playerShieldMesh);
+                }
+
+                function createDecorations() {
+                    const barMat = new THREE.MeshStandardMaterial({ color: 0x2c1b12, roughness: 0.55 });
+                    const copperMat = new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.75, roughness: 0.25 });
+
+                    // Main Front Bar & Copper Countertop
+                    const bar = new THREE.Mesh(new THREE.BoxGeometry(25, 2.0, 2.2), barMat);
+                    bar.position.set(0, 1.0, -12);
+                    scene.add(bar);
+                    state.obstacles.push(bar);
+
+                    const barTop = new THREE.Mesh(new THREE.BoxGeometry(25.4, 0.18, 2.5), copperMat);
+                    barTop.position.set(0, 2.05, -12);
+                    scene.add(barTop);
+
+                    // Back Bar & Stainless Kegerators
+                    const backBar = new THREE.Mesh(new THREE.BoxGeometry(25, 4.5, 1.2), barMat);
+                    backBar.position.set(0, 2.25, -15.5);
+                    scene.add(backBar);
+
+                    // Neon Signs on Back Wall
+                    const neon = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.neon }));
+                    neon.position.set(0, 6.6, -15.1);
+                    neon.scale.set(16.5, 2.5, 1);
+                    scene.add(neon);
+
+                    const egretNeon = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.egret }));
+                    egretNeon.position.set(-10.5, 5.8, -14.8);
+                    egretNeon.scale.set(4.5, 4.5, 1);
+                    scene.add(egretNeon);
+
+                    const mugClubNeon = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.mugClub }));
+                    mugClubNeon.position.set(10.5, 5.8, -14.8);
+                    mugClubNeon.scale.set(6.0, 1.5, 1);
+                    scene.add(mugClubNeon);
+
+                    // 10 Gleaming Lukr Side-Pull Faucets
+                    for (let i = 0; i < 10; i++) {
+                        const tap = createTapModel();
+                        tap.position.set(-8.1 + i * 1.8, 2.6, -14.7);
+                        scene.add(tap);
+                    }
+
+                    // Bartender & Seated Bar Regulars
+                    const bartender = createCharacterModel('bartender');
+                    bartender.position.set(0, 0, -13.6);
+                    scene.add(bartender);
+
+                    for (let i = 0; i < 6; i++) {
+                        const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.75, 12), copperMat);
+                        stool.position.set(-9 + i * 3.6, 0.37, -10.3);
+                        scene.add(stool);
+
+                        const p = createCharacterModel('patron');
+                        p.position.set(-9 + i * 3.6, 0.15, -10.3);
+                        p.rotation.y = Math.PI;
+                        scene.add(p);
+                    }
+
+                    // Detailed Pool Table Zone (Left Side)
+                    const feltMat = new THREE.MeshStandardMaterial({ color: 0x116530, roughness: 0.8 });
+                    const poolTable = new THREE.Mesh(
+                        new THREE.BoxGeometry(5.2, 1.9, 8.2),
+                        [barMat, barMat, feltMat, barMat, barMat, barMat]
+                    );
+                    poolTable.position.set(-12, 0.95, 8);
+                    scene.add(poolTable);
+                    state.obstacles.push(poolTable);
+
+                    const pocketGeo = new THREE.CylinderGeometry(0.28, 0.28, 1.95, 12);
+                    const pocketMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+                    for (let x of [-14.3, -9.7]) {
+                        for (let z of [4.2, 8.0, 11.8]) {
+                            const pocket = new THREE.Mesh(pocketGeo, pocketMat);
+                            pocket.position.set(x, 0.98, z);
+                            scene.add(pocket);
+                        }
+                    }
+
+                    // Interactive Rolling Billiard Balls
+                    state.poolBalls = [];
+                    const ballGeo = new THREE.SphereGeometry(0.16, 12, 12);
+                    const ballColors = [0xf1c40f, 0x2980b9, 0xe74c3c, 0x8e44ad, 0xe67e22, 0x27ae60, 0x111111, 0xffffff, 0xd35400, 0x1abc9c];
+                    for (let i = 0; i < 10; i++) {
+                        const b = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({ color: ballColors[i], roughness: 0.2, metalness: 0.2 }));
+                        b.position.set(-12 + (Math.random() - 0.5) * 3.4, 2.02, 8 + (Math.random() - 0.5) * 6.0);
+                        b.userData = { vx: (Math.random() - 0.5) * 0.5, vz: (Math.random() - 0.5) * 0.5 };
+                        scene.add(b);
+                        state.poolBalls.push(b);
+                    }
+
+                    // Pool Sharks (Transformable NPCs)
+                    [
+                        { x: -15.2, z: 8 },
+                        { x: -8.8, z: 8 },
+                        { x: -12, z: 3.2 },
+                        { x: -12, z: 12.8 }
+                    ].forEach(pos => {
+                        const p = createCharacterModel('patron');
+                        p.position.set(pos.x, 0, pos.z);
+                        p.lookAt(-12, 0, 8);
+                        p.userData = { type: 'npc', isTransformed: false, homePos: p.position.clone() };
+                        scene.add(p);
+                        state.npcs.push(p);
+                    });
+
+                    // DJ Booth & Interactive LED Dance Floor (Right Side)
+                    const djBox = new THREE.Mesh(
+                        new THREE.BoxGeometry(4.4, 2.1, 2.0),
+                        new THREE.MeshStandardMaterial({ color: 0x151515, metalness: 0.5 })
+                    );
+                    djBox.position.set(10, 1.05, 3.6);
+                    scene.add(djBox);
+                    state.obstacles.push(djBox);
+
+                    const dj = createCharacterModel('dj');
+                    dj.position.set(10, 1.3, 3.1);
+                    scene.add(dj);
+
+                    // 4x4 Interactive LED Disco Tiles
+                    state.danceTiles = [];
+                    const tileGeo = new THREE.PlaneGeometry(1.9, 1.9);
+                    for (let gx = 0; gx < 4; gx++) {
+                        for (let gz = 0; gz < 4; gz++) {
+                            const tileMat = new THREE.MeshStandardMaterial({
+                                color: 0x222222,
+                                emissive: 0x9b59b6,
+                                emissiveIntensity: 0.4,
+                                roughness: 0.3
+                            });
+                            const tile = new THREE.Mesh(tileGeo, tileMat);
+                            tile.rotation.x = -Math.PI / 2;
+                            tile.position.set(7.0 + gx * 2.0, 0.03, 5.5 + gz * 2.0);
+                            scene.add(tile);
+                            state.danceTiles.push(tile);
+                        }
+                    }
+
+                    // Dancers on Dance Floor
+                    [
+                        { x: 8, z: 6.5 },
+                        { x: 12, z: 6.5 },
+                        { x: 8, z: 10.5 },
+                        { x: 12, z: 10.5 }
+                    ].forEach(pos => {
+                        const d = createCharacterModel('dancer');
+                        d.position.set(pos.x, 0, pos.z);
+                        d.userData = { type: 'dancer', isTransformed: false, homePos: d.position.clone() };
+                        scene.add(d);
+                        state.npcs.push(d);
+                    });
+
+                    // Floating Music Notes
+                    state.notes = [];
+                    for (let i = 0; i < 6; i++) {
+                        const n = new THREE.Sprite(new THREE.SpriteMaterial({ map: textures.musicNote, transparent: true }));
+                        n.scale.set(1.4, 1.4, 1);
+                        n.position.set(6.5 + Math.random() * 7, 3.2, 4.5 + Math.random() * 7.5);
+                        scene.add(n);
+                        state.notes.push(n);
                     }
                 }
-            } else if(type==='pour') {
-                state.animState.pour = 1.0; AudioSys.playSFX('pour'); createParticleBurst(playerGroup.position, 0xffb300); 
-                state.npcs.forEach(d => { if(playerGroup.position.distanceTo(d.position) < 5.0 && !d.userData.isTransformed) { d.userData.isTransformed=true; swapModel(d, 'alien'); createEffect(d.position, '👽'); } });
-                state.patrons.forEach(p => {
-                    if(!p.userData.isServed && playerGroup.position.distanceTo(p.userData.tablePos) < 5.0) {
-                        p.userData.isServed = true; swapModel(p, 'served'); createParticleBurst(p.position, 0x00ff55); 
-                        state.patronsServed++; createEffect(p.position, '🍻'); updateUI();
-                        if(state.patronsServed >= state.patronsTotal) { state.isPlaying = false; AudioSys.playSFX('win'); setTimeout(() => document.getElementById('level-screen').classList.remove('hidden'), 1000); }
+
+                // ==========================================
+                // SAFE GRID & LEVEL SPAWNER
+                // ==========================================
+                function calculateSafeGrid() {
+                    const points = [];
+                    for (let x = -14; x <= 14; x += 2.5) {
+                        for (let z = -8; z <= 13; z += 2.5) {
+                            const pos = new THREE.Vector3(x, 0, z);
+                            let safe = true;
+                            for (let zone of RESTRICTED_ZONES) {
+                                if (x > zone.minX && x < zone.maxX && z > zone.minZ && z < zone.maxZ) {
+                                    safe = false;
+                                    break;
+                                }
+                            }
+                            if (safe) {
+                                for (let obs of state.obstacles) {
+                                    if (pos.distanceTo(obs.position) < 3.4) {
+                                        safe = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (safe) points.push(pos);
+                        }
                     }
-                });
-            }
-        }
+                    return points.sort(() => Math.random() - 0.5);
+                }
 
-        function createEffect(pos, emoji) {
-            const d = document.createElement('div'); d.innerText=emoji;
-            d.style.position='absolute'; d.style.left='50%'; d.style.top='50%'; d.style.fontSize='40px'; d.style.color='white'; d.style.textShadow = '0 0 15px rgba(255,100,0,1)';
-            document.getElementById('ui-layer').appendChild(d);
-            let start = Date.now(); let t = setInterval(() => { let p = (Date.now()-start)/500; if(p>=1) { clearInterval(t); d.remove(); } d.style.top = (50-p*10)+'%'; d.style.opacity = 1-p; }, 16);
-        }
+                function getSafeSpot(spacing) {
+                    for (let i = state.safeSpawnGrid.length - 1; i >= 0; i--) {
+                        const pos = state.safeSpawnGrid[i];
+                        let clear = true;
+                        if (pos.distanceTo(new THREE.Vector3(PLAYER_START.x, 0, PLAYER_START.z)) < 6.5) clear = false;
+                        if (clear) {
+                            for (let spawned of state.spawnedPositions) {
+                                if (pos.distanceTo(spawned) < spacing) {
+                                    clear = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (clear) {
+                            state.safeSpawnGrid.splice(i, 1);
+                            state.spawnedPositions.push(pos);
+                            return pos;
+                        }
+                    }
+                    return null;
+                }
 
-        function updateUI() { document.getElementById('patron-counter').innerText = `SERVED: ${state.patronsServed}/${state.patronsTotal}`; document.getElementById('meter-fill').style.width = Math.min(100, state.annoyance) + '%'; document.getElementById('meter-label').innerText = `ANNOYANCE: ${Math.floor(state.annoyance)}%`; }
-        function showMessage(txt) { const el = document.getElementById('msg-area'); el.innerText = txt; el.style.opacity = 1; setTimeout(()=>el.innerText='', 1500); }
-        function clearFlight() { state.flight=[null,null,null,null]; setupFlightUI(); document.getElementById('flight-msg').innerText=''; }
-        function setupFlightUI() {
-            const grid = document.getElementById('beer-slots'); grid.innerHTML = ''; state.flight.forEach(b => { const d = document.createElement('div'); d.className = b ? 'slot filled' : 'slot'; d.innerText = b || 'Empty'; grid.appendChild(d); });
-            const opts = document.getElementById('beer-choices'); opts.innerHTML=''; BEERS.forEach(b => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.innerText = b; btn.onclick = () => { const idx = state.flight.indexOf(null); if (idx!==-1) { state.flight[idx]=b; setupFlightUI(); } }; opts.appendChild(btn); });
-        }
-        function submitFlight() {
-            if(state.flight.includes(null)) { document.getElementById('flight-msg').innerText="Fill all slots!"; return; }
-            let hasIPA=false, hasSour=false, hasStout=false, hasForbidden=false;
-            state.flight.forEach(b => { const t = BEER_MAP[b]; if(t==='IPA') hasIPA=true; if(t==='Sour') hasSour=true; if(t==='Stout') hasStout=true; if(t==='Pilsner'||t==='Cider'||t==='Lager') hasForbidden=true; });
-            if(hasIPA && hasSour && hasStout && !hasForbidden) { AudioSys.playSFX('win'); document.getElementById('flight-screen').classList.add('hidden'); document.getElementById('win-screen').classList.remove('hidden'); } 
-            else { AudioSys.playSFX('lose'); document.getElementById('flight-msg').style.color = "#c0392b"; document.getElementById('flight-msg').innerText = "Trash! Loser!"; setTimeout(() => { document.getElementById('flight-msg').innerText=""; clearFlight(); }, 1500); }
-        }
+                function loadLevel(lvl, isPreview = false) {
+                    while (scene.children.length > 0) {
+                        scene.remove(scene.children[0]);
+                    }
 
-        // Fire everything up
-        init();
+                    // Warm Taproom Lighting
+                    const ambient = new THREE.AmbientLight(0xffe0b2, 0.55);
+                    scene.add(ambient);
+
+                    const mainSpot = new THREE.SpotLight(0xffb300, 0.95);
+                    mainSpot.position.set(0, 38, 4);
+                    scene.add(mainSpot);
+
+                    const danceLight = new THREE.PointLight(0xe91e63, 1.1, 18);
+                    danceLight.position.set(10, 6, 8);
+                    scene.add(danceLight);
+                    state.clubLights = [danceLight];
+
+                    // Hardwood Floor & Perimeter Walls
+                    const floor = new THREE.Mesh(
+                        new THREE.PlaneGeometry(ROOM_SIZE + 10, ROOM_SIZE + 10),
+                        new THREE.MeshStandardMaterial({ map: textures.woodFloor, roughness: 0.75 })
+                    );
+                    floor.rotation.x = -Math.PI / 2;
+                    scene.add(floor);
+
+                    state.obstacles = [];
+                    state.spills = [];
+                    state.npcs = [];
+                    state.notes = [];
+                    state.spawnedPositions = [];
+                    state.particles = [];
+                    state.powerups = [];
+                    state.shockwaves = [];
+
+                    createPlayer(new THREE.Vector3(PLAYER_START.x, 0, PLAYER_START.z));
+                    createDecorations();
+
+                    camera.position.set(0, 31, 25);
+                    camera.lookAt(0, 0, 3);
+
+                    state.maxTime = Math.max(48, 64 - lvl * 2);
+                    state.timeLeft = state.maxTime;
+                    state.safeSpawnGrid = calculateSafeGrid();
+
+                    // Spawn Floor Beer Spills
+                    for (let i = 0; i < 3 + lvl; i++) {
+                        const pos = getSafeSpot(3.8);
+                        if (pos) {
+                            const s = new THREE.Mesh(
+                                new THREE.PlaneGeometry(3.8, 3.8),
+                                new THREE.MeshBasicMaterial({ map: textures.spill, transparent: true, depthWrite: false })
+                            );
+                            s.rotation.x = -Math.PI / 2;
+                            s.position.copy(pos);
+                            s.position.y = 0.04;
+                            scene.add(s);
+                            state.spills.push(s);
+                        }
+                    }
+
+                    state.patrons = [];
+                    state.enemies = [];
+                    state.annoyance = 0;
+                    state.patronsServed = 0;
+                    state.patronsTotal = 5 + lvl; // Scales from 6 to 10 tables!
+                    state.combo = 0;
+                    state.comboTimer = 0;
+                    updateUI();
+
+                    // Spawn Seated Patron Tables with Patience Rings & Floating Beer Icons
+                    let tablesSpawned = 0;
+                    let spacing = 4.2;
+                    let loop = 0;
+                    while (tablesSpawned < state.patronsTotal && loop < 400) {
+                        const pos = getSafeSpot(spacing);
+                        if (pos) {
+                            const t = new THREE.Mesh(
+                                new THREE.CylinderGeometry(1.4, 1.3, 1.05, 16),
+                                new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.5 })
+                            );
+                            t.position.set(pos.x, 0.52, pos.z);
+                            scene.add(t);
+                            state.obstacles.push(t);
+
+                            // Glowing Patience Ring on floor around table
+                            const ringMat = new THREE.MeshBasicMaterial({
+                                color: 0x2ecc71,
+                                side: THREE.DoubleSide,
+                                transparent: true,
+                                opacity: 0.75
+                            });
+                            const ring = new THREE.Mesh(new THREE.RingGeometry(1.65, 1.95, 28), ringMat);
+                            ring.rotation.x = -Math.PI / 2;
+                            ring.position.set(pos.x, 0.05, pos.z);
+                            scene.add(ring);
+
+                            // Floating 3D Beer Icon above thirsty table
+                            const iconGroup = createBeerGlassModel(0.55);
+                            iconGroup.position.set(pos.x, 2.75, pos.z);
+                            scene.add(iconGroup);
+
+                            const p = createCharacterModel('patron');
+                            p.position.set(pos.x, 0, pos.z - 0.95);
+                            p.userData = {
+                                isServed: false,
+                                type: 'patron',
+                                tablePos: t.position.clone(),
+                                patience: 100,
+                                ringMesh: ring,
+                                iconMesh: iconGroup
+                            };
+                            scene.add(p);
+                            state.patrons.push(p);
+                            tablesSpawned++;
+                        } else {
+                            spacing = Math.max(2.2, spacing - 0.4);
+                            state.safeSpawnGrid = calculateSafeGrid();
+                        }
+                        loop++;
+                    }
+
+                    // Spawn Potted Taproom Plants
+                    for (let i = 0; i < 2 + lvl; i++) {
+                        const pos = getSafeSpot(2.8);
+                        if (pos) {
+                            const p = createPlantModel();
+                            p.position.set(pos.x, 0, pos.z);
+                            scene.add(p);
+                            const obs = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ visible: false }));
+                            obs.position.set(pos.x, 0, pos.z);
+                            state.obstacles.push(obs);
+                        }
+                    }
+
+                    state.enemySpawnTimer = 2.2;
+                    document.getElementById('level-indicator').innerText = `SHIFT ${lvl} / ${LEVELS}`;
+                    if (!isPreview) {
+                        showMessage(`SHIFT ${lvl}: TAPROOM OPEN!`);
+                    }
+                }
+
+                // ==========================================
+                // POWER-UP DROPS & ENEMY SPAWNER
+                // ==========================================
+                function spawnPowerup(pos) {
+                    const types = [
+                        { id: 'latte', color: 0x00f3ff, label: '☕ THE LOOMIS LATTE!' },
+                        { id: 'bitters', color: 0xf1c40f, label: '🥃 BITTERS CLUB SHOT!' },
+                        { id: 'keg', color: 0x2ecc71, label: '🛢️ PONY KEG BLAST!' }
+                    ];
+                    const pick = types[Math.floor(Math.random() * types.length)];
+                    const group = new THREE.Group();
+                    group.position.set(pos.x, 0.7, pos.z);
+
+                    const orb = new THREE.Mesh(
+                        new THREE.OctahedronGeometry(0.55, 1),
+                        new THREE.MeshStandardMaterial({
+                            color: pick.color,
+                            emissive: pick.color,
+                            emissiveIntensity: 0.7,
+                            roughness: 0.2
+                        })
+                    );
+                    const ring = new THREE.Mesh(
+                        new THREE.RingGeometry(0.7, 0.85, 20),
+                        new THREE.MeshBasicMaterial({ color: pick.color, side: THREE.DoubleSide })
+                    );
+                    ring.rotation.x = -Math.PI / 2;
+                    ring.position.y = -0.6;
+                    group.add(orb, ring);
+                    group.userData = { id: pick.id, label: pick.label, color: pick.color, life: 14.0 };
+                    scene.add(group);
+                    state.powerups.push(group);
+                }
+
+                function spawnEnemy() {
+                    const types = ['dancer', 'oldman', 'police', 'brawler'];
+                    const t = types[Math.floor(Math.random() * types.length)];
+                    let pos = new THREE.Vector3(0, 0, -6);
+
+                    if (state.safeSpawnGrid.length > 0) {
+                        for (let i = 0; i < 20; i++) {
+                            const candidate = state.safeSpawnGrid[Math.floor(Math.random() * state.safeSpawnGrid.length)].clone();
+                            if (candidate.distanceTo(playerGroup.position) > 9.5) {
+                                pos = candidate;
+                                break;
+                            }
+                        }
+                    }
+
+                    const e = createCharacterModel(t);
+                    e.position.set(pos.x, 0, pos.z);
+                    const maxHp = t === 'brawler' ? 4 : 3;
+
+                    // Floating HP bar above villain
+                    const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.16), new THREE.MeshBasicMaterial({ color: 0x220000, side: THREE.DoubleSide }));
+                    hpBg.position.y = 2.35;
+                    const hpFill = new THREE.Mesh(new THREE.PlaneGeometry(1.04, 0.12), new THREE.MeshBasicMaterial({ color: 0xff3333, side: THREE.DoubleSide }));
+                    hpFill.position.set(0, 2.35, 0.01);
+                    e.add(hpBg, hpFill);
+
+                    e.userData = {
+                        hp: maxHp,
+                        maxHp: maxHp,
+                        hpFillMesh: hpFill,
+                        speed: 5.5 + state.level * 0.45,
+                        stunTimer: 0,
+                        frozenTimer: 0,
+                        knockVel: new THREE.Vector3()
+                    };
+                    scene.add(e);
+                    state.enemies.push(e);
+                }
+
+                function swapModel(targetObj, newType) {
+                    while (targetObj.children.length > 0) {
+                        targetObj.remove(targetObj.children[0]);
+                    }
+                    const newParts = createCharacterModel(newType);
+                    while (newParts.children.length > 0) {
+                        targetObj.add(newParts.children[0]);
+                    }
+                    targetObj.userData.charType = newType;
+                }
+
+                function checkCollision(pos) {
+                    for (let obs of state.obstacles) {
+                        if (!obs) continue;
+                        const colRad = obs.geometry.type === 'BoxGeometry' ? 2.3 : 1.45;
+                        if (new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(obs.position.x, obs.position.z)) < 0.4 + colRad) {
+                            return true;
+                        }
+                    }
+                    return Math.abs(pos.x) > 15 || Math.abs(pos.z) > 15 || pos.z > 14.2;
+                }
+
+                // ==========================================
+                // COMBO & HYPE SYSTEM
+                // ==========================================
+                function addHypeAndTips(baseCash, worldPos) {
+                    state.combo++;
+                    state.comboTimer = 4.5;
+                    const mult = Math.min(5, 1 + Math.floor(state.combo / 2));
+                    const earned = baseCash * mult;
+                    state.tips += earned;
+                    state.totalTipsEarned += earned;
+                    state.ultCharge = Math.min(100, state.ultCharge + 14);
+                    state.cameraZoomPunch = 0.35;
+
+                    AudioSys.playSFX('coin');
+                    if (worldPos) {
+                        createEffect(worldPos, `+$${earned}${mult > 1 ? ` (${mult}x!)` : ''}`, '#2ecc71');
+                    }
+                    updateUI();
+                }
+
+                // ==========================================
+                // PLAYER ACTIONS: POUR, SLAP, DASH, ULTIMATE
+                // ==========================================
+                function performAction(type) {
+                    if (!state.isPlaying) return;
+
+                    const pourRange = 5.2 + state.upgrades.lukr * 1.1;
+                    const slapRange = 5.8 + state.upgrades.spoon * 0.8;
+                    const slapDmg = 1 + state.upgrades.spoon;
+
+                    if (type === 'slap') {
+                        state.animState.slap = 1.0;
+                        playerSlashMesh.material.opacity = 0.85;
+                        AudioSys.playSFX('slap');
+                        createParticleBurst(playerGroup.position, 0xff5500, 22);
+
+                        // Scatter pool balls if slapping near pool table
+                        state.poolBalls.forEach(b => {
+                            if (playerGroup.position.distanceTo(b.position) < 6.5) {
+                                b.userData.vx = (Math.random() - 0.5) * 14;
+                                b.userData.vz = (Math.random() - 0.5) * 14;
+                            }
+                        });
+
+                        // Easter Egg: Slapping neutral NPCs/Dancers transforms them into barking Dogs (🐶)!
+                        state.npcs.forEach(d => {
+                            if (playerGroup.position.distanceTo(d.position) < slapRange && !d.userData.isTransformed) {
+                                d.userData.isTransformed = true;
+                                d.userData.morphType = 'dog';
+                                swapModel(d, 'dog');
+                                AudioSys.playSFX('bark');
+                                createParticleBurst(d.position, 0xf39c12, 25);
+                                createEffect(d.position, '🐶 WOOF! +$15', '#f39c12');
+                                addHypeAndTips(15, null);
+                            }
+                        });
+
+                        // Hit Enemies in Range
+                        let hitCount = 0;
+                        for (let i = state.enemies.length - 1; i >= 0; i--) {
+                            const e = state.enemies[i];
+                            if (playerGroup.position.distanceTo(e.position) < slapRange) {
+                                hitCount++;
+                                e.userData.hp -= slapDmg;
+                                e.userData.stunTimer = 0.45;
+
+                                // Knockback vector away from player
+                                const kb = new THREE.Vector3().subVectors(e.position, playerGroup.position).normalize();
+                                kb.y = 0;
+                                e.userData.knockVel.copy(kb.multiplyScalar(14 + state.upgrades.spoon * 4));
+
+                                createParticleBurst(e.position, 0xff2200, 25);
+                                state.ultCharge = Math.min(100, state.ultCharge + 10);
+
+                                if (e.userData.hp <= 0) {
+                                    const dropPos = e.position.clone();
+                                    scene.remove(e);
+                                    state.enemies.splice(i, 1);
+                                    state.annoyance = Math.max(0, state.annoyance - 12);
+                                    createEffect(dropPos, '💀 86\'D!', '#ff4444');
+                                    addHypeAndTips(25, dropPos);
+                                    if (Math.random() < 0.45) {
+                                        spawnPowerup(dropPos);
+                                    }
+                                } else {
+                                    const ratio = Math.max(0.05, e.userData.hp / e.userData.maxHp);
+                                    e.userData.hpFillMesh.scale.x = ratio;
+                                    createEffect(e.position, `-${slapDmg} POW!`, '#ff9f43');
+                                }
+                            }
+                        }
+                        if (hitCount > 0) {
+                            state.cameraShake = 0.35;
+                            updateUI();
+                        }
+
+                    } else if (type === 'pour') {
+                        state.animState.pour = 1.0;
+                        AudioSys.playSFX('pour');
+                        createParticleBurst(playerGroup.position, 0xffb300, 24);
+
+                        // Easter Egg: Pouring beer on neutral NPCs/Dancers transforms them into glowing Aliens (👽)!
+                        state.npcs.forEach(d => {
+                            if (playerGroup.position.distanceTo(d.position) < pourRange && !d.userData.isTransformed) {
+                                d.userData.isTransformed = true;
+                                d.userData.morphType = 'alien';
+                                swapModel(d, 'alien');
+                                AudioSys.playSFX('alien');
+                                createParticleBurst(d.position, 0x00ff66, 28);
+                                createEffect(d.position, '👽 COSMIC POUR! +$20', '#00ff66');
+                                addHypeAndTips(20, null);
+                            }
+                        });
+
+                        // Serve Seated Patrons
+                        state.patrons.forEach(p => {
+                            if (!p.userData.isServed && playerGroup.position.distanceTo(p.userData.tablePos) < pourRange) {
+                                servePatronTable(p);
+                            }
+                        });
+
+                    } else if (type === 'dash') {
+                        if (state.dashCooldown > 0) return;
+                        state.dashCooldown = state.upgrades.boots > 0 ? 1.1 : 2.0;
+                        state.dashActiveTimer = 0.28;
+                        AudioSys.playSFX('dash');
+                        spawnShockwaveRing(playerGroup.position, 0x00f3ff, 3.5);
+                        createEffect(playerGroup.position, '🧹 MOP SLIDE!', '#00f3ff');
+
+                    } else if (type === 'ult') {
+                        if (state.ultCharge < 100) return;
+                        state.ultCharge = 0;
+                        state.cameraShake = 0.7;
+                        AudioSys.playSFX('ult');
+                        showMessage('🔔 LAST CALL SHOCKWAVE! 🔔');
+                        spawnShockwaveRing(playerGroup.position, 0xf1c40f, 26);
+                        createParticleBurst(playerGroup.position, 0xf1c40f, 55);
+
+                        // Chill annoyance by 40%
+                        state.annoyance = Math.max(0, state.annoyance - 40);
+
+                        // Stun & blast all enemies
+                        for (let i = state.enemies.length - 1; i >= 0; i--) {
+                            const e = state.enemies[i];
+                            e.userData.hp -= 2;
+                            e.userData.stunTimer = 3.5;
+                            const kb = new THREE.Vector3().subVectors(e.position, playerGroup.position).normalize();
+                            e.userData.knockVel.copy(kb.multiplyScalar(20));
+                            createParticleBurst(e.position, 0xf1c40f, 20);
+                            if (e.userData.hp <= 0) {
+                                scene.remove(e);
+                                state.enemies.splice(i, 1);
+                            }
+                        }
+
+                        // Auto-serve up to 2 thirsty tables in range
+                        let autoServed = 0;
+                        state.patrons.forEach(p => {
+                            if (!p.userData.isServed && autoServed < 2) {
+                                servePatronTable(p);
+                                autoServed++;
+                            }
+                        });
+                        updateUI();
+                    }
+                }
+
+                function servePatronTable(p) {
+                    if (p.userData.isServed) return;
+                    p.userData.isServed = true;
+                    swapModel(p, 'served');
+
+                    // Remove floating waiting icon & turn table ring bright green
+                    if (p.userData.iconMesh) p.userData.iconMesh.visible = false;
+                    if (p.userData.ringMesh) {
+                        p.userData.ringMesh.material.color.setHex(0x2ecc71);
+                        p.userData.ringMesh.material.opacity = 0.35;
+                    }
+
+                    // Place served beer glass on the table
+                    const tablePint = createBeerGlassModel(0.75);
+                    tablePint.position.set(p.userData.tablePos.x, 1.35, p.userData.tablePos.z);
+                    scene.add(tablePint);
+
+                    // Lukr Mastery upgrade chills annoyance on every pour
+                    const chillAmt = 4 + state.upgrades.lukr * 4;
+                    state.annoyance = Math.max(0, state.annoyance - chillAmt);
+
+                    createParticleBurst(p.position, 0x2ecc71, 30);
+                    state.patronsServed++;
+                    createEffect(p.position, '🍻 CHEERS!', '#f1c40f');
+                    addHypeAndTips(30, p.userData.tablePos);
+
+                    if (state.patronsServed >= state.patronsTotal) {
+                        state.isPlaying = false;
+                        AudioSys.playSFX('win');
+                        setTimeout(() => openLevelClearScreen(), 850);
+                    }
+                }
+
+                // ==========================================
+                // MAIN GAME LOOP
+                // ==========================================
+                function animate() {
+                    const dt = Math.min(clock.getDelta(), 0.1);
+                    const time = clock.getElapsedTime();
+
+                    // Pulse LED Dance Floor & Music Notes even on Start Screen preview
+                    state.danceTiles.forEach((tile, idx) => {
+                        const hue = ((time * 0.35) + idx * 0.07) % 1.0;
+                        tile.material.emissive.setHSL(hue, 0.85, 0.45);
+                        tile.material.emissiveIntensity = 0.35 + Math.abs(Math.sin(time * 6 + idx)) * 0.45;
+                    });
+
+                    state.notes.forEach((n, i) => {
+                        n.position.y = 3.5 + Math.sin(time * 3 + i) * 0.55;
+                        n.position.x += Math.sin(time + i) * 0.015;
+                        n.position.z += Math.cos(time + i) * 0.015;
+                    });
+
+                    if (!state.isPlaying) {
+                        composer.render();
+                        return;
+                    }
+
+                    // 1. Timer & Combo Decay
+                    state.timeLeft -= dt;
+                    const timerEl = document.getElementById('timer-display');
+                    timerEl.innerText = `TIME: ${Math.max(0, Math.ceil(state.timeLeft))}`;
+                    if (state.timeLeft <= 12) timerEl.classList.add('timer-low');
+                    else timerEl.classList.remove('timer-low');
+
+                    if (state.timeLeft <= 0) {
+                        state.isPlaying = false;
+                        AudioSys.playSFX('lose');
+                        document.getElementById('game-over-title').innerText = "LAST CALL MISSED!";
+                        document.getElementById('game-over-msg').innerText = "You ran out of time before all tables got their craft pours.";
+                        document.getElementById('game-over-screen').classList.remove('hidden');
+                        return;
+                    }
+
+                    if (state.combo > 0) {
+                        state.comboTimer -= dt;
+                        if (state.comboTimer <= 0) {
+                            state.combo = 0;
+                            updateUI();
+                        }
+                    }
+
+                    // Cooldowns & Buff Timers
+                    if (state.dashCooldown > 0) state.dashCooldown = Math.max(0, state.dashCooldown - dt);
+                    if (state.dashActiveTimer > 0) state.dashActiveTimer = Math.max(0, state.dashActiveTimer - dt);
+                    if (state.buffs.latte > 0) state.buffs.latte = Math.max(0, state.buffs.latte - dt);
+                    if (state.buffs.shield > 0) {
+                        state.buffs.shield = Math.max(0, state.buffs.shield - dt);
+                        playerShieldMesh.material.opacity = 0.35 + Math.sin(time * 12) * 0.15;
+                        playerShieldMesh.rotation.y += dt * 2;
+                    } else {
+                        playerShieldMesh.material.opacity = 0;
+                    }
+                    updateBuffPills();
+
+                    // DJ Sub-Bass Drop Upgrade
+                    if (state.upgrades.bass > 0) {
+                        state.djBassTimer -= dt;
+                        if (state.djBassTimer <= 0) {
+                            state.djBassTimer = Math.max(3.5, 7.5 - state.upgrades.bass * 1.2);
+                            const djPos = new THREE.Vector3(10, 0.3, 6);
+                            spawnShockwaveRing(djPos, 0xe91e63, 14);
+                            createEffect(djPos, '🔊 DJ SUB-BASS DROP!', '#e91e63');
+                            state.enemies.forEach(e => {
+                                if (e.position.distanceTo(djPos) < 13) {
+                                    e.userData.stunTimer = 2.0;
+                                    createParticleBurst(e.position, 0xe91e63, 12);
+                                }
+                            });
+                        }
+                    }
+
+                    // 2. Animate NPCs (Dancers, Dogs, Aliens)
+                    state.npcs.forEach((d, i) => {
+                        if (!d.userData.isTransformed) {
+                            d.position.y = d.userData.type === 'dancer' ? Math.abs(Math.sin(time * 6 + i)) * 0.42 : Math.sin(time * 2 + i) * 0.08;
+                            d.rotation.y = Math.sin(time * 2 + i) * 0.6;
+                        } else if (d.userData.morphType === 'dog') {
+                            // Happy Dog zoomies in a circle
+                            d.position.y = Math.abs(Math.sin(time * 14 + i)) * 0.35;
+                            d.rotation.y += dt * 4.5;
+                            d.position.x = d.userData.homePos.x + Math.cos(time * 3 + i) * 1.2;
+                            d.position.z = d.userData.homePos.z + Math.sin(time * 3 + i) * 1.2;
+                        } else if (d.userData.morphType === 'alien') {
+                            // Levitating Alien spin
+                            d.position.y = 0.45 + Math.sin(time * 4 + i) * 0.25;
+                            d.rotation.y += dt * 2.5;
+                        }
+                    });
+
+                    // 3. Animate Pool Table Balls Physics
+                    state.poolBalls.forEach(b => {
+                        if (Math.abs(b.userData.vx) > 0.01 || Math.abs(b.userData.vz) > 0.01) {
+                            b.position.x += b.userData.vx * dt;
+                            b.position.z += b.userData.vz * dt;
+                            b.userData.vx *= 0.94;
+                            b.userData.vz *= 0.94;
+                            // Bounce off pool table cushions
+                            if (b.position.x < -14.1 || b.position.x > -9.9) b.userData.vx *= -1;
+                            if (b.position.z < 4.4 || b.position.z > 11.6) b.userData.vz *= -1;
+                            b.position.x = THREE.MathUtils.clamp(b.position.x, -14.1, -9.9);
+                            b.position.z = THREE.MathUtils.clamp(b.position.z, 4.4, 11.6);
+                        }
+                    });
+
+                    // 4. Seated Patron Patience & Floating Beer Mugs
+                    state.patrons.forEach((p, idx) => {
+                        if (!p.userData.isServed) {
+                            if (p.userData.iconMesh) {
+                                p.userData.iconMesh.position.y = 2.65 + Math.sin(time * 4 + idx) * 0.22;
+                                p.userData.iconMesh.rotation.y += dt * 1.8;
+                            }
+                            p.userData.patience = Math.max(0, p.userData.patience - dt * (1.1 + state.level * 0.15));
+                            if (p.userData.ringMesh) {
+                                if (p.userData.patience > 55) {
+                                    p.userData.ringMesh.material.color.setHex(0x2ecc71);
+                                } else if (p.userData.patience > 25) {
+                                    p.userData.ringMesh.material.color.setHex(0xf1c40f);
+                                } else {
+                                    p.userData.ringMesh.material.color.setHex(0xff2222);
+                                    p.userData.ringMesh.material.opacity = 0.4 + Math.abs(Math.sin(time * 10)) * 0.5;
+                                    if (state.buffs.shield <= 0) {
+                                        state.annoyance += 1.8 * dt;
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // 5. Player Movement, Spill Mopping & Articulated Limb Animation
+                    let moveSpeed = 7.8;
+                    if (state.buffs.latte > 0) moveSpeed *= 1.45;
+                    if (state.dashActiveTimer > 0) moveSpeed *= 2.35;
+
+                    // Check Floor Spills
+                    for (let i = state.spills.length - 1; i >= 0; i--) {
+                        const s = state.spills[i];
+                        if (playerGroup.position.distanceTo(s.position) < 2.3) {
+                            if (state.dashActiveTimer > 0) {
+                                // Mop up spill during Mop Dash!
+                                createParticleBurst(s.position, 0x00f3ff, 22);
+                                createEffect(s.position, '✨ MOPPED CLEAN! +$15', '#00f3ff');
+                                scene.remove(s);
+                                state.spills.splice(i, 1);
+                                addHypeAndTips(15, null);
+                            } else if (state.upgrades.boots === 0) {
+                                moveSpeed = 2.6;
+                            }
+                        }
+                    }
+
+                    let inputX = joystick.active ? joystick.x : ((keyState.d ? 1 : 0) - (keyState.a ? 1 : 0));
+                    let inputY = joystick.active ? joystick.y : ((keyState.s ? 1 : 0) - (keyState.w ? 1 : 0));
+                    const inputLen = Math.hypot(inputX, inputY);
+                    if (inputLen > 1) {
+                        inputX /= inputLen;
+                        inputY /= inputLen;
+                    }
+
+                    if (inputLen > 0.05) {
+                        const newPos = playerGroup.position.clone();
+                        newPos.x += inputX * moveSpeed * dt;
+                        newPos.z += inputY * moveSpeed * dt;
+
+                        if (!checkCollision(newPos)) {
+                            playerGroup.position.copy(newPos);
+                        } else {
+                            const slideX = playerGroup.position.clone();
+                            slideX.x = newPos.x;
+                            if (!checkCollision(slideX)) {
+                                playerGroup.position.x = newPos.x;
+                            } else {
+                                const slideZ = playerGroup.position.clone();
+                                slideZ.z = newPos.z;
+                                if (!checkCollision(slideZ)) playerGroup.position.z = newPos.z;
+                            }
+                        }
+
+                        // Smoothly rotate player toward movement direction
+                        const targetAngle = Math.atan2(inputX, inputY);
+                        playerCharacter.rotation.y = targetAngle;
+
+                        // Walk cycle limb swing
+                        if (playerCharacter.userData.limbs) {
+                            const { legL, legR, armL, armR } = playerCharacter.userData.limbs;
+                            legL.rotation.x = Math.sin(time * 16) * 0.6;
+                            legR.rotation.x = -Math.sin(time * 16) * 0.6;
+                            armL.rotation.x = -Math.sin(time * 16) * 0.4;
+                            armR.rotation.x = Math.sin(time * 16) * 0.4;
+                        }
+
+                        if (state.dashActiveTimer > 0 && Math.random() < 0.6) {
+                            createParticleBurst(playerGroup.position, 0x00f3ff, 4);
+                        }
+                    } else if (playerCharacter.userData.limbs) {
+                        const { legL, legR, armL, armR } = playerCharacter.userData.limbs;
+                        legL.rotation.x = 0;
+                        legR.rotation.x = 0;
+                        armL.rotation.x = 0;
+                        armR.rotation.x = 0;
+                    }
+
+                    // 6. Dynamic Camera Tracking + Screen Shake + Zoom Punch
+                    state.cameraShake = Math.max(0, state.cameraShake - dt * 2.2);
+                    state.cameraZoomPunch = Math.max(0, state.cameraZoomPunch - dt * 1.8);
+                    const shakeX = (Math.random() - 0.5) * state.cameraShake * 1.8;
+                    const shakeZ = (Math.random() - 0.5) * state.cameraShake * 1.8;
+
+                    camera.position.x = THREE.MathUtils.lerp(camera.position.x, playerGroup.position.x * 0.38 + shakeX, dt * 6);
+                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, playerGroup.position.z + 11.5 - state.cameraZoomPunch * 2.5 + shakeZ, dt * 6);
+
+                    // 7. Weapon Swing Animations
+                    if (state.animState.slap > 0) {
+                        state.animState.slap -= dt * 5.5;
+                        playerSpoonModel.rotation.x = Math.sin(state.animState.slap * 10) * 1.6;
+                        playerSlashMesh.material.opacity = Math.max(0, state.animState.slap * 0.85);
+                        playerSlashMesh.rotation.z += dt * 14;
+                    } else {
+                        playerSpoonModel.rotation.x = Math.PI / 6;
+                        playerSlashMesh.material.opacity = 0;
+                    }
+
+                    if (state.animState.pour > 0) {
+                        state.animState.pour -= dt * 3.5;
+                        playerBeerModel.rotation.z = -0.65;
+                    } else {
+                        playerBeerModel.rotation.z = 0;
+                    }
+
+                    // 8. Collect Floor Power-Ups
+                    for (let i = state.powerups.length - 1; i >= 0; i--) {
+                        const pu = state.powerups[i];
+                        pu.rotation.y += dt * 2.5;
+                        pu.position.y = 0.65 + Math.sin(time * 5 + i) * 0.18;
+                        pu.userData.life -= dt;
+
+                        if (playerGroup.position.distanceTo(pu.position) < 2.2) {
+                            AudioSys.playSFX('win');
+                            createParticleBurst(pu.position, pu.userData.color, 30);
+                            createEffect(pu.position, pu.userData.label, '#ffffff');
+
+                            if (pu.userData.id === 'latte') {
+                                state.buffs.latte = 8.0;
+                            } else if (pu.userData.id === 'bitters') {
+                                state.annoyance = Math.max(0, state.annoyance - 35);
+                                state.buffs.shield = 6.0;
+                            } else if (pu.userData.id === 'keg') {
+                                spawnShockwaveRing(pu.position, 0x00f3ff, 14);
+                                state.enemies.forEach(e => {
+                                    e.userData.frozenTimer = 5.0;
+                                    createParticleBurst(e.position, 0x00f3ff, 18);
+                                });
+                            }
+                            scene.remove(pu);
+                            state.powerups.splice(i, 1);
+                            updateUI();
+                            continue;
+                        }
+
+                        if (pu.userData.life <= 0) {
+                            scene.remove(pu);
+                            state.powerups.splice(i, 1);
+                        }
+                    }
+
+                    // 9. Enemy AI, Knockback & Annoyance
+                    state.enemySpawnTimer -= dt;
+                    const maxEnemies = Math.min(5, 2 + Math.floor(state.level / 2));
+                    if (state.enemySpawnTimer <= 0 && state.enemies.length < maxEnemies) {
+                        spawnEnemy();
+                        state.enemySpawnTimer = Math.max(2.0, 3.6 - state.level * 0.25);
+                    }
+
+                    for (let i = state.enemies.length - 1; i >= 0; i--) {
+                        const e = state.enemies[i];
+                        if (!e) continue;
+
+                        // Apply Knockback Physics
+                        if (e.userData.knockVel.lengthSq() > 0.2) {
+                            const kbPos = e.position.clone().addScaledVector(e.userData.knockVel, dt);
+                            if (!checkCollision(kbPos)) e.position.copy(kbPos);
+                            e.userData.knockVel.multiplyScalar(0.86);
+                        }
+
+                        if (e.userData.frozenTimer > 0) {
+                            e.userData.frozenTimer -= dt;
+                            e.position.y = 0;
+                            continue;
+                        }
+
+                        if (e.userData.stunTimer > 0) {
+                            e.userData.stunTimer -= dt;
+                            e.rotation.y += dt * 10;
+                            continue;
+                        }
+
+                        const dir = new THREE.Vector3().subVectors(playerGroup.position, e.position).normalize();
+                        state.obstacles.forEach(obs => {
+                            const diff = new THREE.Vector3().subVectors(e.position, obs.position);
+                            const dist = diff.length();
+                            if (dist < 2.6) {
+                                diff.normalize().multiplyScalar(1.6 / dist);
+                                dir.add(diff);
+                            }
+                        });
+
+                        const nextPos = e.position.clone().addScaledVector(dir.normalize(), e.userData.speed * dt);
+                        if (!checkCollision(nextPos)) e.position.copy(nextPos);
+                        e.lookAt(playerGroup.position.x, e.position.y, playerGroup.position.z);
+                        e.position.y = Math.abs(Math.sin(time * 10 + i)) * 0.22;
+
+                        if (playerGroup.position.distanceTo(e.position) < 2.8) {
+                            if (state.buffs.shield <= 0) {
+                                state.annoyance += 65 * dt;
+                                updateUI();
+                            }
+                        }
+                    }
+
+                    // 10. Update Expanding Shockwaves & Particles
+                    for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+                        const sw = state.shockwaves[i];
+                        sw.life -= dt * 1.8;
+                        if (sw.life <= 0) {
+                            scene.remove(sw.mesh);
+                            sw.mesh.geometry.dispose();
+                            sw.mesh.material.dispose();
+                            state.shockwaves.splice(i, 1);
+                            continue;
+                        }
+                        const s = (1 - sw.life) * sw.maxRadius;
+                        sw.mesh.scale.set(s, s, 1);
+                        sw.mesh.material.opacity = sw.life;
+                    }
+
+                    for (let i = state.particles.length - 1; i >= 0; i--) {
+                        const pSystem = state.particles[i];
+                        pSystem.life -= dt * 1.6;
+                        if (pSystem.life <= 0) {
+                            scene.remove(pSystem.mesh);
+                            pSystem.mesh.geometry.dispose();
+                            pSystem.mesh.material.dispose();
+                            state.particles.splice(i, 1);
+                            continue;
+                        }
+                        const positions = pSystem.mesh.geometry.attributes.position.array;
+                        for (let j = 0; j < pSystem.velocities.length; j++) {
+                            positions[j * 3] += pSystem.velocities[j].x * dt;
+                            positions[j * 3 + 1] += pSystem.velocities[j].y * dt;
+                            positions[j * 3 + 2] += pSystem.velocities[j].z * dt;
+                            pSystem.velocities[j].y -= 15.0 * dt;
+                        }
+                        pSystem.mesh.geometry.attributes.position.needsUpdate = true;
+                        pSystem.mesh.material.opacity = pSystem.life;
+                    }
+
+                    // 11. Check Max Annoyance Loss Condition
+                    if (state.annoyance >= 100) {
+                        state.isPlaying = false;
+                        AudioSys.playSFX('lose');
+                        document.getElementById('game-over-title').innerText = "MAX ANNOYANCE!";
+                        document.getElementById('game-over-msg').innerText = "The taproom chaos boiled over! You flipped a table and clocked out.";
+                        document.getElementById('game-over-screen').classList.remove('hidden');
+                    }
+
+                    composer.render();
+                }
+
+                // ==========================================
+                // UI, SHOP & FINAL FLIGHT CONTROLLERS
+                // ==========================================
+                function updateUI() {
+                    document.getElementById('patron-counter').innerText = `SERVED: ${state.patronsServed}/${state.patronsTotal}`;
+                    document.getElementById('tips-display').innerText = `TIPS: $${state.tips}`;
+
+                    const annoyPct = Math.min(100, Math.floor(state.annoyance));
+                    document.getElementById('meter-fill').style.width = annoyPct + '%';
+                    document.getElementById('meter-label').innerText = `ANNOYANCE: ${annoyPct}%`;
+
+                    // Red warning vignette when Annoyance is high
+                    const vig = document.getElementById('vignette-layer');
+                    if (annoyPct > 65) {
+                        vig.style.boxShadow = `inset 0 0 ${annoyPct}px rgba(231, 76, 60, ${(annoyPct - 60) / 50})`;
+                    } else {
+                        vig.style.boxShadow = 'none';
+                    }
+
+                    // Combo badge
+                    const badge = document.getElementById('combo-badge');
+                    const mult = Math.min(5, 1 + Math.floor(state.combo / 2));
+                    if (state.combo >= 2) {
+                        badge.innerText = `${mult}x HYPE! (${state.combo} CHAIN)`;
+                        badge.classList.add('active');
+                    } else {
+                        badge.classList.remove('active');
+                    }
+
+                    // Ultimate button state
+                    const ultBtn = document.getElementById('btn-ult');
+                    const ultFill = document.getElementById('ult-fill-bar');
+                    ultFill.style.height = `${state.ultCharge}%`;
+                    if (state.ultCharge >= 100) {
+                        ultBtn.classList.add('ready');
+                    } else {
+                        ultBtn.classList.remove('ready');
+                    }
+                }
+
+                function updateBuffPills() {
+                    const bar = document.getElementById('buff-bar');
+                    if (!bar) return;
+                    let html = '';
+                    if (state.buffs.latte > 0) {
+                        html += `<div class="buff-pill">☕ LOOMIS TURBO ${Math.ceil(state.buffs.latte)}s</div>`;
+                    }
+                    if (state.buffs.shield > 0) {
+                        html += `<div class="buff-pill">🥃 CHILL SHIELD ${Math.ceil(state.buffs.shield)}s</div>`;
+                    }
+                    bar.innerHTML = html;
+                }
+
+                function showMessage(txt) {
+                    const el = document.getElementById('msg-area');
+                    el.innerText = txt;
+                    el.style.opacity = '1';
+                    el.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        el.style.transform = 'scale(1)';
+                    }, 150);
+                    setTimeout(() => {
+                        if (el.innerText === txt) el.innerText = '';
+                    }, 1800);
+                }
+
+                function openLevelClearScreen() {
+                    const timeBonus = Math.floor(state.timeLeft) * 2;
+                    state.tips += timeBonus;
+                    state.totalTipsEarned += timeBonus;
+                    updateUI();
+
+                    document.getElementById('level-clear-title').innerText = `SHIFT ${state.level} COMPLETE!`;
+                    document.getElementById('level-clear-stats').innerText = `Speed Bonus: +$${timeBonus}! Upgrade your gear in the Mug Club Shop before advancing.`;
+                    renderShopUI();
+                    document.getElementById('level-screen').classList.remove('hidden');
+                }
+
+                function renderShopUI() {
+                    document.getElementById('shop-balance').innerText = `AVAILABLE TIPS: $${state.tips}`;
+                    const grid = document.getElementById('shop-grid');
+                    grid.innerHTML = '';
+
+                    SHOP_ITEMS.forEach(item => {
+                        const curLvl = state.upgrades[item.id];
+                        const cost = item.baseCost + curLvl * 45;
+                        const isMax = curLvl >= item.maxLvl;
+
+                        const card = document.createElement('div');
+                        card.className = 'shop-card';
+                        card.innerHTML = `
+                            <div>
+                                <h3>${item.name}</h3>
+                                <div style="color:#f39c12; font-size:12px; font-weight:bold;">TIER ${curLvl} / ${item.maxLvl}</div>
+                                <p>${item.desc}</p>
+                            </div>
+                        `;
+                        const btn = document.createElement('button');
+                        btn.className = 'buy-btn';
+                        if (isMax) {
+                            btn.innerText = 'MAXED OUT';
+                            btn.disabled = true;
+                        } else {
+                            btn.innerText = `UPGRADE ($${cost})`;
+                            btn.disabled = state.tips < cost;
+                            btn.onclick = () => {
+                                if (state.tips >= cost) {
+                                    state.tips -= cost;
+                                    state.upgrades[item.id]++;
+                                    AudioSys.playSFX('coin');
+                                    renderShopUI();
+                                    updateUI();
+                                }
+                            };
+                        }
+                        card.appendChild(btn);
+                        grid.appendChild(card);
+                    });
+                }
+
+                // ==========================================
+                // THE FINAL FLIGHT PUZZLE LOGIC
+                // ==========================================
+                function clearFlight() {
+                    state.flight = [null, null, null, null];
+                    setupFlightUI();
+                    document.getElementById('flight-msg').innerText = '';
+                }
+
+                function setupFlightUI() {
+                    const grid = document.getElementById('beer-slots');
+                    grid.innerHTML = '';
+                    state.flight.forEach((beerObj, idx) => {
+                        const d = document.createElement('div');
+                        d.className = beerObj ? 'slot filled' : 'slot';
+                        const liqColor = beerObj ? beerObj.color : 'transparent';
+                        d.innerHTML = `
+                            <div style="font-size:10px; color:#aaa;">TASTER #${idx + 1}</div>
+                            <div class="glass-visual">
+                                <div class="glass-liquid" style="background:${liqColor};"></div>
+                                <div class="glass-foam"></div>
+                            </div>
+                            <div>${beerObj ? beerObj.name : 'Tap to Pour'}</div>
+                        `;
+                        d.onclick = () => {
+                            if (state.flight[idx]) {
+                                state.flight[idx] = null;
+                                setupFlightUI();
+                            }
+                        };
+                        grid.appendChild(d);
+                    });
+
+                    const opts = document.getElementById('beer-choices');
+                    opts.innerHTML = '';
+                    BEER_CATALOG.forEach(beer => {
+                        const btn = document.createElement('button');
+                        btn.className = 'choice-btn';
+                        btn.innerHTML = `<span class="beer-dot" style="background:${beer.color}"></span><span>${beer.name}</span>`;
+                        btn.onclick = () => {
+                            const idx = state.flight.indexOf(null);
+                            if (idx !== -1) {
+                                state.flight[idx] = beer;
+                                AudioSys.playSFX('pour');
+                                setupFlightUI();
+                            }
+                        };
+                        opts.appendChild(btn);
+                    });
+                }
+
+                function submitFlight() {
+                    const msgEl = document.getElementById('flight-msg');
+                    if (state.flight.includes(null)) {
+                        msgEl.style.color = '#f39c12';
+                        msgEl.innerText = 'Fill all 4 taster glasses on the flight paddle!';
+                        return;
+                    }
+                    let hasIPA = false, hasSour = false, hasStout = false, hasForbidden = false;
+                    state.flight.forEach(b => {
+                        if (b.type === 'IPA') hasIPA = true;
+                        if (b.type === 'Sour') hasSour = true;
+                        if (b.type === 'Stout') hasStout = true;
+                        if (b.type === 'Pilsner' || b.type === 'Cider' || b.type === 'Lager') hasForbidden = true;
+                    });
+
+                    if (hasIPA && hasSour && hasStout && !hasForbidden) {
+                        AudioSys.playSFX('win');
+                        document.getElementById('flight-screen').classList.add('hidden');
+                        document.getElementById('win-summary').innerText = `You conquered all 5 shifts, earned $${state.totalTipsEarned} in Total Tips, and poured the Master Flight!`;
+                        document.getElementById('win-screen').classList.remove('hidden');
+                    } else {
+                        AudioSys.playSFX('lose');
+                        msgEl.style.color = '#ff4444';
+                        msgEl.innerText = hasForbidden
+                            ? 'TRASH! Never put a Pilsner, Cider, or Lager on the Master Flight!'
+                            : 'INCOMPLETE BALANCE! Needs at least 1 IPA, 1 Sour, and 1 Stout/Porter!';
+                        setTimeout(() => {
+                            msgEl.innerText = '';
+                            clearFlight();
+                        }, 2200);
+                    }
+                }
+
+                // ==========================================
+                // INPUT & BUTTON BINDINGS
+                // ==========================================
+                function setupButtons() {
+                    const bind = (id, fn) => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.onclick = null;
+                            el.addEventListener('click', fn);
+                            el.addEventListener('touchend', (e) => {
+                                e.preventDefault();
+                                fn();
+                            });
+                        }
+                    };
+
+                    bind('btn-mute', () => AudioSys.toggleMute());
+
+                    bind('btn-start', () => {
+                        AudioSys.init();
+                        document.getElementById('start-screen').classList.add('hidden');
+                        state.level = 1;
+                        state.tips = 0;
+                        state.totalTipsEarned = 0;
+                        state.ultCharge = 0;
+                        state.upgrades = { spoon: 0, lukr: 0, boots: 0, bass: 0 };
+                        state.isPlaying = true;
+                        clock.getDelta();
+                        loadLevel(1);
+                    });
+
+                    bind('btn-next-level', () => {
+                        document.getElementById('level-screen').classList.add('hidden');
+                        if (state.level >= LEVELS) {
+                            document.getElementById('flight-screen').classList.remove('hidden');
+                            clearFlight();
+                            state.isPlaying = false;
+                        } else {
+                            state.level++;
+                            state.isPlaying = true;
+                            clock.getDelta();
+                            loadLevel(state.level);
+                        }
+                    });
+
+                    const resetFullGame = () => {
+                        document.getElementById('game-over-screen').classList.add('hidden');
+                        document.getElementById('win-screen').classList.add('hidden');
+                        state.level = 1;
+                        state.tips = 0;
+                        state.totalTipsEarned = 0;
+                        state.ultCharge = 0;
+                        state.upgrades = { spoon: 0, lukr: 0, boots: 0, bass: 0 };
+                        state.isPlaying = true;
+                        clock.getDelta();
+                        loadLevel(1);
+                    };
+
+                    bind('btn-restart', resetFullGame);
+                    bind('btn-play-again', resetFullGame);
+                    bind('btn-clear-flight', clearFlight);
+                    bind('btn-submit-flight', submitFlight);
+                }
+
+                function setupControls() {
+                    const joy = document.getElementById('joystick-zone');
+                    const knob = document.getElementById('joystick-knob');
+
+                    const move = (x, y) => {
+                        const rect = joy.getBoundingClientRect();
+                        const cx = rect.left + rect.width / 2;
+                        const cy = rect.top + rect.height / 2;
+                        let dx = x - cx;
+                        let dy = y - cy;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const maxR = 48;
+                        if (dist > maxR) {
+                            dx = (dx / dist) * maxR;
+                            dy = (dy / dist) * maxR;
+                        }
+                        knob.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px)`;
+                        joystick.x = dx / maxR;
+                        joystick.y = dy / maxR;
+                    };
+
+                    const end = () => {
+                        joystick.active = false;
+                        joystick.x = 0;
+                        joystick.y = 0;
+                        knob.style.transform = 'translate(-50%, -50%)';
+                    };
+
+                    joy.addEventListener('mousedown', e => { joystick.active = true; move(e.clientX, e.clientY); });
+                    window.addEventListener('mousemove', e => { if (joystick.active) move(e.clientX, e.clientY); });
+                    window.addEventListener('mouseup', end);
+
+                    joy.addEventListener('touchstart', e => { e.preventDefault(); joystick.active = true; move(e.touches[0].clientX, e.touches[0].clientY); });
+                    joy.addEventListener('touchmove', e => { e.preventDefault(); if (joystick.active) move(e.touches[0].clientX, e.touches[0].clientY); });
+                    joy.addEventListener('touchend', end);
+
+                    const bindActionBtn = (id, action) => {
+                        const btn = document.getElementById(id);
+                        if (!btn) return;
+                        btn.addEventListener('mousedown', () => performAction(action));
+                        btn.addEventListener('touchstart', (e) => { e.preventDefault(); performAction(action); });
+                    };
+
+                    bindActionBtn('btn-slap', 'slap');
+                    bindActionBtn('btn-pour', 'pour');
+                    bindActionBtn('btn-dash', 'dash');
+                    bindActionBtn('btn-ult', 'ult');
+
+                    window.addEventListener('keydown', e => {
+                        const k = e.key.toLowerCase();
+                        if (k === 'w' || e.key === 'ArrowUp') keyState.w = true;
+                        if (k === 's' || e.key === 'ArrowDown') keyState.s = true;
+                        if (k === 'a' || e.key === 'ArrowLeft') keyState.a = true;
+                        if (k === 'd' || e.key === 'ArrowRight') keyState.d = true;
+                        if (e.key === ' ') { e.preventDefault(); performAction('slap'); }
+                        if (k === 'e') performAction('pour');
+                        if (e.key === 'Shift') performAction('dash');
+                        if (k === 'q') performAction('ult');
+                    });
+
+                    window.addEventListener('keyup', e => {
+                        const k = e.key.toLowerCase();
+                        if (k === 'w' || e.key === 'ArrowUp') keyState.w = false;
+                        if (k === 's' || e.key === 'ArrowDown') keyState.s = false;
+                        if (k === 'a' || e.key === 'ArrowLeft') keyState.a = false;
+                        if (k === 'd' || e.key === 'ArrowRight') keyState.d = false;
+                    });
+                }
+
+                // Launch Game
+                init();
     </script>
 </body>
 </html>
